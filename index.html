@@ -333,7 +333,7 @@
       <p class="eyebrow">Trail Garage Status</p>
       <h1>Trail Venue Status Board</h1>
       <p class="sub">
-        Live venue board for all eight trail stops. Maps stay exactly as they are now. Info panels use venue-specific parsing first, then clean verified fallback data if the source page is awkward.
+        Live venue board for all eight trail stops. Maps stay exactly as they are now. Info panels use venue-specific parsing first, then complete verified fallback data where the site structure is weaker.
       </p>
     </section>
 
@@ -376,7 +376,7 @@
         label: "Fuel System Garage",
         name: "Gilks’ Garage Café",
         sourceUrl: "https://gilksgaragecafe.com/",
-        fetchUrl: "https://r.jina.ai/http://gilksgaragecafe.com/opening-hours",
+        fetchUrl: "https://r.jina.ai/http://gilksgaragecafe.com/opening-hours/",
         mapsQuery: "Gilks Garage Cafe, Banbury Road, Kineton, Warwickshire, CV35 0JZ",
         parser: "gilks",
         fallback: {
@@ -387,8 +387,8 @@
             "Warwickshire",
             "CV35 0JZ"
           ],
-          phone: "",
-          email: "",
+          phone: "01926 640539",
+          email: "info@gilksgaragecafe.com",
           socials: {
             facebook: "https://www.facebook.com/gilksgaragecafe/",
             instagram: "https://www.instagram.com/gilksgaragecafe/"
@@ -507,7 +507,7 @@
         label: "Cooling Garage",
         name: "The Blue Lias",
         sourceUrl: "https://thebluelias.com/",
-        fetchUrl: "https://r.jina.ai/http://thebluelias.com/pages/contact",
+        fetchUrl: "https://r.jina.ai/http://thebluelias.com/",
         mapsQuery: "The Blue Lias, Stockton Road, Stockton, Southam, CV47 8LD",
         parser: "bluelias",
         fallback: {
@@ -661,6 +661,52 @@
 
     cardsEl.innerHTML = VENUES.map(createVenueCard).join("");
 
+    function daySetCovered(hours) {
+      const expected = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+      const have = new Set((hours || []).map(h => (h.day || "").toLowerCase()));
+      return expected.every(day => have.has(day));
+    }
+
+    function hasGoodAddress(lines) {
+      return Array.isArray(lines) && lines.length >= 4;
+    }
+
+    function hasGoodHours(hours) {
+      return Array.isArray(hours) && hours.length > 0 && daySetCovered(hours);
+    }
+
+    function mergeSocials(primary = {}, fallback = {}) {
+      return {
+        facebook: primary.facebook || fallback.facebook || "",
+        instagram: primary.instagram || fallback.instagram || ""
+      };
+    }
+
+    function fillFromFallback(parsed, fallback) {
+      if (!fallback) return parsed;
+
+      const merged = { ...parsed };
+
+      if (!hasGoodAddress(merged.addressLines) && hasGoodAddress(fallback.addressLines)) {
+        merged.addressLines = fallback.addressLines;
+      }
+
+      if (!merged.phone && fallback.phone) {
+        merged.phone = fallback.phone;
+      }
+
+      if (!merged.email && fallback.email) {
+        merged.email = fallback.email;
+      }
+
+      if (!hasGoodHours(merged.hours) && hasGoodHours(fallback.hours)) {
+        merged.hours = fallback.hours;
+      }
+
+      merged.socials = mergeSocials(merged.socials || {}, fallback.socials || {});
+      return merged;
+    }
+
     function parseTimeRange(range) {
       if (!range) return null;
 
@@ -710,38 +756,6 @@
 
       if (start == null || end == null) return null;
       return { start, end };
-    }
-
-    function mergeSocials(primary = {}, fallback = {}) {
-      return {
-        facebook: primary.facebook || fallback.facebook || "",
-        instagram: primary.instagram || fallback.instagram || ""
-      };
-    }
-
-    function fillFromFallback(parsed, fallback) {
-      if (!fallback) return parsed;
-
-      const merged = { ...parsed };
-
-      if (!merged.addressLines || !merged.addressLines.length) {
-        merged.addressLines = fallback.addressLines || [];
-      }
-
-      if (!merged.phone && fallback.phone) {
-        merged.phone = fallback.phone;
-      }
-
-      if (!merged.email && fallback.email) {
-        merged.email = fallback.email;
-      }
-
-      if ((!merged.hours || !merged.hours.length) && fallback.hours) {
-        merged.hours = fallback.hours;
-      }
-
-      merged.socials = mergeSocials(merged.socials || {}, fallback.socials || {});
-      return merged;
     }
 
     function computeOpenStatusFromWeek(hoursArray) {
@@ -907,9 +921,27 @@
     function parseGilks(text, venue) {
       const cleaned = text.replace(/\r/g, "");
       const addr = cleaned.match(/Gilks.? Garage Café,\n([^\n]+),\n([^\n]+),\n([^\n]+),\n([^\n]+)/i);
-      const monTue = cleaned.match(/Monday\s*[–-]\s*Tuesday\s*\/\s*([^\n]+)/i);
-      const wedSun = cleaned.match(/Wednesday\s*[–-]\s*Sunday\s*\/\s*([^\n]+)/i);
-      const kitchen = cleaned.match(/\*kitchen closes at ([^\n*]+)\*/i);
+      const normalHours = cleaned.match(/Monday to Tuesday\s*[–-]\s*([^\n]+)\s*Wednesday to Sunday\s*[–-]\s*([^\n]+)/i);
+      const phoneMatch = cleaned.match(/Ring\s*(01926\s*640539)/i);
+      const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@gilksgaragecafe\.com)/i);
+
+      let wedSunTime = "";
+      let wedSunExtra = "";
+      if (normalHours) {
+        const raw = cleanTimeText(normalHours[2]);
+        const kitchenMatch = raw.match(/^(.*?)(\(kitchen closes at [^)]+\))/i);
+        if (kitchenMatch) {
+          wedSunTime = cleanTimeText(kitchenMatch[1]);
+          wedSunExtra = cleanTimeText(kitchenMatch[2].replace(/[()]/g, ""));
+        } else {
+          wedSunTime = raw;
+        }
+      } else {
+        const wedSun = cleaned.match(/Wednesday\s*[–-]\s*Sunday\s*[\/-]?\s*([^\n]+)/i);
+        const kitchen = cleaned.match(/kitchen closes at ([^\n*]+)/i);
+        wedSunTime = cleanTimeText(wedSun?.[1] || "");
+        wedSunExtra = kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "";
+      }
 
       return fillFromFallback({
         ...venue,
@@ -920,18 +952,18 @@
           normaliseSpaces(addr[3]),
           normaliseSpaces(addr[4])
         ] : [],
-        phone: "",
-        email: "",
+        phone: phoneMatch ? cleanTimeText(phoneMatch[1]) : "",
+        email: emailMatch ? cleanTimeText(emailMatch[1]) : "",
         website: venue.sourceUrl,
         socials: {},
         hours: [
-          { day: "Monday", time: cleanTimeText(monTue?.[1] || "Closed"), extra: "" },
-          { day: "Tuesday", time: cleanTimeText(monTue?.[1] || "Closed"), extra: "" },
-          { day: "Wednesday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
-          { day: "Thursday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
-          { day: "Friday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
-          { day: "Saturday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
-          { day: "Sunday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" }
+          { day: "Monday", time: "Closed", extra: "" },
+          { day: "Tuesday", time: "Closed", extra: "" },
+          { day: "Wednesday", time: wedSunTime, extra: wedSunExtra },
+          { day: "Thursday", time: wedSunTime, extra: wedSunExtra },
+          { day: "Friday", time: wedSunTime, extra: wedSunExtra },
+          { day: "Saturday", time: wedSunTime, extra: wedSunExtra },
+          { day: "Sunday", time: wedSunTime, extra: wedSunExtra }
         ].filter(h => h.time)
       }, venue.fallback);
     }
@@ -1052,7 +1084,7 @@
 
     function parseSevenMile(text, venue) {
       const cleaned = text.replace(/\r/g, "");
-      const breakfastMatch = cleaned.match(/serving up tasty breakfasts from ([0-9:.apm\s–-]+)/i);
+      const breakfastMatch = cleaned.match(/serving up tasty breakfasts from\s*([0-9:.apm\s-]+)/i);
 
       return fillFromFallback({
         ...venue,
@@ -1220,7 +1252,9 @@
       }
     }
 
-    init();
+    init
+::contentReference[oaicite:1]{index=1}
+();
   </script>
 </body>
 </html>
