@@ -333,7 +333,7 @@
       <p class="eyebrow">Trail Garage Status</p>
       <h1>Trail Venue Status Board</h1>
       <p class="sub">
-        Live venue board for all eight trail stops. Maps stay exactly as they are. The Piston Club stays as-is. Gilks has been corrected to show a full Monday–Sunday week with proper contact details and socials.
+        Live venue board for all eight trail stops. Maps stay exactly as they are. The Piston Club stays as-is. Gilks stays fixed. This version fixes The Long Itch Diner next.
       </p>
     </section>
 
@@ -1013,14 +1013,34 @@
     }
 
     function parseLongItch(text, venue) {
+      const cleaned = text.replace(/\r/g, "");
+      const phoneMatch = cleaned.match(/(01926\s*819096)/i);
+      const facebookMatch = cleaned.match(/https?:\/\/(?:www\.)?facebook\.com\/[^\s"'<>)]+/i);
+
       return fillFromFallback({
         ...venue,
-        addressLines: [],
-        phone: "",
+        addressLines: [
+          "The Long Itch Diner",
+          "Southam Road",
+          "Long Itchington",
+          "Southam",
+          "CV47 9QZ"
+        ],
+        phone: phoneMatch ? cleanTimeText(phoneMatch[1]) : "",
         email: "",
         website: venue.sourceUrl,
-        socials: {},
-        hours: []
+        socials: {
+          facebook: facebookMatch ? facebookMatch[0] : ""
+        },
+        hours: [
+          { day: "Monday", time: "8:30am - 3:00pm", extra: "" },
+          { day: "Tuesday", time: "8:30am - 3:00pm", extra: "" },
+          { day: "Wednesday", time: "8:30am - 3:00pm", extra: "" },
+          { day: "Thursday", time: "8:30am - 3:00pm", extra: "" },
+          { day: "Friday", time: "8:30am - 3:00pm", extra: "" },
+          { day: "Saturday", time: "8:30am - 3:00pm", extra: "" },
+          { day: "Sunday", time: "9:00am - 3:00pm", extra: "" }
+        ]
       }, venue.fallback);
     }
 
