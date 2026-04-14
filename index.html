@@ -14,8 +14,6 @@
 
   <style>
     :root{
-      --bg-1:#111315;
-      --bg-2:#1a1e21;
       --panel:#1c2023;
       --panel-2:#262c30;
       --line:#40484f;
@@ -376,9 +374,11 @@
   ></script>
 
   <script>
+    const GEOAPIFY_API_KEY = "PASTE_YOUR_GEOAPIFY_API_KEY_HERE";
     const SOURCE_URL = "https://thepistonclub.co.uk/";
     const FETCH_URL = "https://r.jina.ai/http://thepistonclub.co.uk/";
-    const GEOCODE_QUERY = "The Piston Club, The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ";
+    const GEOCODE_QUERY = "The Piston Club at The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ";
+
     const contentArea = document.getElementById("contentArea");
     const statusBadge = document.getElementById("statusBadge");
     const venueName = document.getElementById("venueName");
@@ -403,7 +403,11 @@
     }
 
     function cleanTimeText(str = "") {
-      return normaliseSpaces(String(str).replace(/^\*+\s*/, "").replace(/\*+/g, ""));
+      return normaliseSpaces(
+        String(str)
+          .replace(/^\*+\s*/g, "")
+          .replace(/\s*\*+\s*/g, " ")
+      );
     }
 
     function parsePistonClubText(text) {
@@ -440,7 +444,7 @@
       );
 
       let addressLines = [
-        "The Piston Club @ The Stag",
+        "The Piston Club at The Stag",
         "Alcester Road",
         "Redhill",
         "Stratford upon Avon",
@@ -452,15 +456,15 @@
 
       if (footerMatch) {
         addressLines = [
-          "The Piston Club @ The Stag",
+          "The Piston Club at The Stag",
           normaliseSpaces(footerMatch[1]),
           normaliseSpaces(footerMatch[2]),
           normaliseSpaces(footerMatch[3]),
           normaliseSpaces(footerMatch[4]),
           normaliseSpaces(footerMatch[5])
         ];
-        phone = normaliseSpaces(footerMatch[6]);
-        email = normaliseSpaces(footerMatch[7]);
+        phone = normaliseSpaces(footerMatch[6]).replace(/^\*+\s*/g, "");
+        email = normaliseSpaces(footerMatch[7]).replace(/^\*+\s*/g, "");
       }
 
       return {
@@ -513,12 +517,22 @@
       if (parts.length !== 2) return null;
 
       function toMinutes(value) {
-        const match = value.match(/^(\d{1,2})(?:\.(\d{2}))?(am|pm)$/);
+        const match = value.match(/^(\d{1,2})(?::|\.)(\d{2})(am|pm)$/) || value.match(/^(\d{1,2})(am|pm)$/);
         if (!match) return null;
 
-        let hour = parseInt(match[1], 10);
-        const mins = parseInt(match[2] || "0", 10);
-        const meridian = match[3];
+        let hour;
+        let mins;
+        let meridian;
+
+        if (match.length === 4) {
+          hour = parseInt(match[1], 10);
+          mins = parseInt(match[2], 10);
+          meridian = match[3];
+        } else {
+          hour = parseInt(match[1], 10);
+          mins = 0;
+          meridian = match[2];
+        }
 
         if (meridian === "am") {
           if (hour === 12) hour = 0;
@@ -571,34 +585,36 @@
       map = L.map("map", {
         zoomControl: true,
         scrollWheelZoom: true
-      }).setView([52.219, -1.725], 15);
+      }).setView([52.2175, -1.7265], 16);
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap contributors"
-      }).addTo(map);
+      L.tileLayer(
+        `https://maps.geoapify.com/v1/tile/dark-matter-brown/{z}/{x}/{y}.png?apiKey=${GEOAPIFY_API_KEY}`,
+        {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.geoapify.com/">Geoapify</a>',
+          maxZoom: 20
+        }
+      ).addTo(map);
     }
 
     async function geocodeAndRenderMap(addressLines) {
       ensureMap();
 
-      const query = encodeURIComponent(GEOCODE_QUERY);
-      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${query}`;
+      const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(GEOCODE_QUERY)}&format=json&limit=1&apiKey=${encodeURIComponent(GEOAPIFY_API_KEY)}`;
 
       try {
-        const res = await fetch(url, {
-          headers: {
-            "Accept": "application/json"
-          }
-        });
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("Geoapify geocode failed.");
 
-        if (!res.ok) throw new Error("Map geocoding failed.");
+        const data = await res.json();
+        const result = data?.results?.[0];
+        if (!result) throw new Error("No Geoapify map result found.");
 
-        const results = await res.json();
-        if (!Array.isArray(results) || !results.length) throw new Error("No map result found.");
+        const lat = parseFloat(result.lat);
+        const lon = parseFloat(result.lon);
 
-        const lat = parseFloat(results[0].lat);
-        const lon = parseFloat(results[0].lon);
+        if (Number.isNaN(lat) || Number.isNaN(lon)) {
+          throw new Error("Invalid Geoapify coordinates.");
+        }
 
         map.setView([lat, lon], 16);
 
@@ -614,7 +630,7 @@
           </div>
         `).openPopup();
       } catch {
-        map.setView([52.219, -1.725], 15);
+        map.setView([52.2175, -1.7265], 16);
       }
     }
 
@@ -699,7 +715,7 @@
 
         localStorage.setItem("pistonClubLiveData", JSON.stringify(parsed));
         render(parsed);
-      } catch (err) {
+      } catch {
         const cached = localStorage.getItem("pistonClubLiveData");
         if (cached) {
           render(JSON.parse(cached));
