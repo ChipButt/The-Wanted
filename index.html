@@ -596,16 +596,53 @@
 
     function parsePiston(text, venue) {
       const cleaned = text.replace(/\r/g, "");
-      const openingBlockMatch = cleaned.match(
+      const lines = cleaned.split("\n").map(normaliseSpaces).filter(Boolean);
+
+      let monSat = "";
+      let monSatFood = "";
+      let sunday = "";
+      let sundayFood = "";
+
+      const strictBlock = cleaned.match(
         /Opening Times[\s\S]*?Monday to Saturday:\s*([^\n]+)\n\((Food[^\n]+)\)[\s\S]*?Sunday:\s*([^\n]+)\n\((Food[^\n]+)\)/i
       );
 
-      let monSat = "", monSatFood = "", sunday = "", sundayFood = "";
-      if (openingBlockMatch) {
-        monSat = cleanTimeText(openingBlockMatch[1]);
-        monSatFood = cleanTimeText(openingBlockMatch[2]);
-        sunday = cleanTimeText(openingBlockMatch[3]);
-        sundayFood = cleanTimeText(openingBlockMatch[4]);
+      if (strictBlock) {
+        monSat = cleanTimeText(strictBlock[1]);
+        monSatFood = cleanTimeText(strictBlock[2]);
+        sunday = cleanTimeText(strictBlock[3]);
+        sundayFood = cleanTimeText(strictBlock[4]);
+      } else {
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+
+          if (/^Monday to Saturday:/i.test(line)) {
+            monSat = cleanTimeText(line.replace(/^Monday to Saturday:\s*/i, ""));
+            const next = lines[i + 1] || "";
+            if (/Food/i.test(next)) {
+              monSatFood = cleanTimeText(next.replace(/^\(?/,"").replace(/\)?$/,""));
+            }
+          }
+
+          if (/^Sunday:/i.test(line)) {
+            sunday = cleanTimeText(line.replace(/^Sunday:\s*/i, ""));
+            const next = lines[i + 1] || "";
+            if (/Food/i.test(next)) {
+              sundayFood = cleanTimeText(next.replace(/^\(?/,"").replace(/\)?$/,""));
+            }
+          }
+        }
+      }
+
+      if (!monSat || !sunday) {
+        const broadMon = cleaned.match(/Monday to Saturday:\s*([0-9:.\sapm-]+)/i);
+        const broadSun = cleaned.match(/Sunday:\s*([0-9:.\sapm-]+)/i);
+        const foodMatches = [...cleaned.matchAll(/\((Food[^\n)]+)\)/gi)].map(m => cleanTimeText(m[1]));
+
+        if (!monSat && broadMon) monSat = cleanTimeText(broadMon[1]);
+        if (!sunday && broadSun) sunday = cleanTimeText(broadSun[1]);
+        if (!monSatFood && foodMatches[0]) monSatFood = foodMatches[0];
+        if (!sundayFood && foodMatches[1]) sundayFood = foodMatches[1];
       }
 
       const footerMatch = cleaned.match(
@@ -620,8 +657,8 @@
         "Warwickshire",
         "B49 6NQ"
       ];
-      let phone = "";
-      let email = "";
+      let phone = "01789 764634";
+      let email = "info@thepistonclub.co.uk";
 
       if (footerMatch) {
         addressLines = [
@@ -668,7 +705,7 @@
           normaliseSpaces(addr[2]),
           normaliseSpaces(addr[3]),
           normaliseSpaces(addr[4])
-        ] : ["Gilks’ Garage Café"],
+        ] : ["Gilks’ Garage Café", "Banbury Road", "Kineton", "Warwickshire", "CV35 0JZ"],
         phone: "",
         email: "",
         hours: [
@@ -743,9 +780,7 @@
         if (dayMatch) {
           const day = dayMatch[1];
           const rest = cleanTimeText(dayMatch[2]);
-          if (rest) {
-            hours.push({ day, time: rest });
-          }
+          if (rest) hours.push({ day, time: rest });
         }
       }
 
