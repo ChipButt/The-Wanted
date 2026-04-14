@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trail Garage </title>
+  <title>Trail Garage Status</title>
   <style>
     :root{
       --panel:#181c1f;
@@ -513,7 +513,7 @@
         name: "The Piston Club",
         sourceUrl: "https://thepistonclub.co.uk/",
         fetchUrl: "https://r.jina.ai/http://thepistonclub.co.uk/",
-        mapsQuery: "The Piston Club at The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ",
+        mapsQuery: "The Piston Club at The Stag, Alcester Road, Redhill, Stratford upon Avon, Warwickshire, B49 6NQ",
         parser: "piston"
       },
       {
@@ -531,7 +531,7 @@
         name: "Mr Watsons Cafe",
         sourceUrl: "https://www.mrwatsonscafe.com/",
         fetchUrl: "https://r.jina.ai/http://www.mrwatsonscafe.com/",
-        mapsQuery: "Mr Watsons Cafe, Bicester",
+        mapsQuery: "Mr Watsons Cafe, 72 Northwick Business Centre, Blockley, GL56 9RF",
         parser: "watsons"
       },
       {
@@ -540,7 +540,7 @@
         name: "Seven Mile",
         sourceUrl: "https://bicestermotion.com/",
         fetchUrl: "https://r.jina.ai/http://bicestermotion.com/",
-        mapsQuery: "Seven Mile, Bicester Motion, Bicester, Oxfordshire",
+        mapsQuery: "Seven Mile, Bicester Motion, Buckingham Road, Bicester, Oxfordshire, OX27 8AL",
         parser: "generic"
       },
       {
@@ -549,7 +549,7 @@
         name: "Oily Rag",
         sourceUrl: "https://oilyrag.com/",
         fetchUrl: "https://r.jina.ai/http://oilyrag.com/",
-        mapsQuery: "Oily Rag, UK",
+        mapsQuery: "Oily Rag Co, Gloucester, GL1 1AJ",
         parser: "generic"
       },
       {
@@ -567,7 +567,7 @@
         name: "The Long Itch Diner",
         sourceUrl: "https://longitchdiner.co.uk/",
         fetchUrl: "https://r.jina.ai/http://longitchdiner.co.uk/",
-        mapsQuery: "The Long Itch Diner, UK",
+        mapsQuery: "The Long Itch Diner, Southam Road, Long Itchington, Warwickshire",
         parser: "generic"
       },
       {
@@ -576,7 +576,7 @@
         name: "Cotswold Cafe / Pats Baps",
         sourceUrl: "https://cotswoldcafe-patsbaps.co.uk/",
         fetchUrl: "https://r.jina.ai/http://cotswoldcafe-patsbaps.co.uk/",
-        mapsQuery: "Cotswold Cafe Pats Baps, UK",
+        mapsQuery: "Cotswold Cafe Pats Baps, Unit 4 London Road, Little Compton, Moreton-in-Marsh, GL56 0RR",
         parser: "generic"
       }
     ];
@@ -658,6 +658,8 @@
         .replace(/\s+/g, "")
         .toLowerCase();
 
+      if (/closed/i.test(cleaned)) return null;
+
       const parts = cleaned.split("-");
       if (parts.length !== 2) return null;
 
@@ -712,6 +714,10 @@
       const today = venueData.hours.find(h => h.day.toLowerCase() === weekday.toLowerCase());
       if (!today) {
         return { venueOpen: null, extraOpen: null, todayLabel: "Today", todayHours: "Unavailable", todayExtra: "" };
+      }
+
+      if (/closed/i.test(today.time || "")) {
+        return { venueOpen: false, extraOpen: false, todayLabel: weekday, todayHours: today.time, todayExtra: today.extra || "" };
       }
 
       const venueRange = parseTimeRange(today.time);
@@ -827,8 +833,8 @@
         phone: "",
         email: "",
         hours: [
-          { day: "Monday", time: cleanTimeText(monTue?.[1] || "CLOSED"), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
-          { day: "Tuesday", time: cleanTimeText(monTue?.[1] || "CLOSED"), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
+          { day: "Monday", time: cleanTimeText(monTue?.[1] || "Closed"), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
+          { day: "Tuesday", time: cleanTimeText(monTue?.[1] || "Closed"), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
           { day: "Wednesday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
           { day: "Thursday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
           { day: "Friday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
@@ -843,21 +849,20 @@
       const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/);
       const mon = cleaned.match(/Monday\s*:?\s*([0-9:.apm\s-]+)/i);
       const tueFri = cleaned.match(/Tuesday\s*-\s*Friday:?\s*([0-9:.apm\s-]+)/i);
-      const satSun = cleaned.match(/Saturday\s*-\s*Sunday:?\s*([A-Z ]+)/i);
       const satWhenOpen = cleaned.match(/Saturday\s*-\s*([0-9:.apm\s-]+)\s*\(when open\)/i);
 
       return {
         ...venue,
-        addressLines: ["Mr Watsons Cafe"],
+        addressLines: ["Mr Watsons Cafe", "72 Northwick Business Centre", "Blockley", "GL56 9RF"],
         phone: "",
         email: emailMatch ? emailMatch[1] : "",
         hours: [
-          { day: "Monday", time: cleanTimeText(mon?.[1] || "") },
+          { day: "Monday", time: cleanTimeText(mon?.[1] || "Closed") },
           { day: "Tuesday", time: cleanTimeText(tueFri?.[1] || "") },
           { day: "Wednesday", time: cleanTimeText(tueFri?.[1] || "") },
           { day: "Thursday", time: cleanTimeText(tueFri?.[1] || "") },
           { day: "Friday", time: cleanTimeText(tueFri?.[1] || "") },
-          { day: "Saturday", time: satWhenOpen ? cleanTimeText(satWhenOpen[1]) : cleanTimeText(satSun?.[1] || "Closed"), extra: satWhenOpen ? "See Facebook for Saturday openings" : "" },
+          { day: "Saturday", time: satWhenOpen ? cleanTimeText(satWhenOpen[1]) : "Closed", extra: satWhenOpen ? "See Facebook for Saturday openings" : "" },
           { day: "Sunday", time: "Closed" }
         ].filter(h => h.time)
       };
@@ -881,7 +886,7 @@
 
       return {
         ...venue,
-        addressLines: ["The Blue Lias"],
+        addressLines: ["The Blue Lias", "Stockton", "Warwickshire"],
         phone: "",
         email: "",
         hours
