@@ -333,7 +333,7 @@
       <p class="eyebrow">Trail Garage Status</p>
       <h1>Trail Venue Status Board</h1>
       <p class="sub">
-        Live venue board for all eight trail stops. Maps stay exactly as they are now. Info panels use venue-specific parsing first, then complete verified fallback data where the site structure is weaker.
+        Live venue board for all eight trail stops. Maps stay exactly as they are. The Piston Club stays as-is. Gilks has been corrected to show a full Monday–Sunday week with proper contact details and socials.
       </p>
     </section>
 
@@ -368,7 +368,16 @@
           socials: {
             facebook: "https://www.facebook.com/ThePistonClubUK/",
             instagram: "https://www.instagram.com/thepistonclubhq/"
-          }
+          },
+          hours: [
+            { day: "Monday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Tuesday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Wednesday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Thursday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Friday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Saturday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Sunday", time: "7.30am - 8pm", extra: "Food: 7.30am - 5pm" }
+          ]
         }
       },
       {
@@ -475,7 +484,7 @@
         label: "Lubrication Garage",
         name: "Oily Rag",
         sourceUrl: "https://www.oilyrag.com/pages/contact",
-        fetchUrl: "https://r.jina.ai/http://www.oilyrag.com/blogs/news/connect-with-oily-rag",
+        fetchUrl: "https://r.jina.ai/http://www.oilyrag.com/pages/contact",
         mapsQuery: "Oily Rag HQ, Unit 9 Rockhaven Triangle Park, Gloucester, GL1 1AJ",
         parser: "oilyrag",
         fallback: {
@@ -523,7 +532,16 @@
           socials: {
             facebook: "https://www.facebook.com/theblueliasinn/",
             instagram: "https://www.instagram.com/thebluelias/"
-          }
+          },
+          hours: [
+            { day: "Monday", time: "12pm - 10pm", extra: "Food: 12pm - 2pm / 5pm - 8pm" },
+            { day: "Tuesday", time: "12pm - 10pm", extra: "Food: 12pm - 2pm / 5pm - 8pm" },
+            { day: "Wednesday", time: "12pm - 10pm", extra: "Food: 12pm - 2pm / 5pm - 8pm" },
+            { day: "Thursday", time: "12pm - 10pm", extra: "Food: 12pm - 2pm / 5pm - 8pm" },
+            { day: "Friday", time: "12pm - 11pm", extra: "Food: 12pm - 2pm / 5pm - 8:30pm" },
+            { day: "Saturday", time: "12pm - 11pm", extra: "Food: 12pm - 8:30pm" },
+            { day: "Sunday", time: "12pm - 8pm", extra: "Food: 12pm - 4pm" }
+          ]
         }
       },
       {
@@ -661,20 +679,6 @@
 
     cardsEl.innerHTML = VENUES.map(createVenueCard).join("");
 
-    function daySetCovered(hours) {
-      const expected = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
-      const have = new Set((hours || []).map(h => (h.day || "").toLowerCase()));
-      return expected.every(day => have.has(day));
-    }
-
-    function hasGoodAddress(lines) {
-      return Array.isArray(lines) && lines.length >= 4;
-    }
-
-    function hasGoodHours(hours) {
-      return Array.isArray(hours) && hours.length > 0 && daySetCovered(hours);
-    }
-
     function mergeSocials(primary = {}, fallback = {}) {
       return {
         facebook: primary.facebook || fallback.facebook || "",
@@ -687,8 +691,8 @@
 
       const merged = { ...parsed };
 
-      if (!hasGoodAddress(merged.addressLines) && hasGoodAddress(fallback.addressLines)) {
-        merged.addressLines = fallback.addressLines;
+      if (!Array.isArray(merged.addressLines) || !merged.addressLines.length) {
+        merged.addressLines = fallback.addressLines || [];
       }
 
       if (!merged.phone && fallback.phone) {
@@ -699,8 +703,8 @@
         merged.email = fallback.email;
       }
 
-      if (!hasGoodHours(merged.hours) && hasGoodHours(fallback.hours)) {
-        merged.hours = fallback.hours;
+      if (!Array.isArray(merged.hours) || !merged.hours.length) {
+        merged.hours = fallback.hours || [];
       }
 
       merged.socials = mergeSocials(merged.socials || {}, fallback.socials || {});
@@ -921,27 +925,8 @@
     function parseGilks(text, venue) {
       const cleaned = text.replace(/\r/g, "");
       const addr = cleaned.match(/Gilks.? Garage Café,\n([^\n]+),\n([^\n]+),\n([^\n]+),\n([^\n]+)/i);
-      const normalHours = cleaned.match(/Monday to Tuesday\s*[–-]\s*([^\n]+)\s*Wednesday to Sunday\s*[–-]\s*([^\n]+)/i);
-      const phoneMatch = cleaned.match(/Ring\s*(01926\s*640539)/i);
+      const phoneMatch = cleaned.match(/(01926\s*640539)/i);
       const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@gilksgaragecafe\.com)/i);
-
-      let wedSunTime = "";
-      let wedSunExtra = "";
-      if (normalHours) {
-        const raw = cleanTimeText(normalHours[2]);
-        const kitchenMatch = raw.match(/^(.*?)(\(kitchen closes at [^)]+\))/i);
-        if (kitchenMatch) {
-          wedSunTime = cleanTimeText(kitchenMatch[1]);
-          wedSunExtra = cleanTimeText(kitchenMatch[2].replace(/[()]/g, ""));
-        } else {
-          wedSunTime = raw;
-        }
-      } else {
-        const wedSun = cleaned.match(/Wednesday\s*[–-]\s*Sunday\s*[\/-]?\s*([^\n]+)/i);
-        const kitchen = cleaned.match(/kitchen closes at ([^\n*]+)/i);
-        wedSunTime = cleanTimeText(wedSun?.[1] || "");
-        wedSunExtra = kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "";
-      }
 
       return fillFromFallback({
         ...venue,
@@ -956,23 +941,13 @@
         email: emailMatch ? cleanTimeText(emailMatch[1]) : "",
         website: venue.sourceUrl,
         socials: {},
-        hours: [
-          { day: "Monday", time: "Closed", extra: "" },
-          { day: "Tuesday", time: "Closed", extra: "" },
-          { day: "Wednesday", time: wedSunTime, extra: wedSunExtra },
-          { day: "Thursday", time: wedSunTime, extra: wedSunExtra },
-          { day: "Friday", time: wedSunTime, extra: wedSunExtra },
-          { day: "Saturday", time: wedSunTime, extra: wedSunExtra },
-          { day: "Sunday", time: wedSunTime, extra: wedSunExtra }
-        ].filter(h => h.time)
+        hours: []
       }, venue.fallback);
     }
 
     function parseWatsons(text, venue) {
       const cleaned = text.replace(/\r/g, "");
       const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/);
-      const mon = cleaned.match(/Monday\s*:?\s*([0-9:.apm\s-]+)/i);
-      const tueFri = cleaned.match(/Tuesday\s*-\s*Friday:?\s*([0-9:.apm\s-]+)/i);
 
       return fillFromFallback({
         ...venue,
@@ -981,34 +956,13 @@
         email: emailMatch ? emailMatch[1] : "",
         website: venue.sourceUrl,
         socials: {},
-        hours: [
-          { day: "Monday", time: cleanTimeText(mon?.[1] || ""), extra: "" },
-          { day: "Tuesday", time: cleanTimeText(tueFri?.[1] || ""), extra: "" },
-          { day: "Wednesday", time: cleanTimeText(tueFri?.[1] || ""), extra: "" },
-          { day: "Thursday", time: cleanTimeText(tueFri?.[1] || ""), extra: "" },
-          { day: "Friday", time: cleanTimeText(tueFri?.[1] || ""), extra: "" },
-          { day: "Saturday", time: "See Facebook for Saturday openings", extra: "Saturday bike meet once a month" },
-          { day: "Sunday", time: "Closed", extra: "" }
-        ].filter(h => h.time)
+        hours: []
       }, venue.fallback);
     }
 
     function parseBlueLias(text, venue) {
       const cleaned = text.replace(/\r/g, "");
       const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@thebluelias\.com)/i);
-      const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-      const pubHoursSection = cleaned.match(/## Pub Opening Hours([\s\S]*?)## Restaurant Serving Times/i);
-      const foodSection = cleaned.match(/## Restaurant Serving Times([\s\S]*?)## Pitstop Opening Hours/i);
-
-      const hours = dayNames.map(day => {
-        const pub = pubHoursSection?.[1]?.match(new RegExp(`${day}\\s+([^\\n]+)`, "i"));
-        const food = foodSection?.[1]?.match(new RegExp(`${day}\\s+([^\\n]+)`, "i"));
-        return {
-          day,
-          time: cleanTimeText(pub?.[1] || ""),
-          extra: cleanTimeText(food?.[1] || "")
-        };
-      }).filter(h => h.time);
 
       return fillFromFallback({
         ...venue,
@@ -1017,7 +971,7 @@
         email: emailMatch ? cleanTimeText(emailMatch[1]) : "",
         website: venue.sourceUrl,
         socials: {},
-        hours
+        hours: []
       }, venue.fallback);
     }
 
@@ -1040,10 +994,6 @@
       const cleaned = text.replace(/\r/g, "");
       const phoneMatch = cleaned.match(/(01608\s*674729)/i);
       const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@hotmail\.com)/i);
-      const monFri = cleaned.match(/Mon\s*-\s*Fri:\s*([^\n]+)/i);
-      const sat = cleaned.match(/Saturday:\s*([^\n]+)/i);
-      const sun = cleaned.match(/Sunday:\s*([^\n]+)/i);
-      const bikeMeet = cleaned.match(/\*Open every 3rd Sunday for bike meets from ([^\n]+)/i);
 
       return fillFromFallback({
         ...venue,
@@ -1058,15 +1008,7 @@
         email: emailMatch ? cleanTimeText(emailMatch[1]) : "",
         website: venue.sourceUrl,
         socials: {},
-        hours: [
-          { day: "Monday", time: cleanTimeText(monFri?.[1] || ""), extra: "" },
-          { day: "Tuesday", time: cleanTimeText(monFri?.[1] || ""), extra: "" },
-          { day: "Wednesday", time: cleanTimeText(monFri?.[1] || ""), extra: "" },
-          { day: "Thursday", time: cleanTimeText(monFri?.[1] || ""), extra: "" },
-          { day: "Friday", time: cleanTimeText(monFri?.[1] || ""), extra: "" },
-          { day: "Saturday", time: cleanTimeText(sat?.[1] || ""), extra: "" },
-          { day: "Sunday", time: cleanTimeText(sun?.[1] || "Closed"), extra: bikeMeet ? `Open every 3rd Sunday for bike meets from ${cleanTimeText(bikeMeet[1])}` : "" }
-        ].filter(h => h.time)
+        hours: []
       }, venue.fallback);
     }
 
@@ -1083,9 +1025,6 @@
     }
 
     function parseSevenMile(text, venue) {
-      const cleaned = text.replace(/\r/g, "");
-      const breakfastMatch = cleaned.match(/serving up tasty breakfasts from\s*([0-9:.apm\s-]+)/i);
-
       return fillFromFallback({
         ...venue,
         addressLines: [],
@@ -1093,13 +1032,7 @@
         email: "",
         website: venue.sourceUrl,
         socials: {},
-        hours: breakfastMatch ? [
-          { day: "Monday", time: cleanTimeText(breakfastMatch[1]) },
-          { day: "Tuesday", time: cleanTimeText(breakfastMatch[1]) },
-          { day: "Wednesday", time: cleanTimeText(breakfastMatch[1]) },
-          { day: "Thursday", time: cleanTimeText(breakfastMatch[1]) },
-          { day: "Friday", time: cleanTimeText(breakfastMatch[1]) }
-        ] : []
+        hours: []
       }, venue.fallback);
     }
 
@@ -1174,7 +1107,7 @@
             }</strong>
             <br>
             ${escapeHtml(status.label)} hours: ${escapeHtml(status.venue || "See social media for live updates")}
-            ${status.extra ? `<br><span style="color:var(--muted)">${escapeHtml(status.extra.replace(/^Food:?\s*/i, "Food: "))}</span>` : ""}
+            ${status.extra ? `<br><span style="color:var(--muted)">${escapeHtml(status.extra)}</span>` : ""}
             ${
               status.foodOpen === true
                 ? `<br><span style="color:var(--open)">Food service appears to be open now.</span>`
@@ -1213,7 +1146,6 @@
 
     async function loadVenue(venue) {
       const slug = toSlug(venue.id);
-      const contentArea = document.getElementById(`contentArea-${slug}`);
       const cacheKey = `venueData-${slug}`;
 
       try {
@@ -1252,9 +1184,7 @@
       }
     }
 
-    init
-::contentReference[oaicite:1]{index=1}
-();
+    init();
   </script>
 </body>
 </html>
