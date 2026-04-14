@@ -4,19 +4,29 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Piston Club | Trail Garage Status</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
   <style>
     :root{
-      --bg:#131517;
-      --panel:#1d2124;
-      --panel-2:#252a2e;
-      --line:#3b434a;
-      --gold:#d0a24e;
+      --bg-1:#111315;
+      --bg-2:#1a1e21;
+      --panel:#1c2023;
+      --panel-2:#262c30;
+      --line:#40484f;
+      --gold:#d3a44d;
+      --gold-soft:rgba(211,164,77,.14);
       --text:#f5f1e8;
       --muted:#b8b1a2;
-      --open:#58d28d;
-      --closed:#ff7b7b;
-      --unknown:#ffcf6a;
+      --open:#56d58a;
+      --closed:#ff7d7d;
       --shadow:0 20px 50px rgba(0,0,0,.35);
+      --radius:24px;
     }
 
     *{box-sizing:border-box}
@@ -25,78 +35,80 @@
       margin:0;
       color:var(--text);
       font-family:Arial, Helvetica, sans-serif;
+      min-height:100vh;
       background:
-        radial-gradient(circle at top right, rgba(208,162,78,.12), transparent 30%),
+        radial-gradient(circle at top right, rgba(211,164,77,.12), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(211,164,77,.06), transparent 22%),
         linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.62)),
         repeating-linear-gradient(
           135deg,
-          #14181a 0px,
-          #14181a 18px,
-          #171c1f 18px,
-          #171c1f 36px
+          #121618 0px,
+          #121618 18px,
+          #171b1e 18px,
+          #171b1e 36px
         );
-      min-height:100vh;
     }
 
     .wrap{
-      max-width:1240px;
+      max-width:1280px;
       margin:0 auto;
-      padding:36px 20px 60px;
+      padding:34px 20px 60px;
     }
 
     .hero{
-      background:
-        linear-gradient(180deg, rgba(208,162,78,.09), rgba(208,162,78,0)),
-        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
-        var(--panel);
-      border:1px solid var(--line);
-      border-radius:24px;
-      padding:30px;
-      box-shadow:var(--shadow);
-      margin-bottom:24px;
       position:relative;
       overflow:hidden;
+      margin-bottom:24px;
+      padding:34px 30px;
+      border-radius:28px;
+      border:1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(211,164,77,.12), rgba(211,164,77,0)),
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+        var(--panel);
+      box-shadow:var(--shadow);
     }
 
-    .hero:before{
+    .hero::before{
       content:"";
       position:absolute;
       inset:0;
       pointer-events:none;
       opacity:.35;
       background:
-        linear-gradient(90deg, transparent 0 3%, rgba(208,162,78,.12) 3% 3.3%, transparent 3.3% 100%),
-        linear-gradient(0deg, transparent 0 94%, rgba(208,162,78,.10) 94% 95%, transparent 95% 100%);
+        linear-gradient(90deg, transparent 0 3%, rgba(211,164,77,.14) 3% 3.3%, transparent 3.3% 100%),
+        linear-gradient(0deg, transparent 0 93%, rgba(211,164,77,.10) 93% 94%, transparent 94% 100%);
     }
 
     .eyebrow{
-      margin:0 0 10px;
-      color:var(--gold);
-      text-transform:uppercase;
-      letter-spacing:.18em;
-      font-size:12px;
       position:relative;
       z-index:1;
+      margin:0 0 10px;
+      color:var(--gold);
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.18em;
     }
 
     h1{
+      position:relative;
+      z-index:1;
       margin:0 0 10px;
-      font-size:clamp(30px, 4vw, 54px);
-      line-height:1.02;
       color:var(--gold);
       text-transform:uppercase;
       letter-spacing:.05em;
-      position:relative;
-      z-index:1;
+      font-size:clamp(30px,4vw,56px);
+      line-height:1.02;
     }
 
     .sub{
+      position:relative;
+      z-index:1;
       margin:0;
       color:var(--muted);
       max-width:860px;
-      line-height:1.5;
-      position:relative;
-      z-index:1;
+      line-height:1.55;
+      font-size:16px;
     }
 
     .layout{
@@ -105,96 +117,79 @@
       gap:22px;
     }
 
-    @media (max-width: 960px){
+    @media (max-width: 980px){
       .layout{grid-template-columns:1fr}
     }
 
     .card{
+      overflow:hidden;
+      border-radius:var(--radius);
+      border:1px solid var(--line);
       background:
         linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
         var(--panel);
-      border:1px solid var(--line);
-      border-radius:24px;
-      overflow:hidden;
       box-shadow:var(--shadow);
     }
 
     .card-head{
-      padding:20px 22px 16px;
       display:flex;
       justify-content:space-between;
-      gap:18px;
       align-items:flex-start;
-      background:
-        linear-gradient(180deg, rgba(208,162,78,.12), rgba(208,162,78,0)),
-        var(--panel-2);
+      gap:16px;
+      padding:22px 22px 16px;
       border-bottom:1px solid rgba(255,255,255,.08);
+      background:
+        linear-gradient(180deg, rgba(211,164,77,.12), rgba(211,164,77,0)),
+        var(--panel-2);
     }
 
     .label{
       display:inline-block;
       margin-bottom:8px;
-      padding:6px 10px;
+      padding:7px 11px;
       border-radius:999px;
       border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
       color:var(--muted);
-      font-size:12px;
       text-transform:uppercase;
       letter-spacing:.14em;
-      background:rgba(255,255,255,.04);
+      font-size:12px;
     }
 
     .venue-title{
       margin:0;
-      font-size:28px;
       color:var(--gold);
       text-transform:uppercase;
       letter-spacing:.04em;
       line-height:1.05;
+      font-size:28px;
     }
 
     .status{
       display:inline-flex;
       align-items:center;
-      gap:8px;
+      gap:9px;
       white-space:nowrap;
-      border-radius:999px;
       padding:10px 14px;
-      font-weight:700;
-      font-size:14px;
+      border-radius:999px;
       border:1px solid rgba(255,255,255,.12);
       background:rgba(255,255,255,.04);
+      font-weight:700;
+      font-size:14px;
     }
 
     .status.open{color:var(--open)}
     .status.closed{color:var(--closed)}
-    .status.unknown{color:var(--unknown)}
 
     .content{
       padding:22px;
     }
 
-    .loading,
-    .error{
-      padding:16px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.03);
-      color:var(--muted);
-      line-height:1.5;
-    }
-
-    .error{
-      color:#ffb0b0;
-      border-color:rgba(255,123,123,.28);
-      background:rgba(255,123,123,.06);
-    }
-
     .section{
       margin-bottom:18px;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:18px;
       padding:16px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.08);
       background:rgba(255,255,255,.025);
     }
 
@@ -202,17 +197,17 @@
 
     .section-title{
       margin:0 0 10px;
-      font-size:12px;
       color:var(--gold);
       text-transform:uppercase;
       letter-spacing:.16em;
+      font-size:12px;
     }
 
     .section-body{
       margin:0;
       color:var(--text);
-      line-height:1.55;
       font-size:15px;
+      line-height:1.6;
     }
 
     .hours{
@@ -226,12 +221,12 @@
     .hours li{
       display:flex;
       justify-content:space-between;
+      align-items:flex-start;
       gap:18px;
       padding:12px;
       border-radius:14px;
       border:1px solid rgba(255,255,255,.06);
       background:rgba(255,255,255,.03);
-      align-items:flex-start;
     }
 
     .day{
@@ -241,8 +236,8 @@
     }
 
     .time{
-      text-align:right;
       flex:1;
+      text-align:right;
     }
 
     .food{
@@ -263,37 +258,79 @@
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      text-decoration:none;
-      color:var(--text);
       padding:12px 16px;
       border-radius:12px;
-      border:1px solid rgba(208,162,78,.35);
-      background:rgba(208,162,78,.08);
+      text-decoration:none;
       font-weight:700;
+      color:var(--text);
+      border:1px solid rgba(211,164,77,.35);
+      background:var(--gold-soft);
+      transition:.15s ease;
     }
 
     .btn:hover{
-      background:rgba(208,162,78,.14);
+      background:rgba(211,164,77,.2);
+      transform:translateY(-1px);
     }
 
     .map-card{
-      min-height:660px;
+      min-height:690px;
+      position:relative;
     }
 
-    .map-frame{
+    #map{
       width:100%;
-      height:100%;
-      min-height:660px;
-      border:0;
-      display:block;
+      height:690px;
       background:#101214;
     }
 
+    .loading,
+    .error{
+      padding:16px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .error{
+      color:#ffb0b0;
+      border-color:rgba(255,125,125,.28);
+      background:rgba(255,125,125,.06);
+    }
+
     footer{
-      margin-top:20px;
+      margin-top:18px;
       text-align:center;
       color:#978f81;
       font-size:12px;
+    }
+
+    .leaflet-container{
+      font:inherit;
+    }
+
+    .leaflet-popup-content-wrapper,
+    .leaflet-popup-tip{
+      background:#1f2427;
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.08);
+    }
+
+    .map-popup-title{
+      margin:0 0 6px;
+      color:var(--gold);
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+    }
+
+    .map-popup-text{
+      margin:0;
+      color:var(--muted);
+      line-height:1.5;
+      font-size:13px;
     }
   </style>
 </head>
@@ -314,7 +351,7 @@
             <span class="label">Engine Garage</span>
             <h2 class="venue-title" id="venueName">The Piston Club</h2>
           </div>
-          <div class="status unknown" id="statusBadge">Checking…</div>
+          <div class="status closed" id="statusBadge">Checking…</div>
         </div>
 
         <div class="content" id="contentArea">
@@ -323,14 +360,7 @@
       </article>
 
       <aside class="card map-card">
-        <iframe
-          id="mapFrame"
-          class="map-frame"
-          title="The Piston Club map"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          src="about:blank"
-        ></iframe>
+        <div id="map"></div>
       </aside>
     </section>
 
@@ -339,13 +369,22 @@
     </footer>
   </div>
 
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
   <script>
     const SOURCE_URL = "https://thepistonclub.co.uk/";
     const FETCH_URL = "https://r.jina.ai/http://thepistonclub.co.uk/";
+    const GEOCODE_QUERY = "The Piston Club, The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ";
     const contentArea = document.getElementById("contentArea");
     const statusBadge = document.getElementById("statusBadge");
     const venueName = document.getElementById("venueName");
-    const mapFrame = document.getElementById("mapFrame");
+
+    let map;
+    let mapMarker;
 
     function escapeHtml(str = "") {
       return String(str)
@@ -357,7 +396,14 @@
     }
 
     function normaliseSpaces(str = "") {
-      return str.replace(/\u00A0/g, " ").replace(/[ \t]+/g, " ").trim();
+      return str
+        .replace(/\u00A0/g, " ")
+        .replace(/[ \t]+/g, " ")
+        .trim();
+    }
+
+    function cleanTimeText(str = "") {
+      return normaliseSpaces(String(str).replace(/^\*+\s*/, "").replace(/\*+/g, ""));
     }
 
     function parsePistonClubText(text) {
@@ -373,20 +419,20 @@
       let sundayFood = "";
 
       if (openingBlockMatch) {
-        monSat = normaliseSpaces(openingBlockMatch[1]);
-        monSatFood = normaliseSpaces(openingBlockMatch[2]);
-        sunday = normaliseSpaces(openingBlockMatch[3]);
-        sundayFood = normaliseSpaces(openingBlockMatch[4]);
+        monSat = cleanTimeText(openingBlockMatch[1]);
+        monSatFood = cleanTimeText(openingBlockMatch[2]);
+        sunday = cleanTimeText(openingBlockMatch[3]);
+        sundayFood = cleanTimeText(openingBlockMatch[4]);
       } else {
         const mondayMatch = cleaned.match(/Monday to Saturday:\s*([^\n]+)/i);
         const mondayFoodMatch = cleaned.match(/Monday to Saturday:[^\n]*\n\((Food[^\n]+)\)/i);
         const sundayMatch = cleaned.match(/Sunday:\s*([^\n]+)/i);
         const sundayFoodMatch = cleaned.match(/Sunday:[^\n]*\n\((Food[^\n]+)\)/i);
 
-        monSat = mondayMatch ? normaliseSpaces(mondayMatch[1]) : "";
-        monSatFood = mondayFoodMatch ? normaliseSpaces(mondayFoodMatch[1]) : "";
-        sunday = sundayMatch ? normaliseSpaces(sundayMatch[1]) : "";
-        sundayFood = sundayFoodMatch ? normaliseSpaces(sundayFoodMatch[1]) : "";
+        monSat = mondayMatch ? cleanTimeText(mondayMatch[1]) : "";
+        monSatFood = mondayFoodMatch ? cleanTimeText(mondayFoodMatch[1]) : "";
+        sunday = sundayMatch ? cleanTimeText(sundayMatch[1]) : "";
+        sundayFood = sundayFoodMatch ? cleanTimeText(sundayFoodMatch[1]) : "";
       }
 
       const footerMatch = cleaned.match(
@@ -394,7 +440,7 @@
       );
 
       let addressLines = [
-        "@ The Stag",
+        "The Piston Club @ The Stag",
         "Alcester Road",
         "Redhill",
         "Stratford upon Avon",
@@ -406,7 +452,7 @@
 
       if (footerMatch) {
         addressLines = [
-          "@ The Stag",
+          "The Piston Club @ The Stag",
           normaliseSpaces(footerMatch[1]),
           normaliseSpaces(footerMatch[2]),
           normaliseSpaces(footerMatch[3]),
@@ -441,7 +487,7 @@
 
       if (ukDay === "Sunday") {
         return {
-          label: "Sunday",
+          label: "Today",
           venue: data.hours.sunday,
           food: data.hours.sundayFood
         };
@@ -456,7 +502,9 @@
 
     function parseTimeRange(range) {
       if (!range) return null;
-      const cleaned = range
+
+      const cleaned = String(range)
+        .replace(/^food:?\s*/i, "")
         .replace(/[–—]/g, "-")
         .replace(/\s+/g, "")
         .toLowerCase();
@@ -467,6 +515,7 @@
       function toMinutes(value) {
         const match = value.match(/^(\d{1,2})(?:\.(\d{2}))?(am|pm)$/);
         if (!match) return null;
+
         let hour = parseInt(match[1], 10);
         const mins = parseInt(match[2] || "0", 10);
         const meridian = match[3];
@@ -482,24 +531,24 @@
 
       const start = toMinutes(parts[0]);
       const end = toMinutes(parts[1]);
-      if (start == null || end == null) return null;
 
+      if (start == null || end == null) return null;
       return { start, end };
     }
 
     function computeOpenStatus(data) {
       const now = new Date();
-      const uk = new Intl.DateTimeFormat("en-GB", {
+      const parts = new Intl.DateTimeFormat("en-GB", {
         hour: "2-digit",
         minute: "2-digit",
-        hour12: false,
         weekday: "long",
+        hour12: false,
         timeZone: "Europe/London"
       }).formatToParts(now);
 
-      const hour = parseInt(uk.find(p => p.type === "hour")?.value || "0", 10);
-      const minute = parseInt(uk.find(p => p.type === "minute")?.value || "0", 10);
-      const weekday = uk.find(p => p.type === "weekday")?.value || "";
+      const hour = parseInt(parts.find(p => p.type === "hour")?.value || "0", 10);
+      const minute = parseInt(parts.find(p => p.type === "minute")?.value || "0", 10);
+      const weekday = parts.find(p => p.type === "weekday")?.value || "";
       const minsNow = hour * 60 + minute;
 
       const venueRange = weekday === "Sunday"
@@ -507,49 +556,91 @@
         : parseTimeRange(data.hours.monSat);
 
       const foodRange = weekday === "Sunday"
-        ? parseTimeRange((data.hours.sundayFood || "").replace(/^Food:\s*/i, ""))
-        : parseTimeRange((data.hours.monSatFood || "").replace(/^Food\s*/i, "").replace(/^:\s*/, ""));
+        ? parseTimeRange(data.hours.sundayFood)
+        : parseTimeRange(data.hours.monSatFood);
 
-      const venueOpen = venueRange ? minsNow >= venueRange.start && minsNow <= venueRange.end : null;
-      const foodOpen = foodRange ? minsNow >= foodRange.start && minsNow <= foodRange.end : null;
+      const venueOpen = venueRange ? minsNow >= venueRange.start && minsNow <= venueRange.end : false;
+      const foodOpen = foodRange ? minsNow >= foodRange.start && minsNow <= foodRange.end : false;
 
       return { venueOpen, foodOpen };
     }
 
-    function renderMap(addressLines) {
-      const query = encodeURIComponent(["The Piston Club", ...addressLines].join(", "));
-      mapFrame.src = `https://www.openstreetmap.org/export/embed.html?bbox=-1.82%2C52.18%2C-1.62%2C52.30&layer=mapnik&marker=52.219%2C-1.725`;
-      mapFrame.dataset.link = `https://www.google.com/maps/search/?api=1&query=${query}`;
+    function ensureMap() {
+      if (map) return;
+
+      map = L.map("map", {
+        zoomControl: true,
+        scrollWheelZoom: true
+      }).setView([52.219, -1.725], 15);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(map);
+    }
+
+    async function geocodeAndRenderMap(addressLines) {
+      ensureMap();
+
+      const query = encodeURIComponent(GEOCODE_QUERY);
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${query}`;
+
+      try {
+        const res = await fetch(url, {
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+
+        if (!res.ok) throw new Error("Map geocoding failed.");
+
+        const results = await res.json();
+        if (!Array.isArray(results) || !results.length) throw new Error("No map result found.");
+
+        const lat = parseFloat(results[0].lat);
+        const lon = parseFloat(results[0].lon);
+
+        map.setView([lat, lon], 16);
+
+        if (mapMarker) {
+          map.removeLayer(mapMarker);
+        }
+
+        mapMarker = L.marker([lat, lon]).addTo(map);
+        mapMarker.bindPopup(`
+          <div>
+            <p class="map-popup-title">The Piston Club</p>
+            <p class="map-popup-text">${escapeHtml(addressLines.join(", "))}</p>
+          </div>
+        `).openPopup();
+      } catch {
+        map.setView([52.219, -1.725], 15);
+      }
     }
 
     function render(data) {
       const current = todayHours(data);
       const status = computeOpenStatus(data);
       const addressHtml = data.addressLines.map(line => escapeHtml(line)).join("<br>");
+      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(GEOCODE_QUERY)}`;
 
       venueName.textContent = data.name;
 
-      if (status.venueOpen === true) {
-        statusBadge.className = "status open";
-        statusBadge.textContent = "Open now";
-      } else if (status.venueOpen === false) {
-        statusBadge.className = "status closed";
-        statusBadge.textContent = "Closed now";
-      } else {
-        statusBadge.className = "status unknown";
-        statusBadge.textContent = "Status unavailable";
-      }
-
-      renderMap(data.addressLines);
+      statusBadge.className = `status ${status.venueOpen ? "open" : "closed"}`;
+      statusBadge.textContent = status.venueOpen ? "Open now" : "Closed now";
 
       contentArea.innerHTML = `
         <div class="section">
           <p class="section-title">Current Status</p>
           <p class="section-body">
-            <strong>${escapeHtml(current.label)}:</strong> ${escapeHtml(current.venue || "Unavailable")}
+            <strong>${status.venueOpen ? "Venue is currently open." : "Venue is currently closed."}</strong>
+            <br>
+            ${escapeHtml(current.label)} hours: ${escapeHtml(current.venue || "Unavailable")}
             ${current.food ? `<br><span style="color:var(--muted)">Food: ${escapeHtml(current.food.replace(/^Food:?\s*/i, ""))}</span>` : ""}
-            ${status.foodOpen === true ? `<br><span style="color:var(--open)">Food service appears open now.</span>` : ""}
-            ${status.foodOpen === false ? `<br><span style="color:var(--closed)">Food service appears closed now.</span>` : ""}
+            <br>
+            <span style="color:${status.foodOpen ? "var(--open)" : "var(--muted)"}">
+              ${status.foodOpen ? "Food service appears to be open now." : "Food service appears to be closed now."}
+            </span>
           </p>
         </div>
 
@@ -586,18 +677,20 @@
           </p>
           <div class="actions">
             <a class="btn" href="${escapeHtml(data.website)}" target="_blank" rel="noopener noreferrer">Venue Website</a>
-            <a class="btn" href="${escapeHtml(mapFrame.dataset.link)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
+            <a class="btn" href="${escapeHtml(mapsLink)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
           </div>
         </div>
       `;
+
+      geocodeAndRenderMap(data.addressLines);
     }
 
     async function loadLiveData() {
       try {
         const res = await fetch(FETCH_URL, { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
 
+        const text = await res.text();
         const parsed = parsePistonClubText(text);
 
         if (!parsed.hours.monSat && !parsed.hours.sunday) {
@@ -610,16 +703,15 @@
         const cached = localStorage.getItem("pistonClubLiveData");
         if (cached) {
           render(JSON.parse(cached));
-          statusBadge.className = "status unknown";
-          statusBadge.textContent = "Showing cached data";
         } else {
           contentArea.innerHTML = `
             <div class="error">
               Failed to load the live website data.
             </div>
           `;
-          statusBadge.className = "status unknown";
+          statusBadge.className = "status closed";
           statusBadge.textContent = "Unavailable";
+          ensureMap();
         }
       }
     }
