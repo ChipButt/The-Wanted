@@ -333,7 +333,7 @@
       <p class="eyebrow">Trail Garage Status</p>
       <h1>Trail Venue Status Board</h1>
       <p class="sub">
-        Live venue board for all eight trail stops. Each card pulls current public opening times where possible and shows a direct embedded map.
+        Live venue board for all eight trail stops. Maps stay fixed as they are now. The info panels use the same current status, opening hours, location and contact structure as the working Piston Club card.
       </p>
     </section>
 
@@ -352,7 +352,7 @@
         name: "The Piston Club",
         sourceUrl: "https://thepistonclub.co.uk/",
         fetchUrl: "https://r.jina.ai/http://thepistonclub.co.uk/",
-        mapsQuery: "The Piston Club at The Stag, Alcester Road, Redhill, Stratford upon Avon, Warwickshire, B49 6NQ",
+        mapsQuery: "The Piston Club at The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ",
         parser: "piston"
       },
       {
@@ -459,7 +459,7 @@
               <span class="label">${escapeHtml(venue.label)}</span>
               <h2 class="venue-title" id="venueName-${slug}">${escapeHtml(venue.name)}</h2>
             </div>
-            <div class="status unknown" id="statusBadge-${slug}">Checking…</div>
+            <div class="status closed" id="statusBadge-${slug}">Checking…</div>
           </div>
 
           <div class="content">
@@ -539,24 +539,41 @@
       return { start, end };
     }
 
-    function computeOpenStatus(venueData) {
-      if (!venueData || !venueData.hours || !venueData.hours.length) {
-        return { venueOpen: null, extraOpen: null, todayLabel: "Today", todayHours: "Unavailable", todayExtra: "" };
-      }
-
+    function computeOpenStatusFromWeek(hoursArray) {
       const now = new Date();
-      const weekday = now.toLocaleString("en-GB", { weekday: "long", timeZone: "Europe/London" });
-      const hour = parseInt(now.toLocaleString("en-GB", { hour: "2-digit", hour12: false, timeZone: "Europe/London" }), 10);
-      const minute = parseInt(now.toLocaleString("en-GB", { minute: "2-digit", timeZone: "Europe/London" }), 10);
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        weekday: "long",
+        hour12: false,
+        timeZone: "Europe/London"
+      }).formatToParts(now);
+
+      const hour = parseInt(parts.find(p => p.type === "hour")?.value || "0", 10);
+      const minute = parseInt(parts.find(p => p.type === "minute")?.value || "0", 10);
+      const weekday = parts.find(p => p.type === "weekday")?.value || "";
       const minsNow = hour * 60 + minute;
 
-      const today = venueData.hours.find(h => h.day.toLowerCase() === weekday.toLowerCase());
+      const today = (hoursArray || []).find(h => (h.day || "").toLowerCase() === weekday.toLowerCase());
+
       if (!today) {
-        return { venueOpen: null, extraOpen: null, todayLabel: "Today", todayHours: "Unavailable", todayExtra: "" };
+        return {
+          venueOpen: null,
+          foodOpen: null,
+          label: "Today",
+          venue: "Unavailable",
+          extra: ""
+        };
       }
 
       if (/closed/i.test(today.time || "")) {
-        return { venueOpen: false, extraOpen: false, todayLabel: weekday, todayHours: today.time, todayExtra: today.extra || "" };
+        return {
+          venueOpen: false,
+          foodOpen: false,
+          label: "Today",
+          venue: today.time || "Closed",
+          extra: today.extra || ""
+        };
       }
 
       const venueRange = parseTimeRange(today.time);
@@ -564,16 +581,21 @@
 
       return {
         venueOpen: venueRange ? minsNow >= venueRange.start && minsNow <= venueRange.end : null,
-        extraOpen: extraRange ? minsNow >= extraRange.start && minsNow <= extraRange.end : null,
-        todayLabel: weekday,
-        todayHours: today.time || "Unavailable",
-        todayExtra: today.extra || ""
+        foodOpen: extraRange ? minsNow >= extraRange.start && minsNow <= extraRange.end : null,
+        label: "Today",
+        venue: today.time || "Unavailable",
+        extra: today.extra || ""
       };
     }
 
     function renderHoursList(hours) {
       if (!hours || !hours.length) {
-        return `<div class="section"><p class="section-title">Opening Hours</p><p class="section-body">Opening hours unavailable from the live source.</p></div>`;
+        return `
+          <div class="section">
+            <p class="section-title">Opening Hours</p>
+            <p class="section-body">Opening hours unavailable from the live source.</p>
+          </div>
+        `;
       }
 
       return `
@@ -594,55 +616,33 @@
       `;
     }
 
-    function parsePiston(text, venue) {
+    function parsePistonClubText(text, venue) {
       const cleaned = text.replace(/\r/g, "");
-      const lines = cleaned.split("\n").map(normaliseSpaces).filter(Boolean);
+
+      const openingBlockMatch = cleaned.match(
+        /Opening Times[\s\S]*?Monday to Saturday:\s*([^\n]+)\n\((Food[^\n]+)\)[\s\S]*?Sunday:\s*([^\n]+)\n\((Food[^\n]+)\)/i
+      );
 
       let monSat = "";
       let monSatFood = "";
       let sunday = "";
       let sundayFood = "";
 
-      const strictBlock = cleaned.match(
-        /Opening Times[\s\S]*?Monday to Saturday:\s*([^\n]+)\n\((Food[^\n]+)\)[\s\S]*?Sunday:\s*([^\n]+)\n\((Food[^\n]+)\)/i
-      );
-
-      if (strictBlock) {
-        monSat = cleanTimeText(strictBlock[1]);
-        monSatFood = cleanTimeText(strictBlock[2]);
-        sunday = cleanTimeText(strictBlock[3]);
-        sundayFood = cleanTimeText(strictBlock[4]);
+      if (openingBlockMatch) {
+        monSat = cleanTimeText(openingBlockMatch[1]);
+        monSatFood = cleanTimeText(openingBlockMatch[2]);
+        sunday = cleanTimeText(openingBlockMatch[3]);
+        sundayFood = cleanTimeText(openingBlockMatch[4]);
       } else {
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
+        const mondayMatch = cleaned.match(/Monday to Saturday:\s*([^\n]+)/i);
+        const mondayFoodMatch = cleaned.match(/Monday to Saturday:[^\n]*\n\((Food[^\n]+)\)/i);
+        const sundayMatch = cleaned.match(/Sunday:\s*([^\n]+)/i);
+        const sundayFoodMatch = cleaned.match(/Sunday:[^\n]*\n\((Food[^\n]+)\)/i);
 
-          if (/^Monday to Saturday:/i.test(line)) {
-            monSat = cleanTimeText(line.replace(/^Monday to Saturday:\s*/i, ""));
-            const next = lines[i + 1] || "";
-            if (/Food/i.test(next)) {
-              monSatFood = cleanTimeText(next.replace(/^\(?/,"").replace(/\)?$/,""));
-            }
-          }
-
-          if (/^Sunday:/i.test(line)) {
-            sunday = cleanTimeText(line.replace(/^Sunday:\s*/i, ""));
-            const next = lines[i + 1] || "";
-            if (/Food/i.test(next)) {
-              sundayFood = cleanTimeText(next.replace(/^\(?/,"").replace(/\)?$/,""));
-            }
-          }
-        }
-      }
-
-      if (!monSat || !sunday) {
-        const broadMon = cleaned.match(/Monday to Saturday:\s*([0-9:.\sapm-]+)/i);
-        const broadSun = cleaned.match(/Sunday:\s*([0-9:.\sapm-]+)/i);
-        const foodMatches = [...cleaned.matchAll(/\((Food[^\n)]+)\)/gi)].map(m => cleanTimeText(m[1]));
-
-        if (!monSat && broadMon) monSat = cleanTimeText(broadMon[1]);
-        if (!sunday && broadSun) sunday = cleanTimeText(broadSun[1]);
-        if (!monSatFood && foodMatches[0]) monSatFood = foodMatches[0];
-        if (!sundayFood && foodMatches[1]) sundayFood = foodMatches[1];
+        monSat = mondayMatch ? cleanTimeText(mondayMatch[1]) : "";
+        monSatFood = mondayFoodMatch ? cleanTimeText(mondayFoodMatch[1]) : "";
+        sunday = sundayMatch ? cleanTimeText(sundayMatch[1]) : "";
+        sundayFood = sundayFoodMatch ? cleanTimeText(sundayFoodMatch[1]) : "";
       }
 
       const footerMatch = cleaned.match(
@@ -678,6 +678,7 @@
         addressLines,
         phone,
         email,
+        website: venue.sourceUrl,
         hours: [
           { day: "Monday", time: monSat, extra: monSatFood },
           { day: "Tuesday", time: monSat, extra: monSatFood },
@@ -708,6 +709,7 @@
         ] : ["Gilks’ Garage Café", "Banbury Road", "Kineton", "Warwickshire", "CV35 0JZ"],
         phone: "",
         email: "",
+        website: venue.sourceUrl,
         hours: [
           { day: "Monday", time: cleanTimeText(monTue?.[1] || "Closed"), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
           { day: "Tuesday", time: cleanTimeText(monTue?.[1] || "Closed"), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
@@ -732,6 +734,7 @@
         addressLines: ["Mr Watsons Cafe", "72 Northwick Business Centre", "Blockley", "GL56 9RF"],
         phone: "",
         email: emailMatch ? emailMatch[1] : "",
+        website: venue.sourceUrl,
         hours: [
           { day: "Monday", time: cleanTimeText(mon?.[1] || "Closed") },
           { day: "Tuesday", time: cleanTimeText(tueFri?.[1] || "") },
@@ -765,6 +768,7 @@
         addressLines: ["The Blue Lias", "Stockton", "Warwickshire"],
         phone: "",
         email: "",
+        website: venue.sourceUrl,
         hours
       };
     }
@@ -780,7 +784,9 @@
         if (dayMatch) {
           const day = dayMatch[1];
           const rest = cleanTimeText(dayMatch[2]);
-          if (rest) hours.push({ day, time: rest });
+          if (rest) {
+            hours.push({ day, time: rest });
+          }
         }
       }
 
@@ -791,12 +797,13 @@
         addressLines: [venue.name],
         phone: "",
         email: "",
+        website: venue.sourceUrl,
         hours: deduped
       };
     }
 
     function parseVenueText(text, venue) {
-      if (venue.parser === "piston") return parsePiston(text, venue);
+      if (venue.parser === "piston") return parsePistonClubText(text, venue);
       if (venue.parser === "gilks") return parseGilks(text, venue);
       if (venue.parser === "watsons") return parseWatsons(text, venue);
       if (venue.parser === "bluelias") return parseBlueLias(text, venue);
@@ -808,15 +815,18 @@
       frame.src = `https://maps.google.com/maps?q=${encodeURIComponent(venue.mapsQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
     }
 
-    function renderVenue(venueData) {
-      const slug = toSlug(venueData.id);
+    function renderVenue(data) {
+      const slug = toSlug(data.id);
       const contentArea = document.getElementById(`contentArea-${slug}`);
       const statusBadge = document.getElementById(`statusBadge-${slug}`);
       const venueName = document.getElementById(`venueName-${slug}`);
 
-      venueName.textContent = venueData.name;
+      const status = computeOpenStatusFromWeek(data.hours);
+      const addressHtml = (data.addressLines || [data.name]).map(line => escapeHtml(line)).join("<br>");
+      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.mapsQuery)}`;
 
-      const status = computeOpenStatus(venueData);
+      venueName.textContent = data.name;
+
       if (status.venueOpen === true) {
         statusBadge.className = "status open";
         statusBadge.textContent = "Open now";
@@ -825,11 +835,8 @@
         statusBadge.textContent = "Closed now";
       } else {
         statusBadge.className = "status unknown";
-        statusBadge.textContent = "Check hours";
+        statusBadge.textContent = "Status unavailable";
       }
-
-      const addressHtml = (venueData.addressLines || [venueData.name]).map(line => escapeHtml(line)).join("<br>");
-      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venueData.mapsQuery)}`;
 
       contentArea.innerHTML = `
         <div class="section">
@@ -841,12 +848,19 @@
               "Live open/closed status could not be confirmed."
             }</strong>
             <br>
-            ${escapeHtml(status.todayLabel)} hours: ${escapeHtml(status.todayHours)}
-            ${status.todayExtra ? `<br><span style="color:var(--muted)">${escapeHtml(status.todayExtra)}</span>` : ""}
+            ${escapeHtml(status.label)} hours: ${escapeHtml(status.venue || "Unavailable")}
+            ${status.extra ? `<br><span style="color:var(--muted)">${escapeHtml(status.extra.replace(/^Food:?\s*/i, "Food: "))}</span>` : ""}
+            ${
+              status.foodOpen === true
+                ? `<br><span style="color:var(--open)">Food service appears to be open now.</span>`
+                : status.foodOpen === false && status.extra
+                  ? `<br><span style="color:var(--muted)">Food service appears to be closed now.</span>`
+                  : ""
+            }
           </p>
         </div>
 
-        ${renderHoursList(venueData.hours)}
+        ${renderHoursList(data.hours)}
 
         <div class="section">
           <p class="section-title">Location</p>
@@ -856,17 +870,19 @@
         <div class="section">
           <p class="section-title">Contact</p>
           <p class="section-body">
-            ${venueData.phone ? `${escapeHtml(venueData.phone)}<br>` : ""}
-            ${venueData.email ? `<a href="mailto:${escapeHtml(venueData.email)}" style="color:var(--gold); text-decoration:none;">${escapeHtml(venueData.email)}</a>` : "See venue website"}
+            ${data.phone ? `${escapeHtml(data.phone)}<br>` : ""}
+            ${data.email
+              ? `<a href="mailto:${escapeHtml(data.email)}" style="color:var(--gold); text-decoration:none;">${escapeHtml(data.email)}</a>`
+              : "See venue website"}
           </p>
           <div class="actions">
-            <a class="btn" href="${escapeHtml(venueData.sourceUrl)}" target="_blank" rel="noopener noreferrer">Venue Website</a>
+            <a class="btn" href="${escapeHtml(data.website || data.sourceUrl)}" target="_blank" rel="noopener noreferrer">Venue Website</a>
             <a class="btn" href="${escapeHtml(mapsLink)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
           </div>
         </div>
       `;
 
-      renderMap(venueData);
+      renderMap(data);
     }
 
     async function loadVenue(venue) {
@@ -880,6 +896,10 @@
 
         const text = await res.text();
         const parsed = parseVenueText(text, venue);
+
+        if (!parsed.hours || !parsed.hours.length) {
+          throw new Error("Opening hours not found on source page.");
+        }
 
         localStorage.setItem(cacheKey, JSON.stringify(parsed));
         renderVenue(parsed);
