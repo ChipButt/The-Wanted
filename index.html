@@ -102,16 +102,6 @@
       font-size:16px;
     }
 
-    .layout{
-      display:grid;
-      grid-template-columns:1.05fr .95fr;
-      gap:22px;
-    }
-
-    @media (max-width: 980px){
-      .layout{grid-template-columns:1fr}
-    }
-
     .card{
       overflow:hidden;
       border-radius:var(--radius);
@@ -174,6 +164,48 @@
 
     .content{
       padding:22px;
+    }
+
+    .venue-layout{
+      display:grid;
+      grid-template-columns:1fr 460px;
+      gap:22px;
+      align-items:center;
+    }
+
+    @media (max-width: 1100px){
+      .venue-layout{
+        grid-template-columns:1fr;
+      }
+    }
+
+    .info-column{
+      min-width:0;
+    }
+
+    .map-column{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:100%;
+    }
+
+    .map-frame-wrap{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:640px;
+    }
+
+    #mapFrame{
+      width:100%;
+      height:640px;
+      border:0;
+      display:block;
+      background:#101214;
+      border-radius:18px;
+      overflow:hidden;
     }
 
     .section{
@@ -264,19 +296,6 @@
       transform:translateY(-1px);
     }
 
-    .map-card{
-      min-height:690px;
-      position:relative;
-    }
-
-    #mapFrame{
-      width:100%;
-      height:690px;
-      border:0;
-      display:block;
-      background:#101214;
-    }
-
     .loading,
     .error{
       padding:16px;
@@ -311,31 +330,35 @@
       </p>
     </section>
 
-    <section class="layout">
-      <article class="card">
-        <div class="card-head">
-          <div>
-            <span class="label">Engine Garage</span>
-            <h2 class="venue-title" id="venueName">The Piston Club</h2>
+    <article class="card">
+      <div class="card-head">
+        <div>
+          <span class="label">Engine Garage</span>
+          <h2 class="venue-title" id="venueName">The Piston Club</h2>
+        </div>
+        <div class="status closed" id="statusBadge">Checking…</div>
+      </div>
+
+      <div class="content">
+        <div class="venue-layout">
+          <div class="info-column" id="contentArea">
+            <div class="loading">Loading live website details…</div>
           </div>
-          <div class="status closed" id="statusBadge">Checking…</div>
-        </div>
 
-        <div class="content" id="contentArea">
-          <div class="loading">Loading live website details…</div>
+          <div class="map-column">
+            <div class="map-frame-wrap">
+              <iframe
+                id="mapFrame"
+                title="The Piston Club map"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                src="about:blank"
+              ></iframe>
+            </div>
+          </div>
         </div>
-      </article>
-
-      <aside class="card map-card">
-        <iframe
-          id="mapFrame"
-          title="The Piston Club map"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          src="about:blank"
-        ></iframe>
-      </aside>
-    </section>
+      </div>
+    </article>
 
     <footer>
       Live page source: thepistonclub.co.uk
