@@ -588,7 +588,7 @@
       }).setView([52.2175, -1.7265], 16);
 
       L.tileLayer(
-        `https://maps.geoapify.com/v1/tile/dark-matter-brown/{z}/{x}/{y}.png?apiKey=${GEOAPIFY_API_KEY}`,
+        `https://maps.geoapify.com/v1/tile/dark-matter-brown/{z}/{x}/{y}.png?apiKey=${e88278384cd740e3ae134e4f70adc197}`,
         {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.geoapify.com/">Geoapify</a>',
           maxZoom: 20
@@ -599,7 +599,7 @@
     async function geocodeAndRenderMap(addressLines) {
       ensureMap();
 
-      const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(GEOCODE_QUERY)}&format=json&limit=1&apiKey=${encodeURIComponent(GEOAPIFY_API_KEY)}`;
+      const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent("51b6013275adb9fcbf5932b5fef5f6194a40f00102f9018a556d0c000000009203085468652053746167")}&format=json&limit=1&apiKey=${encodeURIComponent(e88278384cd740e3ae134e4f70adc197)}`;
 
       try {
         const res = await fetch(url, { cache: "no-store" });
