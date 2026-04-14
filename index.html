@@ -375,10 +375,14 @@
 
   <script>
     const GEOAPIFY_API_KEY = "PASTE_YOUR_GEOAPIFY_API_KEY_HERE";
-    const GEOAPIFY_PLACE_ID = "51b6013275adb9fcbf5932b5fef5f6194a40f00102f9018a556d0c000000009203085468652053746167";
+
+    // Fixed confirmed venue location for map only
+    const PISTON_CLUB_LAT = 52.2149;
+    const PISTON_CLUB_LON = -1.7346;
+
     const SOURCE_URL = "https://thepistonclub.co.uk/";
     const FETCH_URL = "https://r.jina.ai/http://thepistonclub.co.uk/";
-    const GEOCODE_QUERY = "The Piston Club at The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ";
+    const MAPS_QUERY = "The Piston Club at The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ";
 
     const contentArea = document.getElementById("contentArea");
     const statusBadge = document.getElementById("statusBadge");
@@ -589,7 +593,7 @@
       map = L.map("map", {
         zoomControl: true,
         scrollWheelZoom: true
-      }).setView([52.2175, -1.7265], 16);
+      }).setView([PISTON_CLUB_LAT, PISTON_CLUB_LON], 16);
 
       L.tileLayer(
         `https://maps.geoapify.com/v1/tile/dark-matter-brown/{z}/{x}/{y}.png?apiKey=${encodeURIComponent(GEOAPIFY_API_KEY)}`,
@@ -600,93 +604,29 @@
       ).addTo(map);
     }
 
-    async function geocodeAndRenderMap(addressLines) {
+    function renderMap(addressLines) {
       ensureMap();
 
-      try {
-        const placeDetailsUrl = `https://api.geoapify.com/v2/place-details?id=${encodeURIComponent(GEOAPIFY_PLACE_ID)}&features=details&apiKey=${encodeURIComponent(GEOAPIFY_API_KEY)}`;
-        const res = await fetch(placeDetailsUrl, { cache: "no-store" });
+      map.setView([PISTON_CLUB_LAT, PISTON_CLUB_LON], 16);
 
-        if (!res.ok) throw new Error("Geoapify place-details failed.");
-
-        const data = await res.json();
-        const feature = data?.features?.[0];
-
-        if (!feature) throw new Error("No Geoapify place-details result found.");
-
-        let lon = feature?.geometry?.coordinates?.[0];
-        let lat = feature?.geometry?.coordinates?.[1];
-
-        if ((lat == null || lon == null) && feature?.properties) {
-          lat = feature.properties.lat;
-          lon = feature.properties.lon;
-        }
-
-        lat = parseFloat(lat);
-        lon = parseFloat(lon);
-
-        if (Number.isNaN(lat) || Number.isNaN(lon)) {
-          throw new Error("Invalid Geoapify coordinates.");
-        }
-
-        map.setView([lat, lon], 16);
-
-        if (mapMarker) {
-          map.removeLayer(mapMarker);
-        }
-
-        mapMarker = L.marker([lat, lon]).addTo(map);
-        mapMarker.bindPopup(`
-          <div>
-            <p class="map-popup-title">The Piston Club</p>
-            <p class="map-popup-text">${escapeHtml(addressLines.join(", "))}</p>
-          </div>
-        `).openPopup();
-
-      } catch {
-        try {
-          const fallbackUrl = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(GEOCODE_QUERY)}&format=json&limit=1&apiKey=${encodeURIComponent(GEOAPIFY_API_KEY)}`;
-          const fallbackRes = await fetch(fallbackUrl, { cache: "no-store" });
-
-          if (!fallbackRes.ok) throw new Error("Fallback geocode failed.");
-
-          const fallbackData = await fallbackRes.json();
-          const result = fallbackData?.results?.[0];
-
-          if (!result) throw new Error("No fallback map result found.");
-
-          const lat = parseFloat(result.lat);
-          const lon = parseFloat(result.lon);
-
-          if (Number.isNaN(lat) || Number.isNaN(lon)) {
-            throw new Error("Invalid fallback coordinates.");
-          }
-
-          map.setView([lat, lon], 16);
-
-          if (mapMarker) {
-            map.removeLayer(mapMarker);
-          }
-
-          mapMarker = L.marker([lat, lon]).addTo(map);
-          mapMarker.bindPopup(`
-            <div>
-              <p class="map-popup-title">The Piston Club</p>
-              <p class="map-popup-text">${escapeHtml(addressLines.join(", "))}</p>
-            </div>
-          `).openPopup();
-
-        } catch {
-          map.setView([52.2175, -1.7265], 16);
-        }
+      if (mapMarker) {
+        map.removeLayer(mapMarker);
       }
+
+      mapMarker = L.marker([PISTON_CLUB_LAT, PISTON_CLUB_LON]).addTo(map);
+      mapMarker.bindPopup(`
+        <div>
+          <p class="map-popup-title">The Piston Club</p>
+          <p class="map-popup-text">${escapeHtml(addressLines.join(", "))}</p>
+        </div>
+      `).openPopup();
     }
 
     function render(data) {
       const current = todayHours(data);
       const status = computeOpenStatus(data);
       const addressHtml = data.addressLines.map(line => escapeHtml(line)).join("<br>");
-      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(GEOCODE_QUERY)}`;
+      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(MAPS_QUERY)}`;
 
       venueName.textContent = data.name;
 
@@ -746,7 +686,7 @@
         </div>
       `;
 
-      geocodeAndRenderMap(data.addressLines);
+      renderMap(data.addressLines);
     }
 
     async function loadLiveData() {
@@ -776,6 +716,14 @@
           statusBadge.className = "status closed";
           statusBadge.textContent = "Unavailable";
           ensureMap();
+          renderMap([
+            "The Piston Club at The Stag",
+            "Alcester Road",
+            "Redhill",
+            "Stratford upon Avon",
+            "Warwickshire",
+            "B49 6NQ"
+          ]);
         }
       }
     }
