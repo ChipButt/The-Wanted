@@ -375,6 +375,7 @@
 
   <script>
     const GEOAPIFY_API_KEY = "PASTE_YOUR_GEOAPIFY_API_KEY_HERE";
+    const GEOAPIFY_PLACE_ID = "51b6013275adb9fcbf5932b5fef5f6194a40f00102f9018a556d0c000000009203085468652053746167";
     const SOURCE_URL = "https://thepistonclub.co.uk/";
     const FETCH_URL = "https://r.jina.ai/http://thepistonclub.co.uk/";
     const GEOCODE_QUERY = "The Piston Club at The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ";
@@ -517,7 +518,10 @@
       if (parts.length !== 2) return null;
 
       function toMinutes(value) {
-        const match = value.match(/^(\d{1,2})(?::|\.)(\d{2})(am|pm)$/) || value.match(/^(\d{1,2})(am|pm)$/);
+        const match =
+          value.match(/^(\d{1,2})(?::|\.)(\d{2})(am|pm)$/) ||
+          value.match(/^(\d{1,2})(am|pm)$/);
+
         if (!match) return null;
 
         let hour;
@@ -585,10 +589,10 @@
       map = L.map("map", {
         zoomControl: true,
         scrollWheelZoom: true
-      }).setView("51b6013275adb9fcbf5932b5fef5f6194a40f00102f9018a556d0c000000009203085468652053746167", 16);
+      }).setView([52.2175, -1.7265], 16);
 
       L.tileLayer(
-        `https://maps.geoapify.com/v1/tile/dark-matter-brown/{z}/{x}/{y}.png?apiKey=${e88278384cd740e3ae134e4f70adc197}`,
+        `https://maps.geoapify.com/v1/tile/dark-matter-brown/{z}/{x}/{y}.png?apiKey=${encodeURIComponent(GEOAPIFY_API_KEY)}`,
         {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.geoapify.com/">Geoapify</a>',
           maxZoom: 20
@@ -599,18 +603,27 @@
     async function geocodeAndRenderMap(addressLines) {
       ensureMap();
 
-      const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent("51b6013275adb9fcbf5932b5fef5f6194a40f00102f9018a556d0c000000009203085468652053746167")}&format=json&limit=1&apiKey=${encodeURIComponent(e88278384cd740e3ae134e4f70adc197)}`;
-
       try {
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error("Geoapify geocode failed.");
+        const placeDetailsUrl = `https://api.geoapify.com/v2/place-details?id=${encodeURIComponent(GEOAPIFY_PLACE_ID)}&features=details&apiKey=${encodeURIComponent(GEOAPIFY_API_KEY)}`;
+        const res = await fetch(placeDetailsUrl, { cache: "no-store" });
+
+        if (!res.ok) throw new Error("Geoapify place-details failed.");
 
         const data = await res.json();
-        const result = data?.results?.[0];
-        if (!result) throw new Error("No Geoapify map result found.");
+        const feature = data?.features?.[0];
 
-        const lat = parseFloat(result.lat);
-        const lon = parseFloat(result.lon);
+        if (!feature) throw new Error("No Geoapify place-details result found.");
+
+        let lon = feature?.geometry?.coordinates?.[0];
+        let lat = feature?.geometry?.coordinates?.[1];
+
+        if ((lat == null || lon == null) && feature?.properties) {
+          lat = feature.properties.lat;
+          lon = feature.properties.lon;
+        }
+
+        lat = parseFloat(lat);
+        lon = parseFloat(lon);
 
         if (Number.isNaN(lat) || Number.isNaN(lon)) {
           throw new Error("Invalid Geoapify coordinates.");
@@ -629,8 +642,43 @@
             <p class="map-popup-text">${escapeHtml(addressLines.join(", "))}</p>
           </div>
         `).openPopup();
+
       } catch {
-        map.setView([52.2175, -1.7265], 16);
+        try {
+          const fallbackUrl = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(GEOCODE_QUERY)}&format=json&limit=1&apiKey=${encodeURIComponent(GEOAPIFY_API_KEY)}`;
+          const fallbackRes = await fetch(fallbackUrl, { cache: "no-store" });
+
+          if (!fallbackRes.ok) throw new Error("Fallback geocode failed.");
+
+          const fallbackData = await fallbackRes.json();
+          const result = fallbackData?.results?.[0];
+
+          if (!result) throw new Error("No fallback map result found.");
+
+          const lat = parseFloat(result.lat);
+          const lon = parseFloat(result.lon);
+
+          if (Number.isNaN(lat) || Number.isNaN(lon)) {
+            throw new Error("Invalid fallback coordinates.");
+          }
+
+          map.setView([lat, lon], 16);
+
+          if (mapMarker) {
+            map.removeLayer(mapMarker);
+          }
+
+          mapMarker = L.marker([lat, lon]).addTo(map);
+          mapMarker.bindPopup(`
+            <div>
+              <p class="map-popup-title">The Piston Club</p>
+              <p class="map-popup-text">${escapeHtml(addressLines.join(", "))}</p>
+            </div>
+          `).openPopup();
+
+        } catch {
+          map.setView([52.2175, -1.7265], 16);
+        }
       }
     }
 
