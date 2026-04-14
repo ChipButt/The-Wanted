@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Piston Club | Trail Garage Status</title>
-
+  <title>Trail Garage </title>
   <style>
     :root{
-      --panel:#1c2023;
-      --panel-2:#262c30;
-      --line:#40484f;
-      --gold:#d3a44d;
-      --gold-soft:rgba(211,164,77,.14);
-      --text:#f5f1e8;
-      --muted:#b8b1a2;
-      --open:#56d58a;
+      --panel:#181c1f;
+      --panel-2:#20262a;
+      --line:#47515a;
+      --gold:#d6a44a;
+      --gold-soft:rgba(214,164,74,.14);
+      --text:#f4f1e9;
+      --muted:#b8b2a7;
+      --open:#58d58d;
       --closed:#ff7d7d;
-      --shadow:0 20px 50px rgba(0,0,0,.35);
+      --unknown:#f0c76d;
+      --shadow:0 20px 50px rgba(0,0,0,.38);
       --radius:24px;
     }
 
@@ -28,34 +28,71 @@
       font-family:Arial, Helvetica, sans-serif;
       min-height:100vh;
       background:
-        radial-gradient(circle at top right, rgba(211,164,77,.12), transparent 28%),
-        radial-gradient(circle at bottom left, rgba(211,164,77,.06), transparent 22%),
-        linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.62)),
+        radial-gradient(circle at 10% 10%, rgba(214,164,74,.10), transparent 22%),
+        radial-gradient(circle at 85% 18%, rgba(255,255,255,.04), transparent 18%),
+        radial-gradient(circle at 80% 80%, rgba(0,0,0,.22), transparent 28%),
+        linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.42)),
+        repeating-linear-gradient(
+          90deg,
+          #14181b 0px,
+          #14181b 118px,
+          #1d2327 118px,
+          #1d2327 120px
+        ),
+        linear-gradient(180deg, #0d1114 0%, #161b1f 100%);
+      position:relative;
+      overflow-x:hidden;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      opacity:.12;
+      background:
         repeating-linear-gradient(
           135deg,
-          #121618 0px,
-          #121618 18px,
-          #171b1e 18px,
-          #171b1e 36px
+          rgba(255,255,255,.04) 0px,
+          rgba(255,255,255,.04) 1px,
+          transparent 1px,
+          transparent 5px
         );
     }
 
+    body::after{
+      content:"";
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      height:92px;
+      pointer-events:none;
+      opacity:.24;
+      background:
+        repeating-linear-gradient(-45deg, #d6a44a 0 18px, #111 18px 36px);
+      box-shadow:0 -8px 30px rgba(0,0,0,.35);
+    }
+
     .wrap{
-      max-width:1280px;
+      max-width:1320px;
       margin:0 auto;
       padding:34px 20px 60px;
+      position:relative;
+      z-index:1;
     }
 
     .hero{
       position:relative;
       overflow:hidden;
       margin-bottom:24px;
-      padding:34px 30px;
-      border-radius:28px;
+      padding:34px 32px;
+      border-radius:30px;
       border:1px solid var(--line);
       background:
-        linear-gradient(180deg, rgba(211,164,77,.12), rgba(211,164,77,0)),
-        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+        linear-gradient(180deg, rgba(214,164,74,.16), rgba(214,164,74,0)),
+        linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01)),
+        linear-gradient(135deg, rgba(255,255,255,.02), transparent 50%),
         var(--panel);
       box-shadow:var(--shadow);
     }
@@ -65,10 +102,10 @@
       position:absolute;
       inset:0;
       pointer-events:none;
-      opacity:.35;
+      opacity:.24;
       background:
-        linear-gradient(90deg, transparent 0 3%, rgba(211,164,77,.14) 3% 3.3%, transparent 3.3% 100%),
-        linear-gradient(0deg, transparent 0 93%, rgba(211,164,77,.10) 93% 94%, transparent 94% 100%);
+        linear-gradient(90deg, transparent 0 4%, rgba(214,164,74,.22) 4% 4.3%, transparent 4.3% 95.7%, rgba(214,164,74,.18) 95.7% 96%, transparent 96%),
+        linear-gradient(0deg, transparent 0 90%, rgba(214,164,74,.12) 90% 91%, transparent 91%);
     }
 
     .eyebrow{
@@ -90,6 +127,7 @@
       letter-spacing:.05em;
       font-size:clamp(30px,4vw,56px);
       line-height:1.02;
+      text-shadow:0 1px 0 rgba(0,0,0,.4);
     }
 
     .sub{
@@ -97,53 +135,99 @@
       z-index:1;
       margin:0;
       color:var(--muted);
-      max-width:860px;
+      max-width:980px;
       line-height:1.55;
       font-size:16px;
     }
 
+    .cards{
+      display:grid;
+      gap:24px;
+    }
+
     .card{
+      position:relative;
       overflow:hidden;
-      border-radius:var(--radius);
-      border:1px solid var(--line);
+      border-radius:28px;
+      border:1px solid #505a62;
       background:
-        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
-        var(--panel);
-      box-shadow:var(--shadow);
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
+        linear-gradient(135deg, rgba(214,164,74,.08), transparent 34%),
+        linear-gradient(180deg, #1d2327 0%, #171c20 100%);
+      box-shadow:
+        var(--shadow),
+        inset 0 1px 0 rgba(255,255,255,.05),
+        inset 0 -1px 0 rgba(0,0,0,.35);
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity:.22;
+      background:
+        linear-gradient(90deg, transparent 0 2%, rgba(255,255,255,.05) 2% 2.1%, transparent 2.1% 97.9%, rgba(255,255,255,.04) 97.9% 98%, transparent 98%),
+        linear-gradient(0deg, transparent 0 98%, rgba(255,255,255,.03) 98% 98.1%, transparent 98.1%);
     }
 
     .card-head{
+      position:relative;
       display:flex;
       justify-content:space-between;
       align-items:flex-start;
       gap:16px;
-      padding:22px 22px 16px;
+      padding:24px 24px 18px 24px;
       border-bottom:1px solid rgba(255,255,255,.08);
       background:
-        linear-gradient(180deg, rgba(211,164,77,.12), rgba(211,164,77,0)),
+        linear-gradient(180deg, rgba(214,164,74,.20), rgba(214,164,74,0)),
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)),
         var(--panel-2);
     }
 
+    .card-head::before,
+    .card-head::after{
+      content:"";
+      position:absolute;
+      top:14px;
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 32% 32%, #b7c0c7 0 18%, #7b858d 19% 52%, #31373c 53% 100%);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,.38),
+        inset 0 1px 1px rgba(255,255,255,.16);
+    }
+
+    .card-head::before{ left:14px; }
+    .card-head::after{ right:14px; }
+
     .label{
       display:inline-block;
-      margin-bottom:8px;
-      padding:7px 11px;
+      margin-bottom:10px;
+      padding:7px 12px;
       border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.04);
-      color:var(--muted);
+      border:1px solid rgba(255,255,255,.14);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+      color:#cbc4b7;
       text-transform:uppercase;
       letter-spacing:.14em;
       font-size:12px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
     }
 
     .venue-title{
       margin:0;
       color:var(--gold);
       text-transform:uppercase;
-      letter-spacing:.04em;
+      letter-spacing:.05em;
       line-height:1.05;
-      font-size:28px;
+      font-size:30px;
+      text-shadow:
+        0 0 10px rgba(214,164,74,.10),
+        0 1px 0 rgba(0,0,0,.42);
     }
 
     .status{
@@ -157,19 +241,21 @@
       background:rgba(255,255,255,.04);
       font-weight:700;
       font-size:14px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
     }
 
     .status.open{color:var(--open)}
     .status.closed{color:var(--closed)}
+    .status.unknown{color:var(--unknown)}
 
     .content{
-      padding:22px;
+      padding:24px;
     }
 
     .venue-layout{
       display:grid;
       grid-template-columns:1fr 460px;
-      gap:22px;
+      gap:24px;
       align-items:center;
     }
 
@@ -181,6 +267,21 @@
 
     .info-column{
       min-width:0;
+      position:relative;
+    }
+
+    .info-column::before{
+      content:"ENGINE DIAGNOSTIC PANEL";
+      display:block;
+      margin-bottom:16px;
+      color:rgba(214,164,74,.24);
+      font-size:32px;
+      font-weight:700;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      line-height:1;
+      pointer-events:none;
+      user-select:none;
     }
 
     .map-column{
@@ -196,25 +297,82 @@
       align-items:center;
       justify-content:center;
       min-height:640px;
+      padding:14px;
+      border-radius:24px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+        linear-gradient(180deg, #22282c 0%, #171c20 100%);
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.04),
+        inset 0 -1px 0 rgba(0,0,0,.25);
+      position:relative;
     }
 
-    #mapFrame{
+    .map-frame-wrap::before,
+    .map-frame-wrap::after{
+      content:"";
+      position:absolute;
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 32% 32%, #b7c0c7 0 18%, #7b858d 19% 52%, #31373c 53% 100%);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,.38),
+        inset 0 1px 1px rgba(255,255,255,.16);
+      top:12px;
+    }
+
+    .map-frame-wrap::before{ left:12px; }
+    .map-frame-wrap::after{ right:12px; }
+
+    .map-frame{
       width:100%;
-      height:640px;
+      height:612px;
       border:0;
       display:block;
       background:#101214;
-      border-radius:18px;
+      border-radius:16px;
       overflow:hidden;
+      box-shadow:
+        0 0 0 2px rgba(214,164,74,.12),
+        inset 0 0 0 1px rgba(255,255,255,.04),
+        0 8px 24px rgba(0,0,0,.28);
     }
 
     .section{
+      position:relative;
       margin-bottom:18px;
-      padding:16px;
+      padding:16px 18px;
       border-radius:18px;
       border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.025);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.03), rgba(255,255,255,.012)),
+        linear-gradient(180deg, rgba(0,0,0,.07), rgba(0,0,0,.02));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.03),
+        inset 0 -1px 0 rgba(0,0,0,.18);
     }
+
+    .section::before,
+    .section::after{
+      content:"";
+      position:absolute;
+      top:12px;
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 35% 35%, #9aa3aa 0 20%, #5d666d 21% 55%, #2a3035 56% 100%);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,.35),
+        inset 0 1px 1px rgba(255,255,255,.12);
+      opacity:.95;
+    }
+
+    .section::before{ left:12px; }
+    .section::after{ right:12px; }
 
     .section:last-child{margin-bottom:0}
 
@@ -222,7 +380,7 @@
       margin:0 0 10px;
       color:var(--gold);
       text-transform:uppercase;
-      letter-spacing:.16em;
+      letter-spacing:.18em;
       font-size:12px;
     }
 
@@ -246,10 +404,15 @@
       justify-content:space-between;
       align-items:flex-start;
       gap:18px;
-      padding:12px;
+      padding:12px 14px;
       border-radius:14px;
-      border:1px solid rgba(255,255,255,.06);
-      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.07);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.03), rgba(255,255,255,.012)),
+        linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.02));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.025),
+        inset 0 -1px 0 rgba(0,0,0,.18);
     }
 
     .day{
@@ -286,13 +449,18 @@
       text-decoration:none;
       font-weight:700;
       color:var(--text);
-      border:1px solid rgba(211,164,77,.35);
-      background:var(--gold-soft);
+      border:1px solid rgba(214,164,74,.38);
+      background:
+        linear-gradient(180deg, rgba(214,164,74,.18), rgba(214,164,74,.08));
       transition:.15s ease;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.06),
+        0 1px 0 rgba(0,0,0,.25);
     }
 
     .btn:hover{
-      background:rgba(211,164,77,.2);
+      background:
+        linear-gradient(180deg, rgba(214,164,74,.28), rgba(214,164,74,.12));
       transform:translateY(-1px);
     }
 
@@ -324,59 +492,96 @@
   <div class="wrap">
     <section class="hero">
       <p class="eyebrow">Trail Garage Status</p>
-      <h1>The Piston Club</h1>
+      <h1>Trail Venue Status Board</h1>
       <p class="sub">
-        Live venue panel pulling the public opening-times and footer contact information directly from the Piston Club homepage text.
+        Live workshop-style board for all eight trail stops. Each card tries to pull current public opening times from the venue’s website and shows a map plus quick links.
       </p>
     </section>
 
-    <article class="card">
-      <div class="card-head">
-        <div>
-          <span class="label">Engine Garage</span>
-          <h2 class="venue-title" id="venueName">The Piston Club</h2>
-        </div>
-        <div class="status closed" id="statusBadge">Checking…</div>
-      </div>
-
-      <div class="content">
-        <div class="venue-layout">
-          <div class="info-column" id="contentArea">
-            <div class="loading">Loading live website details…</div>
-          </div>
-
-          <div class="map-column">
-            <div class="map-frame-wrap">
-              <iframe
-                id="mapFrame"
-                title="The Piston Club map"
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-                src="about:blank"
-              ></iframe>
-            </div>
-          </div>
-        </div>
-      </div>
-    </article>
+    <section class="cards" id="cards"></section>
 
     <footer>
-      Live page source: thepistonclub.co.uk
+      Live page sources are the public venue websites listed on each card.
     </footer>
   </div>
 
   <script>
-    const API_KEY = "e88278384cd740e3ae134e4f70adc197";
-    const PLACE_ID = "51b6013275adb9fcbf5932b5fef5f6194a40f00102f9018a556d0c000000009203085468652053746167";
+    const VENUES = [
+      {
+        id: "piston",
+        label: "Engine Garage",
+        name: "The Piston Club",
+        sourceUrl: "https://thepistonclub.co.uk/",
+        fetchUrl: "https://r.jina.ai/http://thepistonclub.co.uk/",
+        mapsQuery: "The Piston Club at The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ",
+        parser: "piston"
+      },
+      {
+        id: "gilks",
+        label: "Fuel System Garage",
+        name: "Gilks’ Garage Café",
+        sourceUrl: "https://gilksgaragecafe.com/",
+        fetchUrl: "https://r.jina.ai/http://gilksgaragecafe.com/",
+        mapsQuery: "Gilks Garage Cafe, Banbury Road, Kineton, Warwickshire, CV35 0JZ",
+        parser: "gilks"
+      },
+      {
+        id: "watsons",
+        label: "Bodywork Garage",
+        name: "Mr Watsons Cafe",
+        sourceUrl: "https://www.mrwatsonscafe.com/",
+        fetchUrl: "https://r.jina.ai/http://www.mrwatsonscafe.com/",
+        mapsQuery: "Mr Watsons Cafe, Bicester",
+        parser: "watsons"
+      },
+      {
+        id: "sevenmile",
+        label: "Chassis Garage",
+        name: "Seven Mile",
+        sourceUrl: "https://bicestermotion.com/",
+        fetchUrl: "https://r.jina.ai/http://bicestermotion.com/",
+        mapsQuery: "Seven Mile, Bicester Motion, Bicester, Oxfordshire",
+        parser: "generic"
+      },
+      {
+        id: "oilyrag",
+        label: "Lubrication Garage",
+        name: "Oily Rag",
+        sourceUrl: "https://oilyrag.com/",
+        fetchUrl: "https://r.jina.ai/http://oilyrag.com/",
+        mapsQuery: "Oily Rag, UK",
+        parser: "generic"
+      },
+      {
+        id: "bluelias",
+        label: "Cooling Garage",
+        name: "The Blue Lias",
+        sourceUrl: "https://thebluelias.com/",
+        fetchUrl: "https://r.jina.ai/http://thebluelias.com/",
+        mapsQuery: "The Blue Lias, Stockton, Warwickshire",
+        parser: "bluelias"
+      },
+      {
+        id: "longitch",
+        label: "Transmission Garage",
+        name: "The Long Itch Diner",
+        sourceUrl: "https://longitchdiner.co.uk/",
+        fetchUrl: "https://r.jina.ai/http://longitchdiner.co.uk/",
+        mapsQuery: "The Long Itch Diner, UK",
+        parser: "generic"
+      },
+      {
+        id: "patsbaps",
+        label: "Tyre Garage",
+        name: "Cotswold Cafe / Pats Baps",
+        sourceUrl: "https://cotswoldcafe-patsbaps.co.uk/",
+        fetchUrl: "https://r.jina.ai/http://cotswoldcafe-patsbaps.co.uk/",
+        mapsQuery: "Cotswold Cafe Pats Baps, UK",
+        parser: "generic"
+      }
+    ];
 
-    const SOURCE_URL = "https://thepistonclub.co.uk/";
-    const FETCH_URL = "https://r.jina.ai/http://thepistonclub.co.uk/";
-    const MAPS_QUERY = "The Piston Club at The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ";
-
-    const contentArea = document.getElementById("contentArea");
-    const statusBadge = document.getElementById("statusBadge");
-    const venueName = document.getElementById("venueName");
-    const mapFrame = document.getElementById("mapFrame");
+    const cardsEl = document.getElementById("cards");
 
     function escapeHtml(str = "") {
       return String(str)
@@ -388,7 +593,7 @@
     }
 
     function normaliseSpaces(str = "") {
-      return str
+      return String(str)
         .replace(/\u00A0/g, " ")
         .replace(/[ \t]+/g, " ")
         .trim();
@@ -402,99 +607,47 @@
       );
     }
 
-    function parsePistonClubText(text) {
-      const cleaned = text.replace(/\r/g, "");
-
-      const openingBlockMatch = cleaned.match(
-        /Opening Times[\s\S]*?Monday to Saturday:\s*([^\n]+)\n\((Food[^\n]+)\)[\s\S]*?Sunday:\s*([^\n]+)\n\((Food[^\n]+)\)/i
-      );
-
-      let monSat = "";
-      let monSatFood = "";
-      let sunday = "";
-      let sundayFood = "";
-
-      if (openingBlockMatch) {
-        monSat = cleanTimeText(openingBlockMatch[1]);
-        monSatFood = cleanTimeText(openingBlockMatch[2]);
-        sunday = cleanTimeText(openingBlockMatch[3]);
-        sundayFood = cleanTimeText(openingBlockMatch[4]);
-      } else {
-        const mondayMatch = cleaned.match(/Monday to Saturday:\s*([^\n]+)/i);
-        const mondayFoodMatch = cleaned.match(/Monday to Saturday:[^\n]*\n\((Food[^\n]+)\)/i);
-        const sundayMatch = cleaned.match(/Sunday:\s*([^\n]+)/i);
-        const sundayFoodMatch = cleaned.match(/Sunday:[^\n]*\n\((Food[^\n]+)\)/i);
-
-        monSat = mondayMatch ? cleanTimeText(mondayMatch[1]) : "";
-        monSatFood = mondayFoodMatch ? cleanTimeText(mondayFoodMatch[1]) : "";
-        sunday = sundayMatch ? cleanTimeText(sundayMatch[1]) : "";
-        sundayFood = sundayFoodMatch ? cleanTimeText(sundayFoodMatch[1]) : "";
-      }
-
-      const footerMatch = cleaned.match(
-        /\* The Piston Club\s*\n@\s*The Stag\s*\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)\s*\n\s*\*\s*([0-9 ]+)\s*\n\s*\*\s*([^\n]+)/i
-      );
-
-      let addressLines = [
-        "The Piston Club at The Stag",
-        "Alcester Road",
-        "Redhill",
-        "Stratford upon Avon",
-        "Warwickshire",
-        "B49 6NQ"
-      ];
-      let phone = "01789 764634";
-      let email = "info@thepistonclub.co.uk";
-
-      if (footerMatch) {
-        addressLines = [
-          "The Piston Club at The Stag",
-          normaliseSpaces(footerMatch[1]),
-          normaliseSpaces(footerMatch[2]),
-          normaliseSpaces(footerMatch[3]),
-          normaliseSpaces(footerMatch[4]),
-          normaliseSpaces(footerMatch[5])
-        ];
-        phone = normaliseSpaces(footerMatch[6]).replace(/^\*+\s*/g, "");
-        email = normaliseSpaces(footerMatch[7]).replace(/^\*+\s*/g, "");
-      }
-
-      return {
-        name: "The Piston Club",
-        addressLines,
-        phone,
-        email,
-        website: SOURCE_URL,
-        hours: {
-          monSat,
-          monSatFood,
-          sunday,
-          sundayFood
-        }
-      };
+    function toSlug(text) {
+      return text.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     }
 
-    function todayHours(data) {
-      const now = new Date();
-      const ukDay = now.toLocaleString("en-GB", {
-        weekday: "long",
-        timeZone: "Europe/London"
-      });
+    function createVenueCard(venue) {
+      const slug = toSlug(venue.id);
+      return `
+        <article class="card" id="card-${slug}">
+          <div class="card-head">
+            <div>
+              <span class="label">${escapeHtml(venue.label)}</span>
+              <h2 class="venue-title" id="venueName-${slug}">${escapeHtml(venue.name)}</h2>
+            </div>
+            <div class="status unknown" id="statusBadge-${slug}">Checking…</div>
+          </div>
 
-      if (ukDay === "Sunday") {
-        return {
-          label: "Today",
-          venue: data.hours.sunday,
-          food: data.hours.sundayFood
-        };
-      }
+          <div class="content">
+            <div class="venue-layout">
+              <div class="info-column" id="contentArea-${slug}">
+                <div class="loading">Loading live website details…</div>
+              </div>
 
-      return {
-        label: "Today",
-        venue: data.hours.monSat,
-        food: data.hours.monSatFood
-      };
+              <div class="map-column">
+                <div class="map-frame-wrap">
+                  <iframe
+                    class="map-frame"
+                    id="mapFrame-${slug}"
+                    title="${escapeHtml(venue.name)} map"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    src="about:blank"
+                  ></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      `;
     }
+
+    cardsEl.innerHTML = VENUES.map(createVenueCard).join("");
 
     function parseTimeRange(range) {
       if (!range) return null;
@@ -545,62 +698,244 @@
       return { start, end };
     }
 
-    function computeOpenStatus(data) {
-      const now = new Date();
-      const parts = new Intl.DateTimeFormat("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-        weekday: "long",
-        hour12: false,
-        timeZone: "Europe/London"
-      }).formatToParts(now);
+    function computeOpenStatus(venueData) {
+      if (!venueData || !venueData.hours || !venueData.hours.length) {
+        return { venueOpen: null, extraOpen: null, todayLabel: "Today", todayHours: "Unavailable", todayExtra: "" };
+      }
 
-      const hour = parseInt(parts.find(p => p.type === "hour")?.value || "0", 10);
-      const minute = parseInt(parts.find(p => p.type === "minute")?.value || "0", 10);
-      const weekday = parts.find(p => p.type === "weekday")?.value || "";
+      const now = new Date();
+      const weekday = now.toLocaleString("en-GB", { weekday: "long", timeZone: "Europe/London" });
+      const hour = parseInt(now.toLocaleString("en-GB", { hour: "2-digit", hour12: false, timeZone: "Europe/London" }), 10);
+      const minute = parseInt(now.toLocaleString("en-GB", { minute: "2-digit", timeZone: "Europe/London" }), 10);
       const minsNow = hour * 60 + minute;
 
-      const venueRange = weekday === "Sunday"
-        ? parseTimeRange(data.hours.sunday)
-        : parseTimeRange(data.hours.monSat);
+      const today = venueData.hours.find(h => h.day.toLowerCase() === weekday.toLowerCase());
+      if (!today) {
+        return { venueOpen: null, extraOpen: null, todayLabel: "Today", todayHours: "Unavailable", todayExtra: "" };
+      }
 
-      const foodRange = weekday === "Sunday"
-        ? parseTimeRange(data.hours.sundayFood)
-        : parseTimeRange(data.hours.monSatFood);
+      const venueRange = parseTimeRange(today.time);
+      const extraRange = today.extra ? parseTimeRange(today.extra) : null;
 
-      const venueOpen = venueRange ? minsNow >= venueRange.start && minsNow <= venueRange.end : false;
-      const foodOpen = foodRange ? minsNow >= foodRange.start && minsNow <= foodRange.end : false;
-
-      return { venueOpen, foodOpen };
+      return {
+        venueOpen: venueRange ? minsNow >= venueRange.start && minsNow <= venueRange.end : null,
+        extraOpen: extraRange ? minsNow >= extraRange.start && minsNow <= extraRange.end : null,
+        todayLabel: weekday,
+        todayHours: today.time || "Unavailable",
+        todayExtra: today.extra || ""
+      };
     }
 
-    async function renderMap() {
+    function renderHoursList(hours) {
+      if (!hours || !hours.length) {
+        return `<div class="section"><p class="section-title">Opening Hours</p><p class="section-body">Opening hours unavailable from the live source.</p></div>`;
+      }
+
+      return `
+        <div class="section">
+          <p class="section-title">Opening Hours</p>
+          <ul class="hours">
+            ${hours.map(item => `
+              <li>
+                <span class="day">${escapeHtml(item.day)}</span>
+                <span class="time">
+                  ${escapeHtml(item.time || "Unavailable")}
+                  ${item.extra ? `<span class="food">${escapeHtml(item.extra)}</span>` : ""}
+                </span>
+              </li>
+            `).join("")}
+          </ul>
+        </div>
+      `;
+    }
+
+    function parsePiston(text, venue) {
+      const cleaned = text.replace(/\r/g, "");
+      const openingBlockMatch = cleaned.match(
+        /Opening Times[\s\S]*?Monday to Saturday:\s*([^\n]+)\n\((Food[^\n]+)\)[\s\S]*?Sunday:\s*([^\n]+)\n\((Food[^\n]+)\)/i
+      );
+
+      let monSat = "", monSatFood = "", sunday = "", sundayFood = "";
+      if (openingBlockMatch) {
+        monSat = cleanTimeText(openingBlockMatch[1]);
+        monSatFood = cleanTimeText(openingBlockMatch[2]);
+        sunday = cleanTimeText(openingBlockMatch[3]);
+        sundayFood = cleanTimeText(openingBlockMatch[4]);
+      }
+
+      const footerMatch = cleaned.match(
+        /\* The Piston Club\s*\n@\s*The Stag\s*\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)\s*\n\s*\*\s*([0-9 ]+)\s*\n\s*\*\s*([^\n]+)/i
+      );
+
+      let addressLines = [
+        "The Piston Club at The Stag",
+        "Alcester Road",
+        "Redhill",
+        "Stratford upon Avon",
+        "Warwickshire",
+        "B49 6NQ"
+      ];
+      let phone = "";
+      let email = "";
+
+      if (footerMatch) {
+        addressLines = [
+          "The Piston Club at The Stag",
+          normaliseSpaces(footerMatch[1]),
+          normaliseSpaces(footerMatch[2]),
+          normaliseSpaces(footerMatch[3]),
+          normaliseSpaces(footerMatch[4]),
+          normaliseSpaces(footerMatch[5])
+        ];
+        phone = normaliseSpaces(footerMatch[6]).replace(/^\*+\s*/g, "");
+        email = normaliseSpaces(footerMatch[7]).replace(/^\*+\s*/g, "");
+      }
+
+      return {
+        ...venue,
+        addressLines,
+        phone,
+        email,
+        hours: [
+          { day: "Monday", time: monSat, extra: monSatFood },
+          { day: "Tuesday", time: monSat, extra: monSatFood },
+          { day: "Wednesday", time: monSat, extra: monSatFood },
+          { day: "Thursday", time: monSat, extra: monSatFood },
+          { day: "Friday", time: monSat, extra: monSatFood },
+          { day: "Saturday", time: monSat, extra: monSatFood },
+          { day: "Sunday", time: sunday, extra: sundayFood }
+        ].filter(h => h.time)
+      };
+    }
+
+    function parseGilks(text, venue) {
+      const cleaned = text.replace(/\r/g, "");
+      const addr = cleaned.match(/Gilks.? Garage Café,\n([^\n]+),\n([^\n]+),\n([^\n]+),\n([^\n]+)/i);
+      const monTue = cleaned.match(/Monday\s*[–-]\s*Tuesday\s*\/\s*([^\n]+)/i);
+      const wedSun = cleaned.match(/Wednesday\s*[–-]\s*Sunday\s*\/\s*([^\n]+)/i);
+      const kitchen = cleaned.match(/\*kitchen closes at ([^\n*]+)\*/i);
+
+      return {
+        ...venue,
+        addressLines: addr ? [
+          "Gilks’ Garage Café",
+          normaliseSpaces(addr[1]),
+          normaliseSpaces(addr[2]),
+          normaliseSpaces(addr[3]),
+          normaliseSpaces(addr[4])
+        ] : ["Gilks’ Garage Café"],
+        phone: "",
+        email: "",
+        hours: [
+          { day: "Monday", time: cleanTimeText(monTue?.[1] || "CLOSED"), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
+          { day: "Tuesday", time: cleanTimeText(monTue?.[1] || "CLOSED"), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
+          { day: "Wednesday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
+          { day: "Thursday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
+          { day: "Friday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
+          { day: "Saturday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
+          { day: "Sunday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" }
+        ].filter(h => h.time)
+      };
+    }
+
+    function parseWatsons(text, venue) {
+      const cleaned = text.replace(/\r/g, "");
+      const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/);
+      const mon = cleaned.match(/Monday\s*:?\s*([0-9:.apm\s-]+)/i);
+      const tueFri = cleaned.match(/Tuesday\s*-\s*Friday:?\s*([0-9:.apm\s-]+)/i);
+      const satSun = cleaned.match(/Saturday\s*-\s*Sunday:?\s*([A-Z ]+)/i);
+      const satWhenOpen = cleaned.match(/Saturday\s*-\s*([0-9:.apm\s-]+)\s*\(when open\)/i);
+
+      return {
+        ...venue,
+        addressLines: ["Mr Watsons Cafe"],
+        phone: "",
+        email: emailMatch ? emailMatch[1] : "",
+        hours: [
+          { day: "Monday", time: cleanTimeText(mon?.[1] || "") },
+          { day: "Tuesday", time: cleanTimeText(tueFri?.[1] || "") },
+          { day: "Wednesday", time: cleanTimeText(tueFri?.[1] || "") },
+          { day: "Thursday", time: cleanTimeText(tueFri?.[1] || "") },
+          { day: "Friday", time: cleanTimeText(tueFri?.[1] || "") },
+          { day: "Saturday", time: satWhenOpen ? cleanTimeText(satWhenOpen[1]) : cleanTimeText(satSun?.[1] || "Closed"), extra: satWhenOpen ? "See Facebook for Saturday openings" : "" },
+          { day: "Sunday", time: "Closed" }
+        ].filter(h => h.time)
+      };
+    }
+
+    function parseBlueLias(text, venue) {
+      const cleaned = text.replace(/\r/g, "");
+      const pubHoursSection = cleaned.match(/## Pub Opening Hours([\s\S]*?)## Restaurant Serving Times/i);
+      const foodSection = cleaned.match(/## Restaurant Serving Times([\s\S]*?)## Pitstop Opening Hours/i);
+
+      const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+      const hours = dayNames.map(day => {
+        const pub = pubHoursSection?.[1]?.match(new RegExp(`${day}\\s+([^\\n]+)`, "i"));
+        const food = foodSection?.[1]?.match(new RegExp(`${day}\\s+([^\\n]+)`, "i"));
+        return {
+          day,
+          time: cleanTimeText(pub?.[1] || ""),
+          extra: cleanTimeText(food?.[1] || "")
+        };
+      }).filter(h => h.time);
+
+      return {
+        ...venue,
+        addressLines: ["The Blue Lias"],
+        phone: "",
+        email: "",
+        hours
+      };
+    }
+
+    function parseGeneric(text, venue) {
+      const cleaned = text.replace(/\r/g, "");
+      const lines = cleaned.split("\n").map(normaliseSpaces).filter(Boolean);
+      const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+      const hours = [];
+
+      for (const line of lines) {
+        const dayMatch = line.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)(.*)$/i);
+        if (dayMatch) {
+          const day = dayMatch[1];
+          const rest = cleanTimeText(dayMatch[2]);
+          if (rest) {
+            hours.push({ day, time: rest });
+          }
+        }
+      }
+
+      const deduped = dayNames.map(day => hours.find(h => h.day.toLowerCase() === day.toLowerCase())).filter(Boolean);
+
+      return {
+        ...venue,
+        addressLines: [venue.name],
+        phone: "",
+        email: "",
+        hours: deduped
+      };
+    }
+
+    function parseVenueText(text, venue) {
+      if (venue.parser === "piston") return parsePiston(text, venue);
+      if (venue.parser === "gilks") return parseGilks(text, venue);
+      if (venue.parser === "watsons") return parseWatsons(text, venue);
+      if (venue.parser === "bluelias") return parseBlueLias(text, venue);
+      return parseGeneric(text, venue);
+    }
+
+    async function renderMap(venue) {
+      const frame = document.getElementById(`mapFrame-${toSlug(venue.id)}`);
       try {
-        const placeDetailsUrl = `https://api.geoapify.com/v2/place-details?id=${encodeURIComponent(PLACE_ID)}&features=details&apiKey=${encodeURIComponent(API_KEY)}`;
-        const res = await fetch(placeDetailsUrl, { cache: "no-store" });
-
-        if (!res.ok) throw new Error("Place details failed");
-
+        const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(venue.mapsQuery)}`;
+        const res = await fetch(geocodeUrl, { cache: "no-store" });
+        if (!res.ok) throw new Error("Geocode failed");
         const data = await res.json();
-        const feature = data?.features?.[0];
+        const first = data?.[0];
+        if (!first) throw new Error("No result");
 
-        if (!feature) throw new Error("No place details result");
-
-        let lon = feature?.geometry?.coordinates?.[0];
-        let lat = feature?.geometry?.coordinates?.[1];
-
-        if ((lat == null || lon == null) && feature?.properties) {
-          lat = feature.properties.lat;
-          lon = feature.properties.lon;
-        }
-
-        lat = parseFloat(lat);
-        lon = parseFloat(lon);
-
-        if (Number.isNaN(lat) || Number.isNaN(lon)) {
-          throw new Error("Invalid coordinates");
-        }
-
+        const lat = parseFloat(first.lat);
+        const lon = parseFloat(first.lon);
         const bbox = [
           lon - 0.01,
           lat - 0.006,
@@ -608,57 +943,51 @@
           lat + 0.006
         ].map(v => v.toFixed(6)).join("%2C");
 
-        mapFrame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`;
+        frame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`;
       } catch {
-        mapFrame.src = `https://www.openstreetmap.org/export/embed.html?bbox=-1.744600%2C52.208900%2C-1.724600%2C52.220900&layer=mapnik&marker=52.214900%2C-1.734600`;
+        frame.src = "about:blank";
       }
     }
 
-    function render(data) {
-      const current = todayHours(data);
-      const status = computeOpenStatus(data);
-      const addressHtml = data.addressLines.map(line => escapeHtml(line)).join("<br>");
-      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(MAPS_QUERY)}`;
+    function renderVenue(venueData) {
+      const slug = toSlug(venueData.id);
+      const contentArea = document.getElementById(`contentArea-${slug}`);
+      const statusBadge = document.getElementById(`statusBadge-${slug}`);
+      const venueName = document.getElementById(`venueName-${slug}`);
 
-      venueName.textContent = data.name;
+      venueName.textContent = venueData.name;
 
-      statusBadge.className = `status ${status.venueOpen ? "open" : "closed"}`;
-      statusBadge.textContent = status.venueOpen ? "Open now" : "Closed now";
+      const status = computeOpenStatus(venueData);
+      if (status.venueOpen === true) {
+        statusBadge.className = "status open";
+        statusBadge.textContent = "Open now";
+      } else if (status.venueOpen === false) {
+        statusBadge.className = "status closed";
+        statusBadge.textContent = "Closed now";
+      } else {
+        statusBadge.className = "status unknown";
+        statusBadge.textContent = "Check hours";
+      }
+
+      const addressHtml = (venueData.addressLines || [venueData.name]).map(line => escapeHtml(line)).join("<br>");
+      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venueData.mapsQuery)}`;
 
       contentArea.innerHTML = `
         <div class="section">
           <p class="section-title">Current Status</p>
           <p class="section-body">
-            <strong>${status.venueOpen ? "Venue is currently open." : "Venue is currently closed."}</strong>
+            <strong>${
+              status.venueOpen === true ? "Venue is currently open." :
+              status.venueOpen === false ? "Venue is currently closed." :
+              "Live open/closed status could not be confirmed."
+            }</strong>
             <br>
-            ${escapeHtml(current.label)} hours: ${escapeHtml(current.venue || "Unavailable")}
-            ${current.food ? `<br><span style="color:var(--muted)">Food: ${escapeHtml(current.food.replace(/^Food:?\s*/i, ""))}</span>` : ""}
-            <br>
-            <span style="color:${status.foodOpen ? "var(--open)" : "var(--muted)"}">
-              ${status.foodOpen ? "Food service appears to be open now." : "Food service appears to be closed now."}
-            </span>
+            ${escapeHtml(status.todayLabel)} hours: ${escapeHtml(status.todayHours)}
+            ${status.todayExtra ? `<br><span style="color:var(--muted)">${escapeHtml(status.todayExtra)}</span>` : ""}
           </p>
         </div>
 
-        <div class="section">
-          <p class="section-title">Opening Hours</p>
-          <ul class="hours">
-            <li>
-              <span class="day">Mon to Sat</span>
-              <span class="time">
-                ${escapeHtml(data.hours.monSat || "Unavailable")}
-                ${data.hours.monSatFood ? `<span class="food">${escapeHtml(data.hours.monSatFood)}</span>` : ""}
-              </span>
-            </li>
-            <li>
-              <span class="day">Sunday</span>
-              <span class="time">
-                ${escapeHtml(data.hours.sunday || "Unavailable")}
-                ${data.hours.sundayFood ? `<span class="food">${escapeHtml(data.hours.sundayFood)}</span>` : ""}
-              </span>
-            </li>
-          </ul>
-        </div>
+        ${renderHoursList(venueData.hours)}
 
         <div class="section">
           <p class="section-title">Location</p>
@@ -668,51 +997,55 @@
         <div class="section">
           <p class="section-title">Contact</p>
           <p class="section-body">
-            ${escapeHtml(data.phone)}<br>
-            <a href="mailto:${escapeHtml(data.email)}" style="color:var(--gold); text-decoration:none;">${escapeHtml(data.email)}</a>
+            ${venueData.phone ? `${escapeHtml(venueData.phone)}<br>` : ""}
+            ${venueData.email ? `<a href="mailto:${escapeHtml(venueData.email)}" style="color:var(--gold); text-decoration:none;">${escapeHtml(venueData.email)}</a>` : "See venue website"}
           </p>
           <div class="actions">
-            <a class="btn" href="${escapeHtml(data.website)}" target="_blank" rel="noopener noreferrer">Venue Website</a>
+            <a class="btn" href="${escapeHtml(venueData.sourceUrl)}" target="_blank" rel="noopener noreferrer">Venue Website</a>
             <a class="btn" href="${escapeHtml(mapsLink)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
           </div>
         </div>
       `;
 
-      renderMap();
+      renderMap(venueData);
     }
 
-    async function loadLiveData() {
+    async function loadVenue(venue) {
+      const slug = toSlug(venue.id);
+      const contentArea = document.getElementById(`contentArea-${slug}`);
+      const cacheKey = `venueData-${slug}`;
+
       try {
-        const res = await fetch(FETCH_URL, { cache: "no-store" });
+        const res = await fetch(venue.fetchUrl, { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const text = await res.text();
-        const parsed = parsePistonClubText(text);
+        const parsed = parseVenueText(text, venue);
 
-        if (!parsed.hours.monSat && !parsed.hours.sunday) {
-          throw new Error("Opening hours not found on source page.");
-        }
-
-        localStorage.setItem("pistonClubLiveData", JSON.stringify(parsed));
-        render(parsed);
+        localStorage.setItem(cacheKey, JSON.stringify(parsed));
+        renderVenue(parsed);
       } catch {
-        const cached = localStorage.getItem("pistonClubLiveData");
+        const cached = localStorage.getItem(cacheKey);
         if (cached) {
-          render(JSON.parse(cached));
+          renderVenue(JSON.parse(cached));
         } else {
           contentArea.innerHTML = `
             <div class="error">
-              Failed to load the live website data.
+              Failed to load live website data for this venue.
             </div>
           `;
-          statusBadge.className = "status closed";
-          statusBadge.textContent = "Unavailable";
-          renderMap();
+          renderMap(venue);
         }
       }
     }
 
-    loadLiveData();
+    async function init() {
+      for (const venue of VENUES) {
+        loadVenue(venue);
+      }
+    }
+
+    init();
   </script>
 </body>
 </html>
