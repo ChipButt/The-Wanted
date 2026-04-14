@@ -5,13 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Piston Club | Trail Garage Status</title>
 
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
-
   <style>
     :root{
       --panel:#1c2023;
@@ -276,9 +269,11 @@
       position:relative;
     }
 
-    #map{
+    #mapFrame{
       width:100%;
       height:690px;
+      border:0;
+      display:block;
       background:#101214;
     }
 
@@ -303,32 +298,6 @@
       text-align:center;
       color:#978f81;
       font-size:12px;
-    }
-
-    .leaflet-container{
-      font:inherit;
-    }
-
-    .leaflet-popup-content-wrapper,
-    .leaflet-popup-tip{
-      background:#1f2427;
-      color:var(--text);
-      border:1px solid rgba(255,255,255,.08);
-    }
-
-    .map-popup-title{
-      margin:0 0 6px;
-      color:var(--gold);
-      font-weight:700;
-      text-transform:uppercase;
-      letter-spacing:.05em;
-    }
-
-    .map-popup-text{
-      margin:0;
-      color:var(--muted);
-      line-height:1.5;
-      font-size:13px;
     }
   </style>
 </head>
@@ -358,7 +327,13 @@
       </article>
 
       <aside class="card map-card">
-        <div id="map"></div>
+        <iframe
+          id="mapFrame"
+          title="The Piston Club map"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          src="about:blank"
+        ></iframe>
       </aside>
     </section>
 
@@ -367,16 +342,9 @@
     </footer>
   </div>
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
-
   <script>
-    // Confirmed fixed location for the Piston Club map
-    const PISTON_CLUB_LAT = 52.2149;
-    const PISTON_CLUB_LON = -1.7346;
+    const API_KEY = "e88278384cd740e3ae134e4f70adc197";
+    const PLACE_ID = "51b6013275adb9fcbf5932b5fef5f6194a40f00102f9018a556d0c000000009203085468652053746167";
 
     const SOURCE_URL = "https://thepistonclub.co.uk/";
     const FETCH_URL = "https://r.jina.ai/http://thepistonclub.co.uk/";
@@ -385,9 +353,7 @@
     const contentArea = document.getElementById("contentArea");
     const statusBadge = document.getElementById("statusBadge");
     const venueName = document.getElementById("venueName");
-
-    let map;
-    let mapMarker;
+    const mapFrame = document.getElementById("mapFrame");
 
     function escapeHtml(str = "") {
       return String(str)
@@ -585,39 +551,44 @@
       return { venueOpen, foodOpen };
     }
 
-    function ensureMap() {
-      if (map) return;
+    async function renderMap() {
+      try {
+        const placeDetailsUrl = `https://api.geoapify.com/v2/place-details?id=${encodeURIComponent(PLACE_ID)}&features=details&apiKey=${encodeURIComponent(API_KEY)}`;
+        const res = await fetch(placeDetailsUrl, { cache: "no-store" });
 
-      map = L.map("map", {
-        zoomControl: true,
-        scrollWheelZoom: true
-      }).setView([PISTON_CLUB_LAT, PISTON_CLUB_LON], 16);
+        if (!res.ok) throw new Error("Place details failed");
 
-      L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          maxZoom: 20
+        const data = await res.json();
+        const feature = data?.features?.[0];
+
+        if (!feature) throw new Error("No place details result");
+
+        let lon = feature?.geometry?.coordinates?.[0];
+        let lat = feature?.geometry?.coordinates?.[1];
+
+        if ((lat == null || lon == null) && feature?.properties) {
+          lat = feature.properties.lat;
+          lon = feature.properties.lon;
         }
-      ).addTo(map);
-    }
 
-    function renderMap(addressLines) {
-      ensureMap();
+        lat = parseFloat(lat);
+        lon = parseFloat(lon);
 
-      map.setView([PISTON_CLUB_LAT, PISTON_CLUB_LON], 16);
+        if (Number.isNaN(lat) || Number.isNaN(lon)) {
+          throw new Error("Invalid coordinates");
+        }
 
-      if (mapMarker) {
-        map.removeLayer(mapMarker);
+        const bbox = [
+          lon - 0.01,
+          lat - 0.006,
+          lon + 0.01,
+          lat + 0.006
+        ].map(v => v.toFixed(6)).join("%2C");
+
+        mapFrame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}`;
+      } catch {
+        mapFrame.src = `https://www.openstreetmap.org/export/embed.html?bbox=-1.744600%2C52.208900%2C-1.724600%2C52.220900&layer=mapnik&marker=52.214900%2C-1.734600`;
       }
-
-      mapMarker = L.marker([PISTON_CLUB_LAT, PISTON_CLUB_LON]).addTo(map);
-      mapMarker.bindPopup(`
-        <div>
-          <p class="map-popup-title">The Piston Club</p>
-          <p class="map-popup-text">${escapeHtml(addressLines.join(", "))}</p>
-        </div>
-      `).openPopup();
     }
 
     function render(data) {
@@ -684,7 +655,7 @@
         </div>
       `;
 
-      renderMap(data.addressLines);
+      renderMap();
     }
 
     async function loadLiveData() {
@@ -713,15 +684,7 @@
           `;
           statusBadge.className = "status closed";
           statusBadge.textContent = "Unavailable";
-          ensureMap();
-          renderMap([
-            "The Piston Club at The Stag",
-            "Alcester Road",
-            "Redhill",
-            "Stratford upon Avon",
-            "Warwickshire",
-            "B49 6NQ"
-          ]);
+          renderMap();
         }
       }
     }
