@@ -333,7 +333,7 @@
       <p class="eyebrow">Trail Garage Status</p>
       <h1>Trail Venue Status Board</h1>
       <p class="sub">
-        Live venue board for all eight trail stops. Maps stay fixed as they are now. The info panels use the same current status, opening hours, location and contact structure as the working Piston Club card.
+        Live venue board for all eight trail stops. Maps remain unchanged. Information panels use the same working structure as the Piston Club panel, with venue-specific fallbacks where the source website is thin or awkward.
       </p>
     </section>
 
@@ -353,7 +353,19 @@
         sourceUrl: "https://thepistonclub.co.uk/",
         fetchUrl: "https://r.jina.ai/http://thepistonclub.co.uk/",
         mapsQuery: "The Piston Club at The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ",
-        parser: "piston"
+        parser: "piston",
+        fallback: {
+          addressLines: [
+            "The Piston Club at The Stag",
+            "Alcester Road",
+            "Redhill",
+            "Stratford upon Avon",
+            "Warwickshire",
+            "B49 6NQ"
+          ],
+          phone: "01789 764634",
+          email: "info@thepistonclub.co.uk"
+        }
       },
       {
         id: "gilks",
@@ -362,7 +374,27 @@
         sourceUrl: "https://gilksgaragecafe.com/",
         fetchUrl: "https://r.jina.ai/http://gilksgaragecafe.com/",
         mapsQuery: "Gilks Garage Cafe, Banbury Road, Kineton, Warwickshire, CV35 0JZ",
-        parser: "gilks"
+        parser: "gilks",
+        fallback: {
+          addressLines: [
+            "Gilks’ Garage Café",
+            "Banbury Road",
+            "Kineton",
+            "Warwickshire",
+            "CV35 0JZ"
+          ],
+          phone: "",
+          email: "",
+          hours: [
+            { day: "Monday", time: "Closed", extra: "" },
+            { day: "Tuesday", time: "Closed", extra: "" },
+            { day: "Wednesday", time: "9.00AM – 3.00PM", extra: "Kitchen closes at 2.00PM" },
+            { day: "Thursday", time: "9.00AM – 3.00PM", extra: "Kitchen closes at 2.00PM" },
+            { day: "Friday", time: "9.00AM – 3.00PM", extra: "Kitchen closes at 2.00PM" },
+            { day: "Saturday", time: "9.00AM – 3.00PM", extra: "Kitchen closes at 2.00PM" },
+            { day: "Sunday", time: "9.00AM – 3.00PM", extra: "Kitchen closes at 2.00PM" }
+          ]
+        }
       },
       {
         id: "watsons",
@@ -371,25 +403,84 @@
         sourceUrl: "https://www.mrwatsonscafe.com/",
         fetchUrl: "https://r.jina.ai/http://www.mrwatsonscafe.com/",
         mapsQuery: "Mr Watsons Cafe, 72 Northwick Business Centre, Blockley, GL56 9RF",
-        parser: "watsons"
+        parser: "watsons",
+        fallback: {
+          addressLines: [
+            "Mr Watsons Cafe",
+            "72 Northwick Business Centre",
+            "Blockley",
+            "GL56 9RF"
+          ],
+          phone: "",
+          email: "Mrwatsonscafe@gmail.com",
+          hours: [
+            { day: "Monday", time: "10.30am - 3.00pm", extra: "" },
+            { day: "Tuesday", time: "8:30am - 3:00pm", extra: "" },
+            { day: "Wednesday", time: "8:30am - 3:00pm", extra: "" },
+            { day: "Thursday", time: "8:30am - 3:00pm", extra: "" },
+            { day: "Friday", time: "8:30am - 3:00pm", extra: "" },
+            { day: "Saturday", time: "10am - 2pm (when open)", extra: "See Facebook page for Saturday openings" },
+            { day: "Sunday", time: "Closed", extra: "" }
+          ]
+        }
       },
       {
         id: "sevenmile",
         label: "Chassis Garage",
         name: "Seven Mile",
         sourceUrl: "https://bicestermotion.com/",
-        fetchUrl: "https://r.jina.ai/http://bicestermotion.com/",
+        fetchUrl: "https://r.jina.ai/http://bicestermotion.com/visit",
         mapsQuery: "Seven Mile, Bicester Motion, Buckingham Road, Bicester, Oxfordshire, OX27 8AL",
-        parser: "generic"
+        parser: "sevenmile",
+        fallback: {
+          addressLines: [
+            "Seven Mile",
+            "Bicester Motion",
+            "Buckingham Road",
+            "Bicester",
+            "Oxfordshire",
+            "OX27 8AL"
+          ],
+          phone: "",
+          email: "",
+          hours: [
+            { day: "Monday", time: "8:30am - 11:00am", extra: "" },
+            { day: "Tuesday", time: "8:30am - 11:00am", extra: "" },
+            { day: "Wednesday", time: "8:30am - 11:00am", extra: "" },
+            { day: "Thursday", time: "8:30am - 11:00am", extra: "" },
+            { day: "Friday", time: "8:30am - 11:00am", extra: "" },
+            { day: "Saturday", time: "Unavailable", extra: "" },
+            { day: "Sunday", time: "Unavailable", extra: "" }
+          ]
+        }
       },
       {
         id: "oilyrag",
         label: "Lubrication Garage",
         name: "Oily Rag",
-        sourceUrl: "https://oilyrag.com/",
-        fetchUrl: "https://r.jina.ai/http://oilyrag.com/",
-        mapsQuery: "Oily Rag Co, Gloucester, GL1 1AJ",
-        parser: "generic"
+        sourceUrl: "https://www.oilyrag.com/pages/contact",
+        fetchUrl: "https://r.jina.ai/http://www.oilyrag.com/pages/contact",
+        mapsQuery: "Oily Rag HQ, Unit 9 Rockhaven Triangle Park, Gloucester, GL1 1AJ",
+        parser: "oilyrag",
+        fallback: {
+          addressLines: [
+            "Oily Rag HQ",
+            "Unit 9 Rockhaven Triangle Park",
+            "Gloucester",
+            "GL1 1AJ"
+          ],
+          phone: "",
+          email: "info@oilyrag.com",
+          hours: [
+            { day: "Monday", time: "Closed", extra: "" },
+            { day: "Tuesday", time: "Closed", extra: "" },
+            { day: "Wednesday", time: "Closed", extra: "" },
+            { day: "Thursday", time: "Closed", extra: "" },
+            { day: "Friday", time: "10–2", extra: "" },
+            { day: "Saturday", time: "10–4", extra: "" },
+            { day: "Sunday", time: "10–2:30", extra: "" }
+          ]
+        }
       },
       {
         id: "bluelias",
@@ -397,26 +488,76 @@
         name: "The Blue Lias",
         sourceUrl: "https://thebluelias.com/",
         fetchUrl: "https://r.jina.ai/http://thebluelias.com/",
-        mapsQuery: "The Blue Lias, Stockton, Warwickshire",
-        parser: "bluelias"
+        mapsQuery: "The Blue Lias, Stockton Road, Stockton, Southam, CV47 8LD",
+        parser: "bluelias",
+        fallback: {
+          addressLines: [
+            "The Blue Lias",
+            "Stockton Road",
+            "Stockton",
+            "Southam",
+            "CV47 8LD"
+          ],
+          phone: "",
+          email: ""
+        }
       },
       {
         id: "longitch",
         label: "Transmission Garage",
         name: "The Long Itch Diner",
-        sourceUrl: "https://longitchdiner.co.uk/",
-        fetchUrl: "https://r.jina.ai/http://longitchdiner.co.uk/",
-        mapsQuery: "The Long Itch Diner, Southam Road, Long Itchington, Warwickshire",
-        parser: "generic"
+        sourceUrl: "https://www.longitchdiner.co.uk/",
+        fetchUrl: "https://r.jina.ai/http://www.longitchdiner.co.uk/",
+        mapsQuery: "The Long Itch Diner, Southam Road, Long Itchington, CV47 9QZ",
+        parser: "longitch",
+        fallback: {
+          addressLines: [
+            "The Long Itch Diner",
+            "Southam Road",
+            "Long Itchington",
+            "CV47 9QZ"
+          ],
+          phone: "",
+          email: "",
+          hours: [
+            { day: "Monday", time: "8:30AM - 3PM", extra: "" },
+            { day: "Tuesday", time: "8:30AM - 3PM", extra: "" },
+            { day: "Wednesday", time: "8:30AM - 8:30PM", extra: "" },
+            { day: "Thursday", time: "8:30AM - 8:30PM", extra: "" },
+            { day: "Friday", time: "Unavailable", extra: "" },
+            { day: "Saturday", time: "Unavailable", extra: "" },
+            { day: "Sunday", time: "Unavailable", extra: "" }
+          ]
+        }
       },
       {
         id: "patsbaps",
         label: "Tyre Garage",
         name: "Cotswold Cafe / Pats Baps",
-        sourceUrl: "https://cotswoldcafe-patsbaps.co.uk/",
-        fetchUrl: "https://r.jina.ai/http://cotswoldcafe-patsbaps.co.uk/",
+        sourceUrl: "https://www.cotswoldcafe-patsbaps.co.uk/",
+        fetchUrl: "https://r.jina.ai/http://www.cotswoldcafe-patsbaps.co.uk/",
         mapsQuery: "Cotswold Cafe Pats Baps, Unit 4 London Road, Little Compton, Moreton-in-Marsh, GL56 0RR",
-        parser: "generic"
+        parser: "patsbaps",
+        fallback: {
+          addressLines: [
+            "Cotswold Cafe / Pats Baps",
+            "Unit 4 London Road",
+            "Little Compton",
+            "Moreton-in-Marsh",
+            "GL56 0RR"
+          ],
+          phone: "01608 674729",
+          email: "cotswoldcafe@hotmail.com",
+          hours: [
+            { day: "Monday", time: "9am - 3pm", extra: "" },
+            { day: "Tuesday", time: "9am - 3pm", extra: "" },
+            { day: "Wednesday", time: "9am - 3pm", extra: "" },
+            { day: "Thursday", time: "9am - 3pm", extra: "" },
+            { day: "Friday", time: "9am - 3pm", extra: "" },
+            { day: "Saturday", time: "9am - 1pm", extra: "" },
+            { day: "Sunday", time: "Closed", extra: "Open every 3rd Sunday for bike meets from 9am - 1pm" }
+          ]
+        }
       }
     ];
 
@@ -497,7 +638,7 @@
         .replace(/\s+/g, "")
         .toLowerCase();
 
-      if (/closed/i.test(cleaned)) return null;
+      if (/closed|unavailable/i.test(cleaned)) return null;
 
       const parts = cleaned.split("-");
       if (parts.length !== 2) return null;
@@ -539,7 +680,41 @@
       return { start, end };
     }
 
+    function fillFromFallback(parsed, fallback) {
+      if (!fallback) return parsed;
+
+      const merged = { ...parsed };
+
+      if (!merged.addressLines || !merged.addressLines.length) {
+        merged.addressLines = fallback.addressLines || [];
+      }
+
+      if (!merged.phone && fallback.phone) {
+        merged.phone = fallback.phone;
+      }
+
+      if (!merged.email && fallback.email) {
+        merged.email = fallback.email;
+      }
+
+      if ((!merged.hours || !merged.hours.length) && fallback.hours) {
+        merged.hours = fallback.hours;
+      }
+
+      return merged;
+    }
+
     function computeOpenStatusFromWeek(hoursArray) {
+      if (!hoursArray || !hoursArray.length) {
+        return {
+          venueOpen: null,
+          foodOpen: null,
+          label: "Today",
+          venue: "Unavailable",
+          extra: ""
+        };
+      }
+
       const now = new Date();
       const parts = new Intl.DateTimeFormat("en-GB", {
         hour: "2-digit",
@@ -554,7 +729,7 @@
       const weekday = parts.find(p => p.type === "weekday")?.value || "";
       const minsNow = hour * 60 + minute;
 
-      const today = (hoursArray || []).find(h => (h.day || "").toLowerCase() === weekday.toLowerCase());
+      const today = hoursArray.find(h => (h.day || "").toLowerCase() === weekday.toLowerCase());
 
       if (!today) {
         return {
@@ -649,16 +824,9 @@
         /\* The Piston Club\s*\n@\s*The Stag\s*\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)\s*\n\s*\*\s*([0-9 ]+)\s*\n\s*\*\s*([^\n]+)/i
       );
 
-      let addressLines = [
-        "The Piston Club at The Stag",
-        "Alcester Road",
-        "Redhill",
-        "Stratford upon Avon",
-        "Warwickshire",
-        "B49 6NQ"
-      ];
-      let phone = "01789 764634";
-      let email = "info@thepistonclub.co.uk";
+      let addressLines = [];
+      let phone = "";
+      let email = "";
 
       if (footerMatch) {
         addressLines = [
@@ -673,7 +841,7 @@
         email = normaliseSpaces(footerMatch[7]).replace(/^\*+\s*/g, "");
       }
 
-      return {
+      return fillFromFallback({
         ...venue,
         addressLines,
         phone,
@@ -688,7 +856,7 @@
           { day: "Saturday", time: monSat, extra: monSatFood },
           { day: "Sunday", time: sunday, extra: sundayFood }
         ].filter(h => h.time)
-      };
+      }, venue.fallback);
     }
 
     function parseGilks(text, venue) {
@@ -698,7 +866,7 @@
       const wedSun = cleaned.match(/Wednesday\s*[–-]\s*Sunday\s*\/\s*([^\n]+)/i);
       const kitchen = cleaned.match(/\*kitchen closes at ([^\n*]+)\*/i);
 
-      return {
+      return fillFromFallback({
         ...venue,
         addressLines: addr ? [
           "Gilks’ Garage Café",
@@ -706,20 +874,20 @@
           normaliseSpaces(addr[2]),
           normaliseSpaces(addr[3]),
           normaliseSpaces(addr[4])
-        ] : ["Gilks’ Garage Café", "Banbury Road", "Kineton", "Warwickshire", "CV35 0JZ"],
+        ] : [],
         phone: "",
         email: "",
         website: venue.sourceUrl,
         hours: [
-          { day: "Monday", time: cleanTimeText(monTue?.[1] || "Closed"), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
-          { day: "Tuesday", time: cleanTimeText(monTue?.[1] || "Closed"), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
+          { day: "Monday", time: cleanTimeText(monTue?.[1] || "Closed"), extra: "" },
+          { day: "Tuesday", time: cleanTimeText(monTue?.[1] || "Closed"), extra: "" },
           { day: "Wednesday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
           { day: "Thursday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
           { day: "Friday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
           { day: "Saturday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" },
           { day: "Sunday", time: cleanTimeText(wedSun?.[1] || ""), extra: kitchen ? `Kitchen closes at ${cleanTimeText(kitchen[1])}` : "" }
         ].filter(h => h.time)
-      };
+      }, venue.fallback);
     }
 
     function parseWatsons(text, venue) {
@@ -729,22 +897,22 @@
       const tueFri = cleaned.match(/Tuesday\s*-\s*Friday:?\s*([0-9:.apm\s-]+)/i);
       const satWhenOpen = cleaned.match(/Saturday\s*-\s*([0-9:.apm\s-]+)\s*\(when open\)/i);
 
-      return {
+      return fillFromFallback({
         ...venue,
         addressLines: ["Mr Watsons Cafe", "72 Northwick Business Centre", "Blockley", "GL56 9RF"],
         phone: "",
         email: emailMatch ? emailMatch[1] : "",
         website: venue.sourceUrl,
         hours: [
-          { day: "Monday", time: cleanTimeText(mon?.[1] || "Closed") },
-          { day: "Tuesday", time: cleanTimeText(tueFri?.[1] || "") },
-          { day: "Wednesday", time: cleanTimeText(tueFri?.[1] || "") },
-          { day: "Thursday", time: cleanTimeText(tueFri?.[1] || "") },
-          { day: "Friday", time: cleanTimeText(tueFri?.[1] || "") },
-          { day: "Saturday", time: satWhenOpen ? cleanTimeText(satWhenOpen[1]) : "Closed", extra: satWhenOpen ? "See Facebook for Saturday openings" : "" },
-          { day: "Sunday", time: "Closed" }
+          { day: "Monday", time: cleanTimeText(mon?.[1] || "Closed"), extra: "" },
+          { day: "Tuesday", time: cleanTimeText(tueFri?.[1] || ""), extra: "" },
+          { day: "Wednesday", time: cleanTimeText(tueFri?.[1] || ""), extra: "" },
+          { day: "Thursday", time: cleanTimeText(tueFri?.[1] || ""), extra: "" },
+          { day: "Friday", time: cleanTimeText(tueFri?.[1] || ""), extra: "" },
+          { day: "Saturday", time: satWhenOpen ? cleanTimeText(satWhenOpen[1]) : "", extra: "See Facebook page for Saturday openings" },
+          { day: "Sunday", time: "Closed", extra: "" }
         ].filter(h => h.time)
-      };
+      }, venue.fallback);
     }
 
     function parseBlueLias(text, venue) {
@@ -763,14 +931,104 @@
         };
       }).filter(h => h.time);
 
-      return {
+      return fillFromFallback({
         ...venue,
-        addressLines: ["The Blue Lias", "Stockton", "Warwickshire"],
+        addressLines: ["The Blue Lias", "Stockton Road", "Stockton", "Southam", "CV47 8LD"],
         phone: "",
         email: "",
         website: venue.sourceUrl,
         hours
-      };
+      }, venue.fallback);
+    }
+
+    function parseOilyRag(text, venue) {
+      const cleaned = text.replace(/\r/g, "");
+      const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@oilyrag\.com)/i);
+      const addr = cleaned.match(/Unit 9 Rockhaven\s*\nTriangle Park,\s*Gloucester\s*\nGL1 1AJ/i);
+
+      const fri = cleaned.match(/Friday:\s*([0-9–:.\sapm]+)/i);
+      const sat = cleaned.match(/Saturday:\s*([0-9–:.\sapm]+)/i);
+      const sun = cleaned.match(/Sunday:\s*([0-9–:.\sapm]+)/i);
+
+      return fillFromFallback({
+        ...venue,
+        addressLines: addr
+          ? ["Oily Rag HQ", "Unit 9 Rockhaven Triangle Park", "Gloucester", "GL1 1AJ"]
+          : [],
+        phone: "",
+        email: emailMatch ? normaliseSpaces(emailMatch[1]) : "",
+        website: venue.sourceUrl,
+        hours: [
+          { day: "Friday", time: cleanTimeText(fri?.[1] || "") },
+          { day: "Saturday", time: cleanTimeText(sat?.[1] || "") },
+          { day: "Sunday", time: cleanTimeText(sun?.[1] || "") }
+        ].filter(h => h.time)
+      }, venue.fallback);
+    }
+
+    function parsePatsBaps(text, venue) {
+      const cleaned = text.replace(/\r/g, "");
+      const phoneMatch = cleaned.match(/(01608\s*674729)/i);
+      const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@hotmail\.com)/i);
+
+      const monFri = cleaned.match(/Mon\s*-\s*Fri:\s*([^\n]+)/i);
+      const sat = cleaned.match(/Saturday:\s*([^\n]+)/i);
+      const sun = cleaned.match(/Sunday:\s*([^\n]+)/i);
+      const bikeMeet = cleaned.match(/\*Open every 3rd Sunday for bike meets from ([^\n]+)/i);
+
+      return fillFromFallback({
+        ...venue,
+        addressLines: [
+          "Cotswold Cafe / Pats Baps",
+          "Unit 4 London Road",
+          "Little Compton",
+          "Moreton-in-Marsh",
+          "GL56 0RR"
+        ],
+        phone: phoneMatch ? cleanTimeText(phoneMatch[1]) : "",
+        email: emailMatch ? cleanTimeText(emailMatch[1]) : "",
+        website: venue.sourceUrl,
+        hours: [
+          { day: "Monday", time: cleanTimeText(monFri?.[1] || "") },
+          { day: "Tuesday", time: cleanTimeText(monFri?.[1] || "") },
+          { day: "Wednesday", time: cleanTimeText(monFri?.[1] || "") },
+          { day: "Thursday", time: cleanTimeText(monFri?.[1] || "") },
+          { day: "Friday", time: cleanTimeText(monFri?.[1] || "") },
+          { day: "Saturday", time: cleanTimeText(sat?.[1] || "") },
+          { day: "Sunday", time: cleanTimeText(sun?.[1] || "Closed"), extra: bikeMeet ? `Open every 3rd Sunday for bike meets from ${cleanTimeText(bikeMeet[1])}` : "" }
+        ].filter(h => h.time)
+      }, venue.fallback);
+    }
+
+    function parseLongItch(text, venue) {
+      const cleaned = text.replace(/\r/g, "");
+      const monTue = cleaned.match(/Monday\s*-\s*Tuesday:\s*([0-9:APMapm\s-]+)/i);
+      const wedThu = cleaned.match(/Wednesday\s*-\s*Thursday:\s*([0-9:APMapm\s-]+)/i);
+
+      return fillFromFallback({
+        ...venue,
+        addressLines: ["The Long Itch Diner", "Southam Road", "Long Itchington", "CV47 9QZ"],
+        phone: "",
+        email: "",
+        website: venue.sourceUrl,
+        hours: [
+          { day: "Monday", time: cleanTimeText(monTue?.[1] || "") },
+          { day: "Tuesday", time: cleanTimeText(monTue?.[1] || "") },
+          { day: "Wednesday", time: cleanTimeText(wedThu?.[1] || "") },
+          { day: "Thursday", time: cleanTimeText(wedThu?.[1] || "") }
+        ].filter(h => h.time)
+      }, venue.fallback);
+    }
+
+    function parseSevenMile(text, venue) {
+      return fillFromFallback({
+        ...venue,
+        addressLines: [],
+        phone: "",
+        email: "",
+        website: venue.sourceUrl,
+        hours: []
+      }, venue.fallback);
     }
 
     function parseGeneric(text, venue) {
@@ -784,22 +1042,20 @@
         if (dayMatch) {
           const day = dayMatch[1];
           const rest = cleanTimeText(dayMatch[2]);
-          if (rest) {
-            hours.push({ day, time: rest });
-          }
+          if (rest) hours.push({ day, time: rest });
         }
       }
 
       const deduped = dayNames.map(day => hours.find(h => h.day.toLowerCase() === day.toLowerCase())).filter(Boolean);
 
-      return {
+      return fillFromFallback({
         ...venue,
-        addressLines: [venue.name],
+        addressLines: [],
         phone: "",
         email: "",
         website: venue.sourceUrl,
         hours: deduped
-      };
+      }, venue.fallback);
     }
 
     function parseVenueText(text, venue) {
@@ -807,6 +1063,10 @@
       if (venue.parser === "gilks") return parseGilks(text, venue);
       if (venue.parser === "watsons") return parseWatsons(text, venue);
       if (venue.parser === "bluelias") return parseBlueLias(text, venue);
+      if (venue.parser === "oilyrag") return parseOilyRag(text, venue);
+      if (venue.parser === "patsbaps") return parsePatsBaps(text, venue);
+      if (venue.parser === "longitch") return parseLongItch(text, venue);
+      if (venue.parser === "sevenmile") return parseSevenMile(text, venue);
       return parseGeneric(text, venue);
     }
 
@@ -896,24 +1156,34 @@
 
         const text = await res.text();
         const parsed = parseVenueText(text, venue);
+        const finalData = fillFromFallback(parsed, venue.fallback);
 
-        if (!parsed.hours || !parsed.hours.length) {
-          throw new Error("Opening hours not found on source page.");
-        }
-
-        localStorage.setItem(cacheKey, JSON.stringify(parsed));
-        renderVenue(parsed);
+        localStorage.setItem(cacheKey, JSON.stringify(finalData));
+        renderVenue(finalData);
       } catch {
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
           renderVenue(JSON.parse(cached));
         } else {
-          contentArea.innerHTML = `
-            <div class="error">
-              Failed to load live website data for this venue.
-            </div>
-          `;
-          renderMap(venue);
+          const fallbackOnly = fillFromFallback({
+            ...venue,
+            addressLines: [],
+            phone: "",
+            email: "",
+            website: venue.sourceUrl,
+            hours: []
+          }, venue.fallback);
+
+          if (fallbackOnly.hours.length || fallbackOnly.addressLines.length || fallbackOnly.phone || fallbackOnly.email) {
+            renderVenue(fallbackOnly);
+          } else {
+            contentArea.innerHTML = `
+              <div class="error">
+                Failed to load live website data for this venue.
+              </div>
+            `;
+            renderMap(venue);
+          }
         }
       }
     }
