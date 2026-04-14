@@ -374,9 +374,7 @@
   ></script>
 
   <script>
-    const GEOAPIFY_API_KEY = "PASTE_YOUR_GEOAPIFY_API_KEY_HERE";
-
-    // Fixed confirmed venue location for map only
+    // Confirmed fixed location for the Piston Club map
     const PISTON_CLUB_LAT = 52.2149;
     const PISTON_CLUB_LON = -1.7346;
 
@@ -596,9 +594,9 @@
       }).setView([PISTON_CLUB_LAT, PISTON_CLUB_LON], 16);
 
       L.tileLayer(
-        `https://maps.geoapify.com/v1/tile/dark-matter-brown/{z}/{x}/{y}.png?apiKey=${encodeURIComponent(GEOAPIFY_API_KEY)}`,
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.geoapify.com/">Geoapify</a>',
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           maxZoom: 20
         }
       ).addTo(map);
