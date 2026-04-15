@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trail Garage Status</title>
-
+  <title>Trail Venue Status Board</title>
   <style>
     :root{
       --panel:#1c2023;
@@ -181,14 +180,10 @@
     }
 
     @media (max-width: 1100px){
-      .venue-layout{
-        grid-template-columns:1fr;
-      }
+      .venue-layout{ grid-template-columns:1fr; }
     }
 
-    .info-column{
-      min-width:0;
-    }
+    .info-column{ min-width:0; }
 
     .map-column{
       display:flex;
@@ -223,7 +218,7 @@
       background:rgba(255,255,255,.025);
     }
 
-    .section:last-child{margin-bottom:0}
+    .section:last-child{ margin-bottom:0; }
 
     .section-title{
       margin:0 0 10px;
@@ -302,6 +297,19 @@
       background:rgba(211,164,77,.2);
       transform:translateY(-1px);
     }
+
+    .live-note{
+      margin-top:8px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    footer{
+      margin-top:18px;
+      text-align:center;
+      color:#978f81;
+      font-size:12px;
+    }
   </style>
 </head>
 <body>
@@ -310,11 +318,15 @@
       <p class="eyebrow">Trail Garage Status</p>
       <h1>Trail Venue Status Board</h1>
       <p class="sub">
-        Stable version with the map embeds unchanged and the remaining venue cards locked to verified venue-specific details so they stop degrading into nonsense.
+        Live venue board. Each card tries the venue’s own site first and falls back only if that live parse fails. Maps stay unchanged.
       </p>
     </section>
 
     <section class="cards" id="cards"></section>
+
+    <footer>
+      Live venue sources checked per card. Fallback is used only if the live source cannot be parsed.
+    </footer>
   </div>
 
   <script>
@@ -324,236 +336,258 @@
         label: "Engine Garage",
         name: "The Piston Club",
         website: "https://thepistonclub.co.uk/",
+        fetchUrl: "https://r.jina.ai/http://thepistonclub.co.uk/",
         mapsQuery: "The Piston Club at The Stag, Alcester Road, Redhill, Stratford-upon-Avon, Warwickshire, B49 6NQ",
-        addressLines: [
-          "The Piston Club at The Stag",
-          "Alcester Road",
-          "Redhill",
-          "Stratford upon Avon",
-          "Warwickshire",
-          "B49 6NQ"
-        ],
-        phone: "01789 764634",
-        email: "info@thepistonclub.co.uk",
         socials: {
           facebook: "https://www.facebook.com/ThePistonClubUK/",
           instagram: "https://www.instagram.com/thepistonclubhq/"
         },
-        hours: [
-          { day: "Monday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
-          { day: "Tuesday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
-          { day: "Wednesday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
-          { day: "Thursday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
-          { day: "Friday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
-          { day: "Saturday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
-          { day: "Sunday", time: "7.30am - 8pm", extra: "Food: 7.30am - 5pm" }
-        ]
+        fallback: {
+          addressLines: [
+            "The Piston Club at The Stag",
+            "Alcester Road",
+            "Redhill",
+            "Stratford upon Avon",
+            "Warwickshire",
+            "B49 6NQ"
+          ],
+          phone: "01789 764634",
+          email: "info@thepistonclub.co.uk",
+          hours: [
+            { day: "Monday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Tuesday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Wednesday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Thursday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Friday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Saturday", time: "7.30am - 10pm", extra: "Food: 7.30am - 8.30pm" },
+            { day: "Sunday", time: "7.30am - 8pm", extra: "Food: 7.30am - 5pm" }
+          ]
+        }
       },
       {
         id: "gilks",
         label: "Fuel System Garage",
         name: "Gilks’ Garage Café",
         website: "https://gilksgaragecafe.com/",
+        fetchUrl: "https://r.jina.ai/http://gilksgaragecafe.com/visit-us/",
         mapsQuery: "Gilks Garage Cafe, Banbury Road, Kineton, Warwickshire, CV35 0JZ",
-        addressLines: [
-          "Gilks’ Garage Café",
-          "Banbury Road",
-          "Kineton",
-          "Warwickshire",
-          "CV35 0JZ"
-        ],
-        phone: "01926 640539",
-        email: "info@gilksgaragecafe.com",
         socials: {
           facebook: "https://www.facebook.com/gilksgaragecafe/",
           instagram: "https://www.instagram.com/gilksgaragecafe/"
         },
-        hours: [
-          { day: "Monday", time: "Closed", extra: "" },
-          { day: "Tuesday", time: "Closed", extra: "" },
-          { day: "Wednesday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
-          { day: "Thursday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
-          { day: "Friday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
-          { day: "Saturday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
-          { day: "Sunday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" }
-        ]
+        fallback: {
+          addressLines: [
+            "Gilks’ Garage Café",
+            "Banbury Road",
+            "Kineton",
+            "Warwickshire",
+            "CV35 0JZ"
+          ],
+          phone: "01926 640539",
+          email: "info@gilksgaragecafe.com",
+          hours: [
+            { day: "Monday", time: "Closed", extra: "" },
+            { day: "Tuesday", time: "Closed", extra: "" },
+            { day: "Wednesday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
+            { day: "Thursday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
+            { day: "Friday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
+            { day: "Saturday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
+            { day: "Sunday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" }
+          ]
+        }
       },
       {
         id: "watsons",
         label: "Bodywork Garage",
         name: "Mr Watsons Cafe",
         website: "https://www.mrwatsonscafe.com/",
+        fetchUrl: "https://r.jina.ai/http://www.mrwatsonscafe.com/",
         mapsQuery: "Mr Watsons Cafe, 72 Northwick Business Centre, Blockley, GL56 9RF",
-        addressLines: [
-          "Mr Watsons Cafe",
-          "72 Northwick Business Centre",
-          "Blockley",
-          "GL56 9RF"
-        ],
-        phone: "",
-        email: "Mrwatsonscafe@gmail.com",
         socials: {
           facebook: "https://www.facebook.com/100091805952631/",
           instagram: "https://www.instagram.com/mrwatsonscafe/"
         },
-        hours: [
-          { day: "Monday", time: "10.30am - 3.00pm", extra: "" },
-          { day: "Tuesday", time: "8:30am - 3:00pm", extra: "" },
-          { day: "Wednesday", time: "8:30am - 3:00pm", extra: "" },
-          { day: "Thursday", time: "8:30am - 3:00pm", extra: "" },
-          { day: "Friday", time: "8:30am - 3:00pm", extra: "" },
-          { day: "Saturday", time: "See Facebook for Saturday openings", extra: "Saturday bike meet once a month" },
-          { day: "Sunday", time: "Closed", extra: "" }
-        ]
+        fallback: {
+          addressLines: [
+            "Mr Watsons Cafe",
+            "72 Northwick Business Centre",
+            "Blockley",
+            "GL56 9RF"
+          ],
+          phone: "Phone unavailable",
+          email: "Mrwatsonscafe@gmail.com",
+          hours: [
+            { day: "Monday", time: "10.30am - 3.00pm", extra: "" },
+            { day: "Tuesday", time: "8:30am - 3:00pm", extra: "" },
+            { day: "Wednesday", time: "8:30am - 3:00pm", extra: "" },
+            { day: "Thursday", time: "8:30am - 3:00pm", extra: "" },
+            { day: "Friday", time: "8:30am - 3:00pm", extra: "" },
+            { day: "Saturday", time: "See Facebook for Saturday openings", extra: "Saturday bike meet once a month" },
+            { day: "Sunday", time: "Closed", extra: "" }
+          ]
+        }
       },
       {
         id: "sevenmile",
         label: "Chassis Garage",
         name: "Seven Mile",
         website: "https://bicestermotion.com/visit",
+        fetchUrl: "https://r.jina.ai/http://bicestermotion.com/visit",
         mapsQuery: "Seven Mile, Bicester Motion, Buckingham Road, Bicester, Oxfordshire, OX27 8AL",
-        addressLines: [
-          "Seven Mile",
-          "Bicester Motion",
-          "Buckingham Road",
-          "Bicester",
-          "Oxfordshire",
-          "OX27 8AL"
-        ],
-        phone: "",
-        email: "",
         socials: {
           facebook: "https://www.facebook.com/sevenmilecande/",
           instagram: "https://www.instagram.com/sevenmilecande/"
         },
-        hours: [
-          { day: "Monday", time: "8:30am - 11:00am", extra: "" },
-          { day: "Tuesday", time: "8:30am - 11:00am", extra: "" },
-          { day: "Wednesday", time: "8:30am - 11:00am", extra: "" },
-          { day: "Thursday", time: "8:30am - 11:00am", extra: "" },
-          { day: "Friday", time: "8:30am - 11:00am", extra: "" },
-          { day: "Saturday", time: "See social media for live updates", extra: "" },
-          { day: "Sunday", time: "See social media for live updates", extra: "" }
-        ]
+        fallback: {
+          addressLines: [
+            "Seven Mile",
+            "Bicester Motion",
+            "Buckingham Road",
+            "Bicester",
+            "Oxfordshire",
+            "OX27 8AL"
+          ],
+          phone: "Phone unavailable",
+          email: "",
+          hours: [
+            { day: "Monday", time: "8:30am - 11:00am", extra: "" },
+            { day: "Tuesday", time: "8:30am - 11:00am", extra: "" },
+            { day: "Wednesday", time: "8:30am - 11:00am", extra: "" },
+            { day: "Thursday", time: "8:30am - 11:00am", extra: "" },
+            { day: "Friday", time: "8:30am - 11:00am", extra: "" },
+            { day: "Saturday", time: "See social media for live updates", extra: "" },
+            { day: "Sunday", time: "See social media for live updates", extra: "" }
+          ]
+        }
       },
       {
         id: "oilyrag",
         label: "Lubrication Garage",
         name: "Oily Rag",
         website: "https://www.oilyrag.com/pages/contact",
+        fetchUrl: "https://r.jina.ai/http://www.oilyrag.com/pages/contact",
         mapsQuery: "Oily Rag HQ, Unit 9 Rockhaven Triangle Park, Gloucester, GL1 1AJ",
-        addressLines: [
-          "Oily Rag HQ",
-          "Unit 9 Rockhaven Triangle Park",
-          "Gloucester",
-          "GL1 1AJ"
-        ],
-        phone: "",
-        email: "info@oilyrag.com",
         socials: {
           facebook: "https://www.facebook.com/OilyRagClothing/",
           instagram: "https://www.instagram.com/oilyragco/"
         },
-        hours: [
-          { day: "Monday", time: "Closed", extra: "" },
-          { day: "Tuesday", time: "Closed", extra: "" },
-          { day: "Wednesday", time: "Closed", extra: "" },
-          { day: "Thursday", time: "Closed", extra: "" },
-          { day: "Friday", time: "10am - 2pm", extra: "" },
-          { day: "Saturday", time: "10am - 4pm", extra: "" },
-          { day: "Sunday", time: "10am - 2:30pm", extra: "" }
-        ]
+        fallback: {
+          addressLines: [
+            "Oily Rag HQ",
+            "Unit 9 Rockhaven Triangle Park",
+            "Gloucester",
+            "GL1 1AJ"
+          ],
+          phone: "Phone unavailable",
+          email: "info@oilyrag.com",
+          hours: [
+            { day: "Monday", time: "Closed", extra: "" },
+            { day: "Tuesday", time: "Closed", extra: "" },
+            { day: "Wednesday", time: "Closed", extra: "" },
+            { day: "Thursday", time: "Closed", extra: "" },
+            { day: "Friday", time: "10am - 2pm", extra: "" },
+            { day: "Saturday", time: "10am - 4pm", extra: "" },
+            { day: "Sunday", time: "10am - 2:30pm", extra: "" }
+          ]
+        }
       },
       {
         id: "bluelias",
         label: "Cooling Garage",
         name: "The Blue Lias",
         website: "https://thebluelias.com/",
+        fetchUrl: "https://r.jina.ai/http://thebluelias.com/",
         mapsQuery: "The Blue Lias, Stockton Road, Stockton, Southam, CV47 8LD",
-        addressLines: [
-          "The Blue Lias",
-          "Stockton Road",
-          "Stockton",
-          "Southam",
-          "CV47 8LD"
-        ],
-        phone: "",
-        email: "enquiries@thebluelias.com",
         socials: {
           facebook: "https://www.facebook.com/theblueliasinn/",
           instagram: "https://www.instagram.com/thebluelias/"
         },
-        hours: [
-          { day: "Monday", time: "12pm - 10pm", extra: "Food: 12pm - 2.30pm & 5.30pm - 8pm" },
-          { day: "Tuesday", time: "12pm - 10pm", extra: "Food: 12pm - 2.30pm & 5.30pm - 8pm" },
-          { day: "Wednesday", time: "12pm - 10pm", extra: "Food: 12pm - 2.30pm & 5.30pm - 8pm" },
-          { day: "Thursday", time: "12pm - 10pm", extra: "Food: 12pm - 2.30pm & 5.30pm - 8pm" },
-          { day: "Friday", time: "12pm - 11pm", extra: "Food: 12pm - 2.30pm & 5.30pm - 8pm" },
-          { day: "Saturday", time: "12pm - 11pm", extra: "Food: 12pm - 8pm" },
-          { day: "Sunday", time: "12pm - 10pm", extra: "Food: 12pm - 6pm" }
-        ]
+        fallback: {
+          addressLines: [
+            "The Blue Lias",
+            "Stockton Road",
+            "Stockton",
+            "Southam",
+            "CV47 8LD"
+          ],
+          phone: "01926 812513",
+          email: "enquiries@thebluelias.com",
+          hours: [
+            { day: "Monday", time: "12pm - 10pm", extra: "Food: 12pm - 2.30pm & 5.30pm - 8pm" },
+            { day: "Tuesday", time: "12pm - 10pm", extra: "Food: 12pm - 2.30pm & 5.30pm - 8pm" },
+            { day: "Wednesday", time: "12pm - 10pm", extra: "Food: 12pm - 2.30pm & 5.30pm - 8pm" },
+            { day: "Thursday", time: "12pm - 10pm", extra: "Food: 12pm - 2.30pm & 5.30pm - 8pm" },
+            { day: "Friday", time: "12pm - 11pm", extra: "Food: 12pm - 2.30pm & 5.30pm - 8pm" },
+            { day: "Saturday", time: "12pm - 11pm", extra: "Food: 12pm - 8pm" },
+            { day: "Sunday", time: "12pm - 10pm", extra: "Food: 12pm - 6pm" }
+          ]
+        }
       },
       {
         id: "longitch",
         label: "Transmission Garage",
         name: "The Long Itch Diner",
         website: "https://www.longitchdiner.co.uk/contact",
+        fetchUrl: "https://r.jina.ai/http://www.longitchdiner.co.uk/contact",
         mapsQuery: "The Long Itch Diner, Southam Road, Long Itchington, Southam, CV47 9QZ",
-        addressLines: [
-          "The Long Itch Diner",
-          "Southam Road",
-          "Long Itchington",
-          "Southam",
-          "CV47 9QZ"
-        ],
-        phone: "01926 819096",
-        email: "",
         socials: {
           facebook: "https://www.facebook.com/thelongitchdiner/",
           instagram: ""
         },
-        hours: [
-          { day: "Monday", time: "8:30AM - 3PM", extra: "" },
-          { day: "Tuesday", time: "8:30AM - 3PM", extra: "" },
-          { day: "Wednesday", time: "8:30AM - 8:30PM", extra: "" },
-          { day: "Thursday", time: "8:30AM - 8:30PM", extra: "" },
-          { day: "Friday", time: "8:30AM - 3PM", extra: "" },
-          { day: "Saturday", time: "8:30AM - 3PM", extra: "" },
-          { day: "Sunday", time: "8:30AM - 3PM", extra: "" }
-        ]
+        fallback: {
+          addressLines: [
+            "The Long Itch Diner",
+            "Southam Road",
+            "Long Itchington",
+            "Southam",
+            "CV47 9QZ"
+          ],
+          phone: "01926 819096",
+          email: "",
+          hours: [
+            { day: "Monday", time: "8:30AM - 3PM", extra: "" },
+            { day: "Tuesday", time: "8:30AM - 3PM", extra: "" },
+            { day: "Wednesday", time: "8:30AM - 8:30PM", extra: "" },
+            { day: "Thursday", time: "8:30AM - 8:30PM", extra: "" },
+            { day: "Friday", time: "8:30AM - 3PM", extra: "" },
+            { day: "Saturday", time: "8:30AM - 3PM", extra: "" },
+            { day: "Sunday", time: "8:30AM - 3PM", extra: "" }
+          ]
+        }
       },
       {
         id: "patsbaps",
         label: "Tyre Garage",
         name: "Cotswold Cafe / Pats Baps",
         website: "https://www.cotswoldcafe-patsbaps.co.uk/",
+        fetchUrl: "https://r.jina.ai/http://www.cotswoldcafe-patsbaps.co.uk/",
         mapsQuery: "Cotswold Cafe Pats Baps, Unit 4 London Road, Little Compton, Moreton-in-Marsh, GL56 0RR",
-        addressLines: [
-          "Cotswold Cafe / Pats Baps",
-          "Unit 4 London Road",
-          "Little Compton",
-          "Moreton-in-Marsh",
-          "GL56 0RR"
-        ],
-        phone: "01608 674729",
-        email: "cotswoldcafe@hotmail.com",
         socials: {
           facebook: "https://www.facebook.com/CotswoldCafepatsbaps/",
           instagram: "https://www.instagram.com/cotswoldcafepatsbaps/"
         },
-        hours: [
-          { day: "Monday", time: "9am - 3pm", extra: "" },
-          { day: "Tuesday", time: "9am - 3pm", extra: "" },
-          { day: "Wednesday", time: "9am - 3pm", extra: "" },
-          { day: "Thursday", time: "9am - 3pm", extra: "" },
-          { day: "Friday", time: "9am - 3pm", extra: "" },
-          { day: "Saturday", time: "9am - 1pm", extra: "" },
-          { day: "Sunday", time: "Closed", extra: "Open every 3rd Sunday for bike meets from 9am - 1pm" }
-        ]
+        fallback: {
+          addressLines: [
+            "Cotswold Cafe / Pats Baps",
+            "Unit 4 London Road",
+            "Little Compton",
+            "Moreton-in-Marsh",
+            "GL56 0RR"
+          ],
+          phone: "01608 674729",
+          email: "cotswoldcafe@hotmail.com",
+          hours: [
+            { day: "Monday", time: "9am - 3pm", extra: "" },
+            { day: "Tuesday", time: "9am - 3pm", extra: "" },
+            { day: "Wednesday", time: "9am - 3pm", extra: "" },
+            { day: "Thursday", time: "9am - 3pm", extra: "" },
+            { day: "Friday", time: "9am - 3pm", extra: "" },
+            { day: "Saturday", time: "9am - 1pm", extra: "" },
+            { day: "Sunday", time: "Closed", extra: "Open every 3rd Sunday for bike meets from 9am - 1pm" }
+          ]
+        }
       }
     ];
-
-    const cardsEl = document.getElementById("cards");
 
     function escapeHtml(str = "") {
       return String(str)
@@ -568,16 +602,19 @@
       return text.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     }
 
+    function clean(str = "") {
+      return String(str).replace(/\u00A0/g, " ").replace(/[ \t]+/g, " ").trim();
+    }
+
     function parseTimeRange(range) {
       if (!range) return null;
-
       const cleaned = String(range)
         .replace(/^food:?\s*/i, "")
         .replace(/[–—]/g, "-")
         .replace(/\s+/g, "")
         .toLowerCase();
 
-      if (/closed|unavailable|see social media|see facebook/i.test(cleaned)) return null;
+      if (/closed|unavailable|see social media|see facebook|phone unavailable/i.test(cleaned)) return null;
 
       const parts = cleaned.split("-");
       if (parts.length !== 2) return null;
@@ -614,7 +651,6 @@
 
       const start = toMinutes(parts[0]);
       const end = toMinutes(parts[1]);
-
       if (start == null || end == null) return null;
       return { start, end };
     }
@@ -637,23 +673,11 @@
       const today = (hoursArray || []).find(h => (h.day || "").toLowerCase() === weekday.toLowerCase());
 
       if (!today) {
-        return {
-          venueOpen: null,
-          foodOpen: null,
-          label: "Today",
-          venue: "Unavailable",
-          extra: ""
-        };
+        return { venueOpen: null, foodOpen: null, label: "Today", venue: "Unavailable", extra: "" };
       }
 
       if (/closed/i.test(today.time || "")) {
-        return {
-          venueOpen: false,
-          foodOpen: false,
-          label: "Today",
-          venue: today.time || "Closed",
-          extra: today.extra || ""
-        };
+        return { venueOpen: false, foodOpen: false, label: "Today", venue: today.time || "Closed", extra: today.extra || "" };
       }
 
       const venueRange = parseTimeRange(today.time);
@@ -668,41 +692,286 @@
       };
     }
 
-    function renderHoursList(hours) {
+    function mergeVenueData(base, live) {
+      return {
+        ...base,
+        addressLines: live.addressLines?.length ? live.addressLines : base.fallback.addressLines,
+        phone: live.phone || base.fallback.phone,
+        email: live.email || base.fallback.email,
+        hours: live.hours?.length ? live.hours : base.fallback.hours,
+        socials: {
+          facebook: live.socials?.facebook || base.socials.facebook || "",
+          instagram: live.socials?.instagram || base.socials.instagram || ""
+        },
+        liveSourceUsed: live.liveSourceUsed === true
+      };
+    }
+
+    function parsePiston(text, venue) {
+      const cleaned = text.replace(/\r/g, "");
+      const openingBlockMatch = cleaned.match(
+        /Opening Times[\s\S]*?Monday to Saturday:\s*([^\n]+)\n\((Food[^\n]+)\)[\s\S]*?Sunday:\s*([^\n]+)\n\((Food[^\n]+)\)/i
+      );
+
+      let monSat = "";
+      let monSatFood = "";
+      let sunday = "";
+      let sundayFood = "";
+
+      if (openingBlockMatch) {
+        monSat = clean(openingBlockMatch[1]);
+        monSatFood = clean(openingBlockMatch[2]);
+        sunday = clean(openingBlockMatch[3]);
+        sundayFood = clean(openingBlockMatch[4]);
+      }
+
+      const footerMatch = cleaned.match(
+        /\* The Piston Club\s*\n@\s*The Stag\s*\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)\s*\n\s*\*\s*([0-9 ]+)\s*\n\s*\*\s*([^\n]+)/i
+      );
+
+      let addressLines = [];
+      let phone = "";
+      let email = "";
+
+      if (footerMatch) {
+        addressLines = [
+          "The Piston Club at The Stag",
+          clean(footerMatch[1]),
+          clean(footerMatch[2]),
+          clean(footerMatch[3]),
+          clean(footerMatch[4]),
+          clean(footerMatch[5])
+        ];
+        phone = clean(footerMatch[6]);
+        email = clean(footerMatch[7]);
+      }
+
+      return {
+        liveSourceUsed: !!(monSat && sunday),
+        addressLines,
+        phone,
+        email,
+        hours: monSat && sunday ? [
+          { day: "Monday", time: monSat, extra: monSatFood },
+          { day: "Tuesday", time: monSat, extra: monSatFood },
+          { day: "Wednesday", time: monSat, extra: monSatFood },
+          { day: "Thursday", time: monSat, extra: monSatFood },
+          { day: "Friday", time: monSat, extra: monSatFood },
+          { day: "Saturday", time: monSat, extra: monSatFood },
+          { day: "Sunday", time: sunday, extra: sundayFood }
+        ] : [],
+        socials: {}
+      };
+    }
+
+    function parseGilks(text) {
+      const cleaned = text.replace(/\r/g, "");
+      const hasBlock = /Monday\s*–\s*Tuesday\s*\/\s*CLOSED/i.test(cleaned) && /Wednesday\s*–\s*Sunday\s*\/\s*9\.00AM\s*–\s*3\.00PM/i.test(cleaned);
+      const phoneMatch = cleaned.match(/(01926\s*640539)/i);
+      const addressMatch = cleaned.match(/Gilks.? Garage Café,\s*\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)/i);
+
+      return {
+        liveSourceUsed: hasBlock,
+        addressLines: addressMatch ? [
+          "Gilks’ Garage Café",
+          clean(addressMatch[1]),
+          clean(addressMatch[2]),
+          clean(addressMatch[3]),
+          clean(addressMatch[4])
+        ] : [],
+        phone: phoneMatch ? clean(phoneMatch[1]) : "",
+        email: "",
+        hours: hasBlock ? [
+          { day: "Monday", time: "Closed", extra: "" },
+          { day: "Tuesday", time: "Closed", extra: "" },
+          { day: "Wednesday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
+          { day: "Thursday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
+          { day: "Friday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
+          { day: "Saturday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
+          { day: "Sunday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" }
+        ] : [],
+        socials: {}
+      };
+    }
+
+    function parseLongItch(text) {
+      const cleaned = text.replace(/\r/g, "");
+      const block = cleaned.match(/Monday\s*-\s*Tuesday:\s*([^\n]+)\.\s*Wednesday\s*-\s*Thursday:\s*([^\n]+)\.\s*Friday\s*-\s*Sunday:\s*([^\n]+)\./i);
+      const phoneMatch = cleaned.match(/(01926\s*819096)/i);
+
+      return {
+        liveSourceUsed: !!block,
+        addressLines: [],
+        phone: phoneMatch ? clean(phoneMatch[1]) : "",
+        email: "",
+        hours: block ? [
+          { day: "Monday", time: clean(block[1]), extra: "" },
+          { day: "Tuesday", time: clean(block[1]), extra: "" },
+          { day: "Wednesday", time: clean(block[2]), extra: "" },
+          { day: "Thursday", time: clean(block[2]), extra: "" },
+          { day: "Friday", time: clean(block[3]), extra: "" },
+          { day: "Saturday", time: clean(block[3]), extra: "" },
+          { day: "Sunday", time: clean(block[3]), extra: "" }
+        ] : [],
+        socials: {}
+      };
+    }
+
+    function parseBlueLias(text) {
+      const cleaned = text.replace(/\r/g, "");
+      const pubHoursSection = cleaned.match(/## Pub Opening Hours([\s\S]*?)## Restaurant Serving Times/i);
+      const foodSection = cleaned.match(/## Restaurant Serving Times([\s\S]*?)## Pitstop Opening Hours/i);
+      const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+      if (!pubHoursSection || !foodSection) {
+        return { liveSourceUsed: false, addressLines: [], phone: "", email: "", hours: [], socials: {} };
+      }
+
+      const hours = dayNames.map(day => {
+        const pub = pubHoursSection[1].match(new RegExp(`${day}\\s+([^\\n]+)`, "i"));
+        const food = foodSection[1].match(new RegExp(`${day}\\s+([^\\n]+)`, "i"));
+        return {
+          day,
+          time: pub ? clean(pub[1]) : "",
+          extra: food ? clean(food[1]) : ""
+        };
+      }).filter(h => h.time);
+
+      return {
+        liveSourceUsed: hours.length === 7,
+        addressLines: [],
+        phone: "",
+        email: "",
+        hours,
+        socials: {}
+      };
+    }
+
+    function parseWatsons(text) {
+      const cleaned = text.replace(/\r/g, "");
+      const mon = cleaned.match(/Monday\s*:?\s*([0-9:.apm\s-]+)/i);
+      const tueFri = cleaned.match(/Tuesday\s*-\s*Friday:?\s*([0-9:.apm\s-]+)/i);
+      const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/);
+
+      return {
+        liveSourceUsed: !!(mon && tueFri),
+        addressLines: [],
+        phone: "",
+        email: emailMatch ? clean(emailMatch[1]) : "",
+        hours: mon && tueFri ? [
+          { day: "Monday", time: clean(mon[1]), extra: "" },
+          { day: "Tuesday", time: clean(tueFri[1]), extra: "" },
+          { day: "Wednesday", time: clean(tueFri[1]), extra: "" },
+          { day: "Thursday", time: clean(tueFri[1]), extra: "" },
+          { day: "Friday", time: clean(tueFri[1]), extra: "" },
+          { day: "Saturday", time: "See Facebook for Saturday openings", extra: "Saturday bike meet once a month" },
+          { day: "Sunday", time: "Closed", extra: "" }
+        ] : [],
+        socials: {}
+      };
+    }
+
+    function parsePats(text) {
+      const cleaned = text.replace(/\r/g, "");
+      const monFri = cleaned.match(/Mon\s*-\s*Fri:\s*([^\n]+)/i);
+      const sat = cleaned.match(/Saturday:\s*([^\n]+)/i);
+      const sun = cleaned.match(/Sunday:\s*([^\n]+)/i);
+      const phoneMatch = cleaned.match(/(01608\s*674729)/i);
+      const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@hotmail\.com)/i);
+
+      return {
+        liveSourceUsed: !!(monFri && sat && sun),
+        addressLines: [],
+        phone: phoneMatch ? clean(phoneMatch[1]) : "",
+        email: emailMatch ? clean(emailMatch[1]) : "",
+        hours: monFri && sat && sun ? [
+          { day: "Monday", time: clean(monFri[1]), extra: "" },
+          { day: "Tuesday", time: clean(monFri[1]), extra: "" },
+          { day: "Wednesday", time: clean(monFri[1]), extra: "" },
+          { day: "Thursday", time: clean(monFri[1]), extra: "" },
+          { day: "Friday", time: clean(monFri[1]), extra: "" },
+          { day: "Saturday", time: clean(sat[1]), extra: "" },
+          { day: "Sunday", time: clean(sun[1]), extra: "" }
+        ] : [],
+        socials: {}
+      };
+    }
+
+    function parseOily(text) {
+      const cleaned = text.replace(/\r/g, "");
+      const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@oilyrag\.com)/i);
+      return {
+        liveSourceUsed: false,
+        addressLines: [],
+        phone: "",
+        email: emailMatch ? clean(emailMatch[1]) : "",
+        hours: [],
+        socials: {}
+      };
+    }
+
+    function parseSevenMile() {
+      return { liveSourceUsed: false, addressLines: [], phone: "", email: "", hours: [], socials: {} };
+    }
+
+    function getParser(id) {
+      if (id === "piston") return parsePiston;
+      if (id === "gilks") return parseGilks;
+      if (id === "longitch") return parseLongItch;
+      if (id === "bluelias") return parseBlueLias;
+      if (id === "watsons") return parseWatsons;
+      if (id === "patsbaps") return parsePats;
+      if (id === "oilyrag") return parseOily;
+      if (id === "sevenmile") return parseSevenMile;
+      return () => ({ liveSourceUsed:false, addressLines:[], phone:"", email:"", hours:[], socials:{} });
+    }
+
+    function createCardShell(venue) {
+      const slug = toSlug(venue.id);
       return `
-        <div class="section">
-          <p class="section-title">Opening Hours</p>
-          <ul class="hours">
-            ${hours.map(item => `
-              <li>
-                <span class="day">${escapeHtml(item.day)}</span>
-                <span class="time">
-                  ${escapeHtml(item.time || "Unavailable")}
-                  ${item.extra ? `<span class="food">${escapeHtml(item.extra)}</span>` : ""}
-                </span>
-              </li>
-            `).join("")}
-          </ul>
-        </div>
+        <article class="card" id="card-${slug}">
+          <div class="card-head">
+            <div>
+              <span class="label">${escapeHtml(venue.label)}</span>
+              <h2 class="venue-title" id="venueName-${slug}">${escapeHtml(venue.name)}</h2>
+            </div>
+            <div class="status unknown" id="statusBadge-${slug}">Checking…</div>
+          </div>
+
+          <div class="content">
+            <div class="venue-layout">
+              <div class="info-column" id="contentArea-${slug}">
+                <div class="section">
+                  <p class="section-title">Loading</p>
+                  <p class="section-body">Checking live venue details…</p>
+                </div>
+              </div>
+
+              <div class="map-column">
+                <div class="map-frame-wrap">
+                  <iframe
+                    class="map-frame"
+                    id="mapFrame-${slug}"
+                    title="${escapeHtml(venue.name)} map"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    src="https://maps.google.com/maps?q=${encodeURIComponent(venue.mapsQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                  ></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
       `;
     }
 
-    function renderMap(venue) {
-      const frame = document.getElementById(`mapFrame-${toSlug(venue.id)}`);
-      frame.src = `https://maps.google.com/maps?q=${encodeURIComponent(venue.mapsQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
-    }
-
-    function renderVenue(data) {
-      const slug = toSlug(data.id);
+    function renderVenue(venue, resolved) {
+      const slug = toSlug(venue.id);
       const contentArea = document.getElementById(`contentArea-${slug}`);
       const statusBadge = document.getElementById(`statusBadge-${slug}`);
-      const venueName = document.getElementById(`venueName-${slug}`);
-
-      const status = computeOpenStatusFromWeek(data.hours);
-      const addressHtml = (data.addressLines || [data.name]).map(line => escapeHtml(line)).join("<br>");
-      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.mapsQuery)}`;
-
-      venueName.textContent = data.name;
+      const status = computeOpenStatusFromWeek(resolved.hours);
+      const addressHtml = resolved.addressLines.map(line => escapeHtml(line)).join("<br>");
+      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.mapsQuery)}`;
 
       if (status.venueOpen === true) {
         statusBadge.className = "status open";
@@ -716,11 +985,11 @@
       }
 
       const socialButtons = [];
-      if (data.socials?.facebook) {
-        socialButtons.push(`<a class="btn" href="${escapeHtml(data.socials.facebook)}" target="_blank" rel="noopener noreferrer">Facebook</a>`);
+      if (resolved.socials.facebook) {
+        socialButtons.push(`<a class="btn" href="${escapeHtml(resolved.socials.facebook)}" target="_blank" rel="noopener noreferrer">Facebook</a>`);
       }
-      if (data.socials?.instagram) {
-        socialButtons.push(`<a class="btn" href="${escapeHtml(data.socials.instagram)}" target="_blank" rel="noopener noreferrer">Instagram</a>`);
+      if (resolved.socials.instagram) {
+        socialButtons.push(`<a class="btn" href="${escapeHtml(resolved.socials.instagram)}" target="_blank" rel="noopener noreferrer">Instagram</a>`);
       }
 
       contentArea.innerHTML = `
@@ -743,9 +1012,23 @@
                   : ""
             }
           </p>
+          <div class="live-note">${resolved.liveSourceUsed ? "Live venue site data used." : "Verified fallback in use."}</div>
         </div>
 
-        ${renderHoursList(data.hours)}
+        <div class="section">
+          <p class="section-title">Opening Hours</p>
+          <ul class="hours">
+            ${resolved.hours.map(item => `
+              <li>
+                <span class="day">${escapeHtml(item.day)}</span>
+                <span class="time">
+                  ${escapeHtml(item.time || "Unavailable")}
+                  ${item.extra ? `<span class="food">${escapeHtml(item.extra)}</span>` : ""}
+                </span>
+              </li>
+            `).join("")}
+          </ul>
+        </div>
 
         <div class="section">
           <p class="section-title">Location</p>
@@ -755,24 +1038,60 @@
         <div class="section">
           <p class="section-title">Contact</p>
           <p class="section-body">
-            ${data.phone ? `${escapeHtml(data.phone)}<br>` : ""}
-            ${data.email
-              ? `<a href="mailto:${escapeHtml(data.email)}" style="color:var(--gold); text-decoration:none;">${escapeHtml(data.email)}</a>`
+            ${escapeHtml(resolved.phone)}<br>
+            ${resolved.email
+              ? `<a href="mailto:${escapeHtml(resolved.email)}" style="color:var(--gold); text-decoration:none;">${escapeHtml(resolved.email)}</a>`
               : "See venue website or social media"}
           </p>
           <div class="actions">
-            <a class="btn" href="${escapeHtml(data.website)}" target="_blank" rel="noopener noreferrer">Venue Website</a>
+            <a class="btn" href="${escapeHtml(venue.website)}" target="_blank" rel="noopener noreferrer">Venue Website</a>
             <a class="btn" href="${escapeHtml(mapsLink)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
             ${socialButtons.join("")}
           </div>
         </div>
       `;
-
-      renderMap(data);
     }
 
-    function init() {
-      VENUES.forEach(renderVenue);
+    async function loadVenue(venue) {
+      try {
+        const parser = getParser(venue.id);
+        let live = { liveSourceUsed:false, addressLines:[], phone:"", email:"", hours:[], socials:{} };
+
+        if (venue.fetchUrl) {
+          const res = await fetch(venue.fetchUrl, { cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const text = await res.text();
+          live = parser(text, venue);
+        } else {
+          live = parser("", venue);
+        }
+
+        const resolved = mergeVenueData(venue, live);
+        renderVenue(venue, resolved);
+      } catch {
+        const resolved = mergeVenueData(venue, { liveSourceUsed:false, addressLines:[], phone:"", email:"", hours:[], socials:{} });
+        renderVenue(venue, resolved);
+      }
+    }
+
+    function mergeVenueData(venue, live) {
+      return {
+        addressLines: live.addressLines?.length ? live.addressLines : venue.fallback.addressLines,
+        phone: live.phone || venue.fallback.phone,
+        email: live.email || venue.fallback.email,
+        hours: live.hours?.length ? live.hours : venue.fallback.hours,
+        socials: {
+          facebook: live.socials?.facebook || venue.socials.facebook || "",
+          instagram: live.socials?.instagram || venue.socials.instagram || ""
+        },
+        liveSourceUsed: !!live.liveSourceUsed
+      };
+    }
+
+    async function init() {
+      const cards = document.getElementById("cards");
+      cards.innerHTML = VENUES.map(createCardShell).join("");
+      await Promise.all(VENUES.map(loadVenue));
     }
 
     init();
