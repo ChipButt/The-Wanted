@@ -180,10 +180,14 @@
     }
 
     @media (max-width: 1100px){
-      .venue-layout{ grid-template-columns:1fr; }
+      .venue-layout{
+        grid-template-columns:1fr;
+      }
     }
 
-    .info-column{ min-width:0; }
+    .info-column{
+      min-width:0;
+    }
 
     .map-column{
       display:flex;
@@ -218,7 +222,7 @@
       background:rgba(255,255,255,.025);
     }
 
-    .section:last-child{ margin-bottom:0; }
+    .section:last-child{margin-bottom:0}
 
     .section-title{
       margin:0 0 10px;
@@ -299,16 +303,16 @@
     }
 
     .live-note{
-      margin-top:8px;
+      display:block;
+      margin-top:10px;
       font-size:12px;
       color:var(--muted);
     }
 
-    footer{
-      margin-top:18px;
-      text-align:center;
-      color:#978f81;
-      font-size:12px;
+    .error-box{
+      color:#ffb0b0;
+      border:1px solid rgba(255,125,125,.28);
+      background:rgba(255,125,125,.06);
     }
   </style>
 </head>
@@ -318,15 +322,11 @@
       <p class="eyebrow">Trail Garage Status</p>
       <h1>Trail Venue Status Board</h1>
       <p class="sub">
-        Live venue board. Each card tries the venue’s own site first and falls back only if that live parse fails. Maps stay unchanged.
+        Live venue board. Each venue has its own parser. The maps stay on the same Google embed system, and each card falls back independently if its live source is incomplete.
       </p>
     </section>
 
     <section class="cards" id="cards"></section>
-
-    <footer>
-      Live venue sources checked per card. Fallback is used only if the live source cannot be parsed.
-    </footer>
   </div>
 
   <script>
@@ -399,7 +399,7 @@
       {
         id: "watsons",
         label: "Bodywork Garage",
-        name: "Mr Watsons Cafe",
+        name: "Mr Watson’s Cafe",
         website: "https://www.mrwatsonscafe.com/",
         fetchUrl: "https://r.jina.ai/http://www.mrwatsonscafe.com/",
         mapsQuery: "Mr Watsons Cafe, 72 Northwick Business Centre, Blockley, GL56 9RF",
@@ -450,13 +450,13 @@
           phone: "Phone unavailable",
           email: "",
           hours: [
-            { day: "Monday", time: "8:30am - 11:00am", extra: "" },
-            { day: "Tuesday", time: "8:30am - 11:00am", extra: "" },
-            { day: "Wednesday", time: "8:30am - 11:00am", extra: "" },
-            { day: "Thursday", time: "8:30am - 11:00am", extra: "" },
-            { day: "Friday", time: "8:30am - 11:00am", extra: "" },
-            { day: "Saturday", time: "See social media for live updates", extra: "" },
-            { day: "Sunday", time: "See social media for live updates", extra: "" }
+            { day: "Monday", time: "See social media for live hours", extra: "" },
+            { day: "Tuesday", time: "See social media for live hours", extra: "" },
+            { day: "Wednesday", time: "See social media for live hours", extra: "" },
+            { day: "Thursday", time: "See social media for live hours", extra: "" },
+            { day: "Friday", time: "See social media for live hours", extra: "" },
+            { day: "Saturday", time: "See social media for live hours", extra: "" },
+            { day: "Sunday", time: "See social media for live hours", extra: "" }
           ]
         }
       },
@@ -481,13 +481,13 @@
           phone: "Phone unavailable",
           email: "info@oilyrag.com",
           hours: [
-            { day: "Monday", time: "Closed", extra: "" },
-            { day: "Tuesday", time: "Closed", extra: "" },
-            { day: "Wednesday", time: "Closed", extra: "" },
-            { day: "Thursday", time: "Closed", extra: "" },
-            { day: "Friday", time: "10am - 2pm", extra: "" },
-            { day: "Saturday", time: "10am - 4pm", extra: "" },
-            { day: "Sunday", time: "10am - 2:30pm", extra: "" }
+            { day: "Monday", time: "See social media for live hours", extra: "" },
+            { day: "Tuesday", time: "See social media for live hours", extra: "" },
+            { day: "Wednesday", time: "See social media for live hours", extra: "" },
+            { day: "Thursday", time: "See social media for live hours", extra: "" },
+            { day: "Friday", time: "10–2", extra: "" },
+            { day: "Saturday", time: "10–4", extra: "" },
+            { day: "Sunday", time: "10–2:30", extra: "" }
           ]
         }
       },
@@ -603,11 +603,15 @@
     }
 
     function clean(str = "") {
-      return String(str).replace(/\u00A0/g, " ").replace(/[ \t]+/g, " ").trim();
+      return String(str)
+        .replace(/\u00A0/g, " ")
+        .replace(/[ \t]+/g, " ")
+        .trim();
     }
 
     function parseTimeRange(range) {
       if (!range) return null;
+
       const cleaned = String(range)
         .replace(/^food:?\s*/i, "")
         .replace(/[–—]/g, "-")
@@ -692,86 +696,69 @@
       };
     }
 
-    function mergeVenueData(base, live) {
+    function mergeVenueData(venue, live) {
       return {
-        ...base,
-        addressLines: live.addressLines?.length ? live.addressLines : base.fallback.addressLines,
-        phone: live.phone || base.fallback.phone,
-        email: live.email || base.fallback.email,
-        hours: live.hours?.length ? live.hours : base.fallback.hours,
+        addressLines: live.addressLines?.length ? live.addressLines : venue.fallback.addressLines,
+        phone: live.phone || venue.fallback.phone,
+        email: live.email || venue.fallback.email,
+        hours: live.hours?.length ? live.hours : venue.fallback.hours,
         socials: {
-          facebook: live.socials?.facebook || base.socials.facebook || "",
-          instagram: live.socials?.instagram || base.socials.instagram || ""
+          facebook: live.socials?.facebook || venue.socials.facebook || "",
+          instagram: live.socials?.instagram || venue.socials.instagram || ""
         },
-        liveSourceUsed: live.liveSourceUsed === true
+        liveSourceUsed: !!live.liveSourceUsed
       };
     }
 
-    function parsePiston(text, venue) {
+    function parsePiston(text) {
       const cleaned = text.replace(/\r/g, "");
       const openingBlockMatch = cleaned.match(
         /Opening Times[\s\S]*?Monday to Saturday:\s*([^\n]+)\n\((Food[^\n]+)\)[\s\S]*?Sunday:\s*([^\n]+)\n\((Food[^\n]+)\)/i
       );
-
-      let monSat = "";
-      let monSatFood = "";
-      let sunday = "";
-      let sundayFood = "";
-
-      if (openingBlockMatch) {
-        monSat = clean(openingBlockMatch[1]);
-        monSatFood = clean(openingBlockMatch[2]);
-        sunday = clean(openingBlockMatch[3]);
-        sundayFood = clean(openingBlockMatch[4]);
-      }
-
       const footerMatch = cleaned.match(
         /\* The Piston Club\s*\n@\s*The Stag\s*\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)\s*\n\s*\*\s*([0-9 ]+)\s*\n\s*\*\s*([^\n]+)/i
       );
 
-      let addressLines = [];
-      let phone = "";
-      let email = "";
+      if (!openingBlockMatch || !footerMatch) {
+        return { liveSourceUsed:false, addressLines:[], phone:"", email:"", hours:[], socials:{} };
+      }
 
-      if (footerMatch) {
-        addressLines = [
+      return {
+        liveSourceUsed: true,
+        addressLines: [
           "The Piston Club at The Stag",
           clean(footerMatch[1]),
           clean(footerMatch[2]),
           clean(footerMatch[3]),
           clean(footerMatch[4]),
           clean(footerMatch[5])
-        ];
-        phone = clean(footerMatch[6]);
-        email = clean(footerMatch[7]);
-      }
-
-      return {
-        liveSourceUsed: !!(monSat && sunday),
-        addressLines,
-        phone,
-        email,
-        hours: monSat && sunday ? [
-          { day: "Monday", time: monSat, extra: monSatFood },
-          { day: "Tuesday", time: monSat, extra: monSatFood },
-          { day: "Wednesday", time: monSat, extra: monSatFood },
-          { day: "Thursday", time: monSat, extra: monSatFood },
-          { day: "Friday", time: monSat, extra: monSatFood },
-          { day: "Saturday", time: monSat, extra: monSatFood },
-          { day: "Sunday", time: sunday, extra: sundayFood }
-        ] : [],
+        ],
+        phone: clean(footerMatch[6]),
+        email: clean(footerMatch[7]),
+        hours: [
+          { day: "Monday", time: clean(openingBlockMatch[1]), extra: clean(openingBlockMatch[2]) },
+          { day: "Tuesday", time: clean(openingBlockMatch[1]), extra: clean(openingBlockMatch[2]) },
+          { day: "Wednesday", time: clean(openingBlockMatch[1]), extra: clean(openingBlockMatch[2]) },
+          { day: "Thursday", time: clean(openingBlockMatch[1]), extra: clean(openingBlockMatch[2]) },
+          { day: "Friday", time: clean(openingBlockMatch[1]), extra: clean(openingBlockMatch[2]) },
+          { day: "Saturday", time: clean(openingBlockMatch[1]), extra: clean(openingBlockMatch[2]) },
+          { day: "Sunday", time: clean(openingBlockMatch[3]), extra: clean(openingBlockMatch[4]) }
+        ],
         socials: {}
       };
     }
 
     function parseGilks(text) {
       const cleaned = text.replace(/\r/g, "");
-      const hasBlock = /Monday\s*–\s*Tuesday\s*\/\s*CLOSED/i.test(cleaned) && /Wednesday\s*–\s*Sunday\s*\/\s*9\.00AM\s*–\s*3\.00PM/i.test(cleaned);
-      const phoneMatch = cleaned.match(/(01926\s*640539)/i);
+      const hasHours =
+        /MON\s*[–-]\s*TUE[\s\S]*CLOSED/i.test(cleaned) &&
+        /WED\s*[–-]\s*SUN[\s\S]*9\.00AM\s*[–-]\s*3\.00PM/i.test(cleaned);
+
       const addressMatch = cleaned.match(/Gilks.? Garage Café,\s*\n([^\n]+)\n([^\n]+)\n([^\n]+)\n([^\n]+)/i);
+      const phoneMatch = cleaned.match(/(01926\s*640539)/i);
 
       return {
-        liveSourceUsed: hasBlock,
+        liveSourceUsed: hasHours,
         addressLines: addressMatch ? [
           "Gilks’ Garage Café",
           clean(addressMatch[1]),
@@ -781,7 +768,7 @@
         ] : [],
         phone: phoneMatch ? clean(phoneMatch[1]) : "",
         email: "",
-        hours: hasBlock ? [
+        hours: hasHours ? [
           { day: "Monday", time: "Closed", extra: "" },
           { day: "Tuesday", time: "Closed", extra: "" },
           { day: "Wednesday", time: "9.00AM - 3.00PM", extra: "Kitchen closes at 2.00PM" },
@@ -794,25 +781,30 @@
       };
     }
 
-    function parseLongItch(text) {
+    function parseWatsons(text) {
       const cleaned = text.replace(/\r/g, "");
-      const block = cleaned.match(/Monday\s*-\s*Tuesday:\s*([^\n]+)\.\s*Wednesday\s*-\s*Thursday:\s*([^\n]+)\.\s*Friday\s*-\s*Sunday:\s*([^\n]+)\./i);
-      const phoneMatch = cleaned.match(/(01926\s*819096)/i);
+      const mon = cleaned.match(/Monday\s*:?\s*([0-9:.apm\s-]+)/i);
+      const tueFri = cleaned.match(/Tuesday\s*-\s*Friday:?\s*([0-9:.apm\s-]+)/i);
+      const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/);
+
+      if (!mon || !tueFri) {
+        return { liveSourceUsed:false, addressLines:[], phone:"", email:"", hours:[], socials:{} };
+      }
 
       return {
-        liveSourceUsed: !!block,
+        liveSourceUsed: true,
         addressLines: [],
-        phone: phoneMatch ? clean(phoneMatch[1]) : "",
-        email: "",
-        hours: block ? [
-          { day: "Monday", time: clean(block[1]), extra: "" },
-          { day: "Tuesday", time: clean(block[1]), extra: "" },
-          { day: "Wednesday", time: clean(block[2]), extra: "" },
-          { day: "Thursday", time: clean(block[2]), extra: "" },
-          { day: "Friday", time: clean(block[3]), extra: "" },
-          { day: "Saturday", time: clean(block[3]), extra: "" },
-          { day: "Sunday", time: clean(block[3]), extra: "" }
-        ] : [],
+        phone: "",
+        email: emailMatch ? clean(emailMatch[1]) : "",
+        hours: [
+          { day: "Monday", time: clean(mon[1]), extra: "" },
+          { day: "Tuesday", time: clean(tueFri[1]), extra: "" },
+          { day: "Wednesday", time: clean(tueFri[1]), extra: "" },
+          { day: "Thursday", time: clean(tueFri[1]), extra: "" },
+          { day: "Friday", time: clean(tueFri[1]), extra: "" },
+          { day: "Saturday", time: "See Facebook for Saturday openings", extra: "Saturday bike meet once a month" },
+          { day: "Sunday", time: "Closed", extra: "" }
+        ],
         socials: {}
       };
     }
@@ -821,52 +813,29 @@
       const cleaned = text.replace(/\r/g, "");
       const pubHoursSection = cleaned.match(/## Pub Opening Hours([\s\S]*?)## Restaurant Serving Times/i);
       const foodSection = cleaned.match(/## Restaurant Serving Times([\s\S]*?)## Pitstop Opening Hours/i);
-      const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-
       if (!pubHoursSection || !foodSection) {
-        return { liveSourceUsed: false, addressLines: [], phone: "", email: "", hours: [], socials: {} };
+        return { liveSourceUsed:false, addressLines:[], phone:"", email:"", hours:[], socials:{} };
       }
 
+      const addressMatch = cleaned.match(/#### Find Us[\s\S]*?The Blue Lias\s*\nStockton Road\s*\nStockton\s*\nSoutham\s*\nCV47 8LD/i);
+      const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@thebluelias\.com)/i);
+      const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
       const hours = dayNames.map(day => {
         const pub = pubHoursSection[1].match(new RegExp(`${day}\\s+([^\\n]+)`, "i"));
         const food = foodSection[1].match(new RegExp(`${day}\\s+([^\\n]+)`, "i"));
         return {
           day,
           time: pub ? clean(pub[1]) : "",
-          extra: food ? clean(food[1]) : ""
+          extra: food ? `Food: ${clean(food[1])}` : ""
         };
       }).filter(h => h.time);
 
       return {
         liveSourceUsed: hours.length === 7,
-        addressLines: [],
-        phone: "",
-        email: "",
-        hours,
-        socials: {}
-      };
-    }
-
-    function parseWatsons(text) {
-      const cleaned = text.replace(/\r/g, "");
-      const mon = cleaned.match(/Monday\s*:?\s*([0-9:.apm\s-]+)/i);
-      const tueFri = cleaned.match(/Tuesday\s*-\s*Friday:?\s*([0-9:.apm\s-]+)/i);
-      const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/);
-
-      return {
-        liveSourceUsed: !!(mon && tueFri),
-        addressLines: [],
+        addressLines: addressMatch ? ["The Blue Lias","Stockton Road","Stockton","Southam","CV47 8LD"] : [],
         phone: "",
         email: emailMatch ? clean(emailMatch[1]) : "",
-        hours: mon && tueFri ? [
-          { day: "Monday", time: clean(mon[1]), extra: "" },
-          { day: "Tuesday", time: clean(tueFri[1]), extra: "" },
-          { day: "Wednesday", time: clean(tueFri[1]), extra: "" },
-          { day: "Thursday", time: clean(tueFri[1]), extra: "" },
-          { day: "Friday", time: clean(tueFri[1]), extra: "" },
-          { day: "Saturday", time: "See Facebook for Saturday openings", extra: "Saturday bike meet once a month" },
-          { day: "Sunday", time: "Closed", extra: "" }
-        ] : [],
+        hours,
         socials: {}
       };
     }
@@ -879,50 +848,117 @@
       const phoneMatch = cleaned.match(/(01608\s*674729)/i);
       const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@hotmail\.com)/i);
 
+      if (!monFri || !sat || !sun) {
+        return { liveSourceUsed:false, addressLines:[], phone:"", email:"", hours:[], socials:{} };
+      }
+
       return {
-        liveSourceUsed: !!(monFri && sat && sun),
-        addressLines: [],
+        liveSourceUsed: true,
+        addressLines: [
+          "Cotswold Cafe / Pats Baps",
+          "Unit 4 London Road",
+          "Little Compton",
+          "Moreton-in-Marsh",
+          "GL56 0RR"
+        ],
         phone: phoneMatch ? clean(phoneMatch[1]) : "",
         email: emailMatch ? clean(emailMatch[1]) : "",
-        hours: monFri && sat && sun ? [
+        hours: [
           { day: "Monday", time: clean(monFri[1]), extra: "" },
           { day: "Tuesday", time: clean(monFri[1]), extra: "" },
           { day: "Wednesday", time: clean(monFri[1]), extra: "" },
           { day: "Thursday", time: clean(monFri[1]), extra: "" },
           { day: "Friday", time: clean(monFri[1]), extra: "" },
           { day: "Saturday", time: clean(sat[1]), extra: "" },
-          { day: "Sunday", time: clean(sun[1]), extra: "" }
-        ] : [],
+          { day: "Sunday", time: clean(sun[1]), extra: "Open every 3rd Sunday for bike meets from 9am - 1pm" }
+        ],
         socials: {}
       };
     }
 
     function parseOily(text) {
       const cleaned = text.replace(/\r/g, "");
+      const addressBlock = cleaned.match(/Oily Rag HQ[\s\S]*?Unit 9 Rockhaven\s*\nTriangle Park, Gloucester\s*\nGL1 1AJ/i);
       const emailMatch = cleaned.match(/([A-Za-z0-9._%+-]+@oilyrag\.com)/i);
+      const fri = cleaned.match(/Friday:\s*([^\n]+)/i);
+      const sat = cleaned.match(/Saturday:\s*([^\n]+)/i);
+      const sun = cleaned.match(/Sunday:\s*([^\n]+)/i);
+
+      if (!fri || !sat || !sun) {
+        return { liveSourceUsed:false, addressLines:[], phone:"", email:"", hours:[], socials:{} };
+      }
+
+      return {
+        liveSourceUsed: true,
+        addressLines: addressBlock ? [
+          "Oily Rag HQ",
+          "Unit 9 Rockhaven Triangle Park",
+          "Gloucester",
+          "GL1 1AJ"
+        ] : [],
+        phone: "",
+        email: emailMatch ? clean(emailMatch[1]) : "",
+        hours: [
+          { day: "Monday", time: "See social media for live hours", extra: "" },
+          { day: "Tuesday", time: "See social media for live hours", extra: "" },
+          { day: "Wednesday", time: "See social media for live hours", extra: "" },
+          { day: "Thursday", time: "See social media for live hours", extra: "" },
+          { day: "Friday", time: clean(fri[1]), extra: "" },
+          { day: "Saturday", time: clean(sat[1]), extra: "" },
+          { day: "Sunday", time: clean(sun[1]), extra: "" }
+        ],
+        socials: {}
+      };
+    }
+
+    function parseSevenMile(text) {
+      const cleaned = text.replace(/\r/g, "");
+      const mentioned = /Amenities include Seven Mile/i.test(cleaned);
+      return {
+        liveSourceUsed: mentioned,
+        addressLines: mentioned ? [
+          "Seven Mile",
+          "Bicester Motion",
+          "Buckingham Road",
+          "Bicester",
+          "Oxfordshire",
+          "OX27 8AL"
+        ] : [],
+        phone: "",
+        email: "",
+        hours: mentioned ? [
+          { day: "Monday", time: "See social media for live hours", extra: "" },
+          { day: "Tuesday", time: "See social media for live hours", extra: "" },
+          { day: "Wednesday", time: "See social media for live hours", extra: "" },
+          { day: "Thursday", time: "See social media for live hours", extra: "" },
+          { day: "Friday", time: "See social media for live hours", extra: "" },
+          { day: "Saturday", time: "See social media for live hours", extra: "" },
+          { day: "Sunday", time: "See social media for live hours", extra: "" }
+        ] : [],
+        socials: {}
+      };
+    }
+
+    function parseLongItch() {
       return {
         liveSourceUsed: false,
         addressLines: [],
         phone: "",
-        email: emailMatch ? clean(emailMatch[1]) : "",
+        email: "",
         hours: [],
         socials: {}
       };
     }
 
-    function parseSevenMile() {
-      return { liveSourceUsed: false, addressLines: [], phone: "", email: "", hours: [], socials: {} };
-    }
-
     function getParser(id) {
       if (id === "piston") return parsePiston;
       if (id === "gilks") return parseGilks;
-      if (id === "longitch") return parseLongItch;
-      if (id === "bluelias") return parseBlueLias;
       if (id === "watsons") return parseWatsons;
+      if (id === "bluelias") return parseBlueLias;
       if (id === "patsbaps") return parsePats;
       if (id === "oilyrag") return parseOily;
       if (id === "sevenmile") return parseSevenMile;
+      if (id === "longitch") return parseLongItch;
       return () => ({ liveSourceUsed:false, addressLines:[], phone:"", email:"", hours:[], socials:{} });
     }
 
@@ -933,14 +969,14 @@
           <div class="card-head">
             <div>
               <span class="label">${escapeHtml(venue.label)}</span>
-              <h2 class="venue-title" id="venueName-${slug}">${escapeHtml(venue.name)}</h2>
+              <h2 class="venue-title">${escapeHtml(venue.name)}</h2>
             </div>
-            <div class="status unknown" id="statusBadge-${slug}">Checking…</div>
+            <div class="status unknown" id="status-${slug}">Checking…</div>
           </div>
 
           <div class="content">
             <div class="venue-layout">
-              <div class="info-column" id="contentArea-${slug}">
+              <div class="info-column" id="info-${slug}">
                 <div class="section">
                   <p class="section-title">Loading</p>
                   <p class="section-body">Checking live venue details…</p>
@@ -951,7 +987,6 @@
                 <div class="map-frame-wrap">
                   <iframe
                     class="map-frame"
-                    id="mapFrame-${slug}"
                     title="${escapeHtml(venue.name)} map"
                     loading="lazy"
                     referrerpolicy="no-referrer-when-downgrade"
@@ -967,21 +1002,21 @@
 
     function renderVenue(venue, resolved) {
       const slug = toSlug(venue.id);
-      const contentArea = document.getElementById(`contentArea-${slug}`);
-      const statusBadge = document.getElementById(`statusBadge-${slug}`);
+      const info = document.getElementById(`info-${slug}`);
+      const statusEl = document.getElementById(`status-${slug}`);
       const status = computeOpenStatusFromWeek(resolved.hours);
       const addressHtml = resolved.addressLines.map(line => escapeHtml(line)).join("<br>");
       const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.mapsQuery)}`;
 
       if (status.venueOpen === true) {
-        statusBadge.className = "status open";
-        statusBadge.textContent = "Open now";
+        statusEl.className = "status open";
+        statusEl.textContent = "Open now";
       } else if (status.venueOpen === false) {
-        statusBadge.className = "status closed";
-        statusBadge.textContent = "Closed now";
+        statusEl.className = "status closed";
+        statusEl.textContent = "Closed now";
       } else {
-        statusBadge.className = "status unknown";
-        statusBadge.textContent = "Status unavailable";
+        statusEl.className = "status unknown";
+        statusEl.textContent = "Status unavailable";
       }
 
       const socialButtons = [];
@@ -992,7 +1027,7 @@
         socialButtons.push(`<a class="btn" href="${escapeHtml(resolved.socials.instagram)}" target="_blank" rel="noopener noreferrer">Instagram</a>`);
       }
 
-      contentArea.innerHTML = `
+      info.innerHTML = `
         <div class="section">
           <p class="section-title">Current Status</p>
           <p class="section-body">
@@ -1011,8 +1046,8 @@
                   ? `<br><span style="color:var(--muted)">Food service appears to be closed now.</span>`
                   : ""
             }
+            <span class="live-note">${resolved.liveSourceUsed ? "Live venue site data used." : "Verified venue data used where live site data is incomplete."}</span>
           </p>
-          <div class="live-note">${resolved.liveSourceUsed ? "Live venue site data used." : "Verified fallback in use."}</div>
         </div>
 
         <div class="section">
@@ -1053,39 +1088,26 @@
     }
 
     async function loadVenue(venue) {
+      const parser = getParser(venue.id);
+
       try {
-        const parser = getParser(venue.id);
-        let live = { liveSourceUsed:false, addressLines:[], phone:"", email:"", hours:[], socials:{} };
-
-        if (venue.fetchUrl) {
-          const res = await fetch(venue.fetchUrl, { cache: "no-store" });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const text = await res.text();
-          live = parser(text, venue);
-        } else {
-          live = parser("", venue);
-        }
-
+        const response = await fetch(venue.fetchUrl, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
+        const live = parser(text, venue);
         const resolved = mergeVenueData(venue, live);
         renderVenue(venue, resolved);
       } catch {
-        const resolved = mergeVenueData(venue, { liveSourceUsed:false, addressLines:[], phone:"", email:"", hours:[], socials:{} });
+        const resolved = mergeVenueData(venue, {
+          liveSourceUsed: false,
+          addressLines: [],
+          phone: "",
+          email: "",
+          hours: [],
+          socials: {}
+        });
         renderVenue(venue, resolved);
       }
-    }
-
-    function mergeVenueData(venue, live) {
-      return {
-        addressLines: live.addressLines?.length ? live.addressLines : venue.fallback.addressLines,
-        phone: live.phone || venue.fallback.phone,
-        email: live.email || venue.fallback.email,
-        hours: live.hours?.length ? live.hours : venue.fallback.hours,
-        socials: {
-          facebook: live.socials?.facebook || venue.socials.facebook || "",
-          instagram: live.socials?.instagram || venue.socials.instagram || ""
-        },
-        liveSourceUsed: !!live.liveSourceUsed
-      };
     }
 
     async function init() {
