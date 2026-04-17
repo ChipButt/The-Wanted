@@ -33,7 +33,7 @@
   const interactBtn = document.getElementById('interactBtn');
   const joystickButtons = [...document.querySelectorAll('.joystick button')];
 
-  const STORAGE_KEY = 'nanaHeistSave_v9';
+  const STORAGE_KEY = 'nanaHeistSave_v11';
 
   const SOURCE_W = 2816;
   const SOURCE_H = 1536;
@@ -67,11 +67,17 @@
   const GUARD_HEIGHT = 100;
 
   const MOVE_SPEED = 2.35;
-  const GUARD_CATCH_SPEED = 3.1;
+  const CHASE_PLAYER_SPEED = 2.0;
+  const GUARD_CATCH_SPEED = 4.0;
   const GUARD_ESCORT_SPEED = 2.2;
+
   const WALK_FRAME_MS = 120;
   const PULL_FRAME_MS = 120;
-  const INTERACT_DISTANCE = 62;
+  const INTERACT_DISTANCE = 90;
+
+  const WRONG_FLASH_MS = 260;
+  const SHAKE_MS = 260;
+  const GUARD_FLASH_MS = 2200;
 
   function loadImage(src) {
     const img = new Image();
@@ -189,47 +195,19 @@
     return inside;
   }
 
-  function getFloorItemBlocker(item) {
-    if (!item || item.type !== 'floor' || item.status === 'stolen') return null;
+  function vectorToDirection(dx, dy) {
+    const sxn = Math.sign(dx);
+    const syn = Math.sign(dy);
 
-    if (item.floorKind === 'pedestal') {
-      return {
-        x1: item.anchorX - item.drawW * 0.22,
-        y1: item.anchorY - item.drawH * 0.10,
-        x2: item.anchorX + item.drawW * 0.22,
-        y2: item.anchorY + 6
-      };
-    }
-
-    if (item.floorKind === 'aboard') {
-      return {
-        x1: item.anchorX - item.drawW * 0.26,
-        y1: item.anchorY - item.drawH * 0.14,
-        x2: item.anchorX + item.drawW * 0.26,
-        y2: item.anchorY + 8
-      };
-    }
-
-    return null;
-  }
-
-  function pointHitsFloorBlocker(px, py) {
-    if (!state.run) return false;
-    for (const item of state.run.items) {
-      const blocker = getFloorItemBlocker(item);
-      if (blocker && pointInRect(px, py, blocker)) return true;
-    }
-    return false;
-  }
-
-  function showBanner(text) {
-    messageBanner.textContent = text;
-    messageBanner.classList.add('show');
-    clearTimeout(showBanner._timer);
-    showBanner._timer = setTimeout(() => {
-      messageBanner.classList.remove('show');
-      messageBanner.textContent = '';
-    }, 3500);
+    if (sxn === 0 && syn < 0) return 'north';
+    if (sxn === 0 && syn > 0) return 'south';
+    if (sxn > 0 && syn === 0) return 'east';
+    if (sxn < 0 && syn === 0) return 'west';
+    if (sxn > 0 && syn < 0) return 'north-east';
+    if (sxn < 0 && syn < 0) return 'north-west';
+    if (sxn > 0 && syn > 0) return 'south-east';
+    if (sxn < 0 && syn > 0) return 'south-west';
+    return 'south';
   }
 
   function shuffle(arr) {
@@ -264,7 +242,7 @@
 
       let tooClose = false;
       for (const other of avoid) {
-        if (distance(x, y, other.x, other.y) < 120) {
+        if (distance(x, y, other.x, other.y) < 150) {
           tooClose = true;
           break;
         }
@@ -275,19 +253,47 @@
     return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
   }
 
-  function vectorToDirection(dx, dy) {
-    const sxn = Math.sign(dx);
-    const syn = Math.sign(dy);
+  function getFloorItemBlocker(item) {
+    if (!item || item.type !== 'floor' || item.status === 'stolen') return null;
 
-    if (sxn === 0 && syn < 0) return 'north';
-    if (sxn === 0 && syn > 0) return 'south';
-    if (sxn > 0 && syn === 0) return 'east';
-    if (sxn < 0 && syn === 0) return 'west';
-    if (sxn > 0 && syn < 0) return 'north-east';
-    if (sxn < 0 && syn < 0) return 'north-west';
-    if (sxn > 0 && syn > 0) return 'south-east';
-    if (sxn < 0 && syn > 0) return 'south-west';
-    return 'south';
+    if (item.floorKind === 'pedestal') {
+      return {
+        x1: item.anchorX - item.drawW * 0.32,
+        y1: item.anchorY - item.drawH * 0.18,
+        x2: item.anchorX + item.drawW * 0.32,
+        y2: item.anchorY + 10
+      };
+    }
+
+    if (item.floorKind === 'aboard') {
+      return {
+        x1: item.anchorX - item.drawW * 0.36,
+        y1: item.anchorY - item.drawH * 0.20,
+        x2: item.anchorX + item.drawW * 0.36,
+        y2: item.anchorY + 12
+      };
+    }
+
+    return null;
+  }
+
+  function pointHitsFloorBlocker(px, py) {
+    if (!state.run) return false;
+    for (const item of state.run.items) {
+      const blocker = getFloorItemBlocker(item);
+      if (blocker && pointInRect(px, py, blocker)) return true;
+    }
+    return false;
+  }
+
+  function showBanner(text) {
+    messageBanner.textContent = text;
+    messageBanner.classList.add('show');
+    clearTimeout(showBanner._timer);
+    showBanner._timer = setTimeout(() => {
+      messageBanner.classList.remove('show');
+      messageBanner.textContent = '';
+    }, 3500);
   }
 
   const roomBackground = loadImage('museum-room.png');
@@ -440,6 +446,13 @@
       direction: 'south-west',
       active: false,
       visible: true
+    },
+    fx: {
+      wrongFlashTimer: 0,
+      guardFlashTimer: 0,
+      shakeTimer: 0,
+      shakeX: 0,
+      shakeY: 0
     }
   };
 
@@ -461,19 +474,19 @@
     const roundNumber = getRoundNumber();
 
     const northSlots = [
-      { x: sx(980),  y: sy(285), w: sx(170), h: sy(68), anchorX: sx(1065), anchorY: sy(455), wall: 'north' },
-      { x: sx(1370), y: sy(285), w: sx(170), h: sy(68), anchorX: sx(1455), anchorY: sy(455), wall: 'north' },
-      { x: sx(1760), y: sy(285), w: sx(170), h: sy(68), anchorX: sx(1845), anchorY: sy(455), wall: 'north' }
+      { x: sx(800),  y: sy(420), w: sx(350), h: sy(150), anchorX: sx(975),  anchorY: sy(770), wall: 'north' },
+      { x: sx(1235), y: sy(420), w: sx(350), h: sy(150), anchorX: sx(1410), anchorY: sy(770), wall: 'north' },
+      { x: sx(1670), y: sy(420), w: sx(350), h: sy(150), anchorX: sx(1845), anchorY: sy(770), wall: 'north' }
     ];
 
     const westSlots = [
-      { x: sx(500), y: sy(555), w: sx(58), h: sy(165), anchorX: sx(710), anchorY: sy(730), wall: 'west' },
-      { x: sx(365), y: sy(900), w: sx(58), h: sy(165), anchorX: sx(620), anchorY: sy(1035), wall: 'west' }
+      { x: sx(430), y: sy(460), w: sx(160), h: sy(320), anchorX: sx(700), anchorY: sy(790), wall: 'west' },
+      { x: sx(250), y: sy(760), w: sx(160), h: sy(320), anchorX: sx(585), anchorY: sy(1080), wall: 'west' }
     ];
 
     const eastSlots = [
-      { x: sx(2280), y: sy(585), w: sx(58), h: sy(165), anchorX: sx(2110), anchorY: sy(770), wall: 'east' },
-      { x: sx(2420), y: sy(940), w: sx(58), h: sy(165), anchorX: sx(2200), anchorY: sy(1085), wall: 'east' }
+      { x: sx(2240), y: sy(490), w: sx(160), h: sy(320), anchorX: sx(2115), anchorY: sy(795), wall: 'east' },
+      { x: sx(2395), y: sy(780), w: sx(160), h: sy(320), anchorX: sx(2215), anchorY: sy(1080), wall: 'east' }
     ];
 
     const westSequence1 = [
@@ -553,8 +566,8 @@
       image: artImages.pedestal,
       anchorX: pedestalPos.x,
       anchorY: pedestalPos.y,
-      drawW: 78,
-      drawH: 125
+      drawW: 104,
+      drawH: 170
     });
     qIndex += 1;
 
@@ -573,8 +586,8 @@
       image: artImages.aboard,
       anchorX: aboardPos.x,
       anchorY: aboardPos.y,
-      drawW: 88,
-      drawH: 135
+      drawW: 115,
+      drawH: 185
     });
 
     return items;
@@ -759,17 +772,15 @@
   }
 
   function flashWrong() {
-    const old = canvas.style.boxShadow;
-    canvas.style.boxShadow = '0 0 0 3px #b24141 inset';
-    setTimeout(() => {
-      canvas.style.boxShadow = old;
-    }, 250);
+    state.fx.wrongFlashTimer = WRONG_FLASH_MS;
+    state.fx.shakeTimer = SHAKE_MS;
   }
 
   function triggerGuardChase() {
     state.player.controlLocked = true;
     state.guard.active = true;
     state.run.mode = 'chase';
+    state.fx.guardFlashTimer = GUARD_FLASH_MS;
     showBanner('Security is coming...');
   }
 
@@ -867,7 +878,28 @@
     state.player.y = ny;
   }
 
+  function updateFX(delta) {
+    if (state.fx.wrongFlashTimer > 0) {
+      state.fx.wrongFlashTimer = Math.max(0, state.fx.wrongFlashTimer - delta);
+    }
+
+    if (state.fx.guardFlashTimer > 0) {
+      state.fx.guardFlashTimer = Math.max(0, state.fx.guardFlashTimer - delta);
+    }
+
+    if (state.fx.shakeTimer > 0) {
+      state.fx.shakeTimer = Math.max(0, state.fx.shakeTimer - delta);
+      state.fx.shakeX = (Math.random() - 0.5) * 10;
+      state.fx.shakeY = (Math.random() - 0.5) * 8;
+    } else {
+      state.fx.shakeX = 0;
+      state.fx.shakeY = 0;
+    }
+  }
+
   function update(delta) {
+    updateFX(delta);
+
     if (state.screen !== 'game' || !state.run || state.run.ended) return;
     if (!questionModal.classList.contains('hidden') && state.run.mode === 'play') return;
 
@@ -894,6 +926,22 @@
       updatePullAnimation(delta);
 
     } else if (state.run.mode === 'chase') {
+      // Nana runs for the door while the guard chases her.
+      const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
+      const targetY = EXIT_ZONE.y2 + sy(20);
+
+      const pdx = targetX - state.player.x;
+      const pdy = targetY - state.player.y;
+      const plen = Math.hypot(pdx, pdy) || 1;
+
+      const pmx = (pdx / plen) * CHASE_PLAYER_SPEED;
+      const pmy = (pdy / plen) * CHASE_PLAYER_SPEED;
+
+      state.player.moving = true;
+      state.player.direction = vectorToDirection(pmx, pmy);
+      tryMove(pmx, pmy, { ignoreBlockers: true });
+      updateWalkAnimation(delta);
+
       const gdx = state.player.x - state.guard.x;
       const gdy = state.player.y - state.guard.y;
       const glen = Math.hypot(gdx, gdy) || 1;
@@ -905,7 +953,7 @@
       state.guard.x += gmx;
       state.guard.y += gmy;
 
-      if (distance(state.guard.x, state.guard.y, state.player.x, state.player.y) < 24) {
+      if (distance(state.guard.x, state.guard.y, state.player.x, state.player.y) < 26) {
         state.run.mode = 'escort';
         showBanner('Caught! Escorted out.');
       }
@@ -918,7 +966,9 @@
       const dy = targetY - state.player.y;
       const len = Math.hypot(dx, dy) || 1;
 
-      if (len < 12) {
+      if (len < 18) {
+        state.player.visible = false;
+        state.guard.visible = false;
         returnCaughtToHub();
         return;
       }
@@ -932,7 +982,7 @@
       updateWalkAnimation(delta);
 
       const guardTargetX = state.player.x;
-      const guardTargetY = state.player.y - 36;
+      const guardTargetY = state.player.y - 34;
 
       const egdx = guardTargetX - state.guard.x;
       const egdy = guardTargetY - state.guard.y;
@@ -985,25 +1035,14 @@
 
   function drawWallItem(item) {
     if (!imageReady(item.image)) {
-      ctx.fillStyle = item.status === 'failed' ? '#8f4c4c' : '#ffffff';
-      ctx.fillRect(item.x, item.y, item.w, item.h);
-      ctx.strokeStyle = '#333';
-      ctx.strokeRect(item.x, item.y, item.w, item.h);
       return;
     }
 
     if (item.status === 'failed') {
       ctx.save();
-      ctx.globalAlpha = 0.55;
+      ctx.filter = 'grayscale(100%) brightness(0.65)';
       drawImageFit(item.image, item.x, item.y, item.w, item.h);
       ctx.restore();
-
-      ctx.strokeStyle = '#6b1f1f';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(item.x, item.y);
-      ctx.lineTo(item.x + item.w, item.y + item.h);
-      ctx.stroke();
       return;
     }
 
@@ -1024,25 +1063,14 @@
     ctx.restore();
 
     if (!imageReady(item.image)) {
-      ctx.fillStyle = item.status === 'failed' ? '#8f4c4c' : '#ccc';
-      ctx.fillRect(drawX, drawY, drawW, drawH);
-      ctx.strokeStyle = '#333';
-      ctx.strokeRect(drawX, drawY, drawW, drawH);
       return;
     }
 
     if (item.status === 'failed') {
       ctx.save();
-      ctx.globalAlpha = 0.55;
+      ctx.filter = 'grayscale(100%) brightness(0.65)';
       ctx.drawImage(item.image, drawX, drawY, drawW, drawH);
       ctx.restore();
-
-      ctx.strokeStyle = '#6b1f1f';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(drawX, drawY);
-      ctx.lineTo(drawX + drawW, drawY + drawH);
-      ctx.stroke();
       return;
     }
 
@@ -1132,6 +1160,9 @@
   function drawRoom() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    ctx.save();
+    ctx.translate(state.fx.shakeX, state.fx.shakeY);
+
     if (imageReady(roomBackground)) {
       ctx.drawImage(roomBackground, 0, 0, canvas.width, canvas.height);
     } else {
@@ -1147,10 +1178,7 @@
       const floorDrawables = [];
 
       floorItems.forEach(item => {
-        floorDrawables.push({
-          y: item.anchorY,
-          draw: () => drawFloorItem(item)
-        });
+        floorDrawables.push({ y: item.anchorY, draw: () => drawFloorItem(item) });
       });
 
       if (state.player.visible) {
@@ -1165,6 +1193,22 @@
     }
 
     drawPrompt();
+    ctx.restore();
+
+    if (state.fx.wrongFlashTimer > 0) {
+      const alpha = (state.fx.wrongFlashTimer / WRONG_FLASH_MS) * 0.22;
+      ctx.fillStyle = `rgba(255,0,0,${alpha})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    if (
+      state.fx.guardFlashTimer > 0 ||
+      (state.run && (state.run.mode === 'chase' || state.run.mode === 'escort'))
+    ) {
+      const pulse = Math.floor(performance.now() / 120) % 2;
+      ctx.fillStyle = pulse === 0 ? 'rgba(255,0,0,0.10)' : 'rgba(0,100,255,0.10)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
   }
 
   function gameLoop(timestamp) {
@@ -1225,7 +1269,9 @@
   });
 
   interactBtn.addEventListener('click', interact);
+
   startHeistBtn.addEventListener('click', startHeist);
+
   resetProgressBtn.addEventListener('click', () => {
     state.save = {
       totalBanked: 0,
@@ -1237,9 +1283,11 @@
     saveProgress();
     showBanner('Progress reset.');
   });
+
   backToHubBtn.addEventListener('click', () => showScreen('hub'));
 
   submitAnswerBtn.addEventListener('click', submitAnswer);
+
   cancelAnswerBtn.addEventListener('click', () => {
     questionModal.classList.add('hidden');
     state.activeItem = null;
