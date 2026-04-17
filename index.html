@@ -2,10 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-  />
+  <meta 
+    name="viewport" 
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Knowledge Heist</title>
   <style>
     :root {
@@ -118,20 +117,23 @@
       line-height: 1;
     }
 
+    /* Total Banked positioning */
     .top-left-total {
-      left: 6.25%;
-      top: 19.55%;
-      width: 14.1%;
-      height: 7.15%;
+      left: 81px;
+      top: 155px;
+      width: 130px;
+      height: 25px;
     }
 
+    /* Best Heist positioning */
     .top-left-best {
-      left: 6.15%;
-      top: 56.65%;
-      width: 14.15%;
-      height: 7.15%;
+      left: 81px;
+      top: 180px;
+      width: 130px;
+      height: 25px;
     }
 
+    /* Right labels */
     .right-stat-one-label {
       left: 78.55%;
       top: 49.85%;
@@ -146,6 +148,7 @@
       height: 4.25%;
     }
 
+    /* Right values */
     .right-stat-one-value {
       left: 80.8%;
       top: 56.15%;
@@ -160,6 +163,7 @@
       height: 7.2%;
     }
 
+    /* Leaderboard button */
     .leaderboard-zone {
       left: 43.95%;
       top: 94.4%;
@@ -181,6 +185,7 @@
         0 0 8px rgba(0,0,0,0.45);
     }
 
+    /* TV Controls */
     .tv-controls {
       left: 31.45%;
       top: 69.55%;
@@ -210,20 +215,12 @@
       padding: 0 4px;
     }
 
-    .tv-controls button:last-child {
-      transform: translateY(-8px);
-    }
-
-    .tv-controls button:hover,
-    .leaderboard-zone button:hover {
-      filter: brightness(1.08);
-    }
-
+    /* Dynamite reset button hotspot */
     .dynamite-reset {
-      left: 66.3%;
-      top: 80.1%;
-      width: 11.1%;
-      height: 10.8%;
+      left: 723px;
+      top: 478px;
+      width: 110px;
+      height: 38px;
     }
 
     .dynamite-reset button {
@@ -233,6 +230,7 @@
       background: transparent;
       cursor: pointer;
       opacity: 0;
+      border-radius: 50%;
     }
 
     .dynamite-reset button:focus-visible,
@@ -244,6 +242,7 @@
       background: rgba(255,255,255,0.08);
     }
 
+    /* Hub Table */
     .hub-table {
       left: 77.95%;
       top: 10.45%;
@@ -598,323 +597,4 @@
       }
 
       #interactBtn {
-        width: 100%;
-        max-width: 240px;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div id="gameBanner"></div>
-
-  <!-- HUB -->
-  <section id="hubScreen" class="screen active">
-    <div class="hub-wrap">
-      <div class="hub-value hub-money top-left-total" id="totalBanked">£0.00</div>
-      <div class="hub-value hub-money top-left-best" id="bestHeist">£0.00</div>
-
-      <div class="tv-controls">
-        <button id="instructionsBtn" type="button">How to Play</button>
-        <button id="startHeistBtn" type="button">Start Heist</button>
-      </div>
-
-      <div class="hub-hotspot dynamite-reset">
-        <button id="resetProgressBtn" type="button" aria-label="Reset progress" title="Reset progress"></button>
-      </div>
-
-      <div class="hub-label right-stat-one-label">Heists Played</div>
-      <div class="hub-label right-stat-two-label">Paintings Stolen</div>
-
-      <div class="hub-value hub-small-number right-stat-one-value" id="heistsPlayed">0</div>
-      <div class="hub-value hub-small-number right-stat-two-value" id="paintingsStolen">0</div>
-
-      <div class="leaderboard-zone">
-        <button id="leaderboardBtn" type="button">Leaderboard</button>
-      </div>
-
-      <div class="hub-table" aria-hidden="true">
-        <div class="hub-log-head">
-          <div>Date</div>
-          <div>Heists</div>
-          <div>✓</div>
-        </div>
-        <div class="hub-log-body" id="hubLogBody">
-          <div class="hub-log-row"><div>-</div><div>-</div><div>-</div></div>
-          <div class="hub-log-row"><div>-</div><div>-</div><div>-</div></div>
-          <div class="hub-log-row"><div>-</div><div>-</div><div>-</div></div>
-          <div class="hub-log-row"><div>-</div><div>-</div><div>-</div></div>
-          <div class="hub-log-row"><div>-</div><div>-</div><div>-</div></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- GAME -->
-  <section id="gameScreen" class="screen">
-    <div class="game-topbar">
-      <div class="game-chip">Current haul: <span id="haulValue">£0.00</span></div>
-      <div class="game-chip">Strikes: <span id="strikesValue">0 / 3</span></div>
-      <div class="game-chip">Paintings left: <span id="paintingsLeftValue">0</span></div>
-      <button id="backToHubBtn" type="button">Back to hub</button>
-    </div>
-
-    <div class="game-shell">
-      <div class="canvas-wrap">
-        <canvas id="gameCanvas" width="1024" height="670"></canvas>
-      </div>
-
-      <div class="game-controls">
-        <div id="joystick">
-          <button class="joy-btn" data-dir="up" type="button">▲</button>
-          <button class="joy-btn" data-dir="left" type="button">◀</button>
-          <button class="joy-btn" data-dir="down" type="button">▼</button>
-          <button class="joy-btn" data-dir="right" type="button">▶</button>
-        </div>
-
-        <button id="interactBtn" type="button">INTERACT</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- QUESTION MODAL -->
-  <div id="questionModal" class="hidden">
-    <div class="modal-card">
-      <h2>Security Check</h2>
-      <div id="questionText"></div>
-      <input id="answerInput" type="text" inputmode="text" />
-      <div class="modal-actions">
-        <button id="submitAnswerBtn" type="button">Submit</button>
-        <button id="cancelAnswerBtn" type="button">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SUMMARY OVERLAY -->
-  <div id="summaryOverlay" class="hidden">
-    <div class="modal-card">
-      <h2 id="summaryTitle">Heist Complete</h2>
-      <div id="summarySubtitle"></div>
-      <div class="modal-actions">
-        <button id="summaryContinueBtn" type="button">Continue</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- INSTRUCTIONS POPUP -->
-  <div id="instructionsOverlay" class="overlay">
-    <div class="popup-panel instructions-panel">
-      <h2>How to Play</h2>
-      <div class="instructions-copy">
-Move Nana around the museum.
-Walk up to an artwork or floor item and attempt to grab it.
-Each item triggers a question.
-Get it right and you steal it.
-Get it wrong and it greys out, and you get a strike.
-Three strikes brings the guard in.
-If you make it to the exit, you escape with your haul.
-Questions only get used once until you reset your progress.
-      </div>
-      <div class="popup-actions">
-        <button id="closeInstructionsBtn" type="button">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- RESET CONFIRM -->
-  <div id="resetConfirmOverlay" class="overlay">
-    <div class="popup-panel confirm-panel">
-      <h2>Reset Progress?</h2>
-      <p>You are about to reset your data. Are you sure?</p>
-      <div class="popup-actions">
-        <button id="confirmResetBtn" class="danger" type="button">Yes, Reset</button>
-        <button id="cancelResetBtn" type="button">No</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="questions.js"></script>
-  <script src="game.js"></script>
-  <script>
-    (() => {
-      const instructionsBtn = document.getElementById('instructionsBtn');
-      const instructionsOverlay = document.getElementById('instructionsOverlay');
-      const closeInstructionsBtn = document.getElementById('closeInstructionsBtn');
-
-      const resetBtn = document.getElementById('resetProgressBtn');
-      const resetConfirmOverlay = document.getElementById('resetConfirmOverlay');
-      const confirmResetBtn = document.getElementById('confirmResetBtn');
-      const cancelResetBtn = document.getElementById('cancelResetBtn');
-
-      const leaderboardBtn = document.getElementById('leaderboardBtn');
-      const hubLogBody = document.getElementById('hubLogBody');
-
-      const SAVE_KEY = 'nanaHeistSave_v11';
-      const HISTORY_KEY = 'nanaHeistHistory_v1';
-      const WATCH_KEY = 'nanaHeistHistoryWatch_v1';
-
-      function readSave() {
-        try {
-          return JSON.parse(localStorage.getItem(SAVE_KEY)) || {
-            totalBanked: 0,
-            bestHeist: 0,
-            heistsPlayed: 0,
-            paintingsStolen: 0,
-            usedQuestionIds: []
-          };
-        } catch {
-          return {
-            totalBanked: 0,
-            bestHeist: 0,
-            heistsPlayed: 0,
-            paintingsStolen: 0,
-            usedQuestionIds: []
-          };
-        }
-      }
-
-      function readHistory() {
-        try {
-          const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY));
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      }
-
-      function writeHistory(history) {
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-      }
-
-      function readWatch() {
-        try {
-          return JSON.parse(localStorage.getItem(WATCH_KEY));
-        } catch {
-          return null;
-        }
-      }
-
-      function writeWatch(watch) {
-        localStorage.setItem(WATCH_KEY, JSON.stringify(watch));
-      }
-
-      function formatDateShort(d = new Date()) {
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const year = String(d.getFullYear()).slice(-2);
-        return `${day}/${month}/${year}`;
-      }
-
-      function renderHistory() {
-        const history = readHistory().slice(-5).reverse();
-        hubLogBody.innerHTML = '';
-
-        for (let i = 0; i < 5; i++) {
-          const entry = history[i];
-          const row = document.createElement('div');
-          row.className = 'hub-log-row';
-
-          if (!entry) {
-            row.innerHTML = '<div>-</div><div>-</div><div>-</div>';
-          } else {
-            const resultClass = entry.success ? 'success' : 'fail';
-            const resultSymbol = entry.success ? '✓' : '✕';
-            row.innerHTML = `
-              <div>${entry.date}</div>
-              <div>${entry.heistNumber}</div>
-              <div class="hub-log-result ${resultClass}">${resultSymbol}</div>
-            `;
-          }
-
-          hubLogBody.appendChild(row);
-        }
-      }
-
-      function syncHistoryFromSave() {
-        const save = readSave();
-        const previous = readWatch();
-
-        if (!previous) {
-          writeWatch({
-            heistsPlayed: save.heistsPlayed || 0,
-            totalBanked: save.totalBanked || 0
-          });
-          renderHistory();
-          return;
-        }
-
-        if ((save.heistsPlayed || 0) < (previous.heistsPlayed || 0)) {
-          writeWatch({
-            heistsPlayed: save.heistsPlayed || 0,
-            totalBanked: save.totalBanked || 0
-          });
-          renderHistory();
-          return;
-        }
-
-        if ((save.heistsPlayed || 0) > (previous.heistsPlayed || 0)) {
-          const history = readHistory();
-          const success = (save.totalBanked || 0) > (previous.totalBanked || 0);
-
-          history.push({
-            date: formatDateShort(),
-            heistNumber: save.heistsPlayed || 0,
-            success
-          });
-
-          writeHistory(history.slice(-50));
-          writeWatch({
-            heistsPlayed: save.heistsPlayed || 0,
-            totalBanked: save.totalBanked || 0
-          });
-          renderHistory();
-          return;
-        }
-
-        renderHistory();
-      }
-
-      function show(el) {
-        el.classList.add('show');
-      }
-
-      function hide(el) {
-        el.classList.remove('show');
-      }
-
-      instructionsBtn.addEventListener('click', () => show(instructionsOverlay));
-      closeInstructionsBtn.addEventListener('click', () => hide(instructionsOverlay));
-      instructionsOverlay.addEventListener('click', (e) => {
-        if (e.target === instructionsOverlay) hide(instructionsOverlay);
-      });
-
-      resetBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        show(resetConfirmOverlay);
-      }, true);
-
-      cancelResetBtn.addEventListener('click', () => hide(resetConfirmOverlay));
-
-      confirmResetBtn.addEventListener('click', () => {
-        localStorage.removeItem(HISTORY_KEY);
-        localStorage.removeItem(WATCH_KEY);
-        hide(resetConfirmOverlay);
-        resetBtn.click();
-        setTimeout(renderHistory, 50);
-      });
-
-      resetConfirmOverlay.addEventListener('click', (e) => {
-        if (e.target === resetConfirmOverlay) hide(resetConfirmOverlay);
-      });
-
-      leaderboardBtn.addEventListener('click', () => {
-        alert('Leaderboard coming soon.');
-      });
-
-      renderHistory();
-      syncHistoryFromSave();
-      setInterval(syncHistoryFromSave, 700);
-    })();
-  </script>
-</body>
-</html>
+        width:
