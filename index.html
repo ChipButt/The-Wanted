@@ -2,19 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta 
-    name="viewport" 
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
   <title>Knowledge Heist</title>
   <style>
     :root {
       --bg: #0f1217;
-      --panel: #1b2028;
-      --panel-2: #252c36;
-      --line: rgba(255,255,255,0.12);
       --gold: #d8b15a;
       --text: #f3efe5;
-      --muted: #b9b2a4;
     }
 
     * {
@@ -25,10 +22,10 @@
     html, body {
       margin: 0;
       padding: 0;
+      min-height: 100%;
       background: var(--bg);
       color: var(--text);
       font-family: Arial, Helvetica, sans-serif;
-      min-height: 100%;
     }
 
     body {
@@ -71,12 +68,11 @@
       user-select: none;
     }
 
-    .hub-hotspot,
     .hub-value,
     .hub-label,
-    .hub-table,
-    .tv-controls,
-    .leaderboard-zone {
+    .hub-hotspot,
+    .hub-log-cell,
+    .hub-ui-button {
       position: absolute;
     }
 
@@ -86,20 +82,19 @@
       justify-content: center;
       text-align: center;
       color: #f5f2df;
-      text-shadow: 0 1px 0 rgba(0,0,0,0.8);
+      text-shadow: 0 1px 0 rgba(0,0,0,0.9);
       font-weight: 700;
-      letter-spacing: 0.15px;
-      pointer-events: none;
       white-space: nowrap;
       overflow: hidden;
+      pointer-events: none;
     }
 
     .hub-money {
-      font-size: clamp(18px, 2vw, 26px);
+      font-size: clamp(16px, 1.9vw, 24px);
     }
 
-    .hub-small-number {
-      font-size: clamp(18px, 1.9vw, 27px);
+    .hub-number {
+      font-size: clamp(17px, 1.8vw, 25px);
     }
 
     .hub-label {
@@ -108,183 +103,152 @@
       justify-content: center;
       text-align: center;
       color: #2c1c0f;
-      font-weight: 700;
       text-shadow: 0 1px 0 rgba(255,255,255,0.18);
-      pointer-events: none;
-      white-space: nowrap;
-      font-size: clamp(9px, 0.95vw, 14px);
-      letter-spacing: 0;
-      line-height: 1;
-    }
-
-    /* Total Banked positioning */
-    .top-left-total {
-      left: 81px;
-      top: 155px;
-      width: 130px;
-      height: 25px;
-    }
-
-    /* Best Heist positioning */
-    .top-left-best {
-      left: 81px;
-      top: 180px;
-      width: 130px;
-      height: 25px;
-    }
-
-    /* Right labels */
-    .right-stat-one-label {
-      left: 78.55%;
-      top: 49.85%;
-      width: 13.55%;
-      height: 4.25%;
-    }
-
-    .right-stat-two-label {
-      left: 78.35%;
-      top: 69.75%;
-      width: 13.95%;
-      height: 4.25%;
-    }
-
-    /* Right values */
-    .right-stat-one-value {
-      left: 80.8%;
-      top: 56.15%;
-      width: 8.6%;
-      height: 7.2%;
-    }
-
-    .right-stat-two-value {
-      left: 80.8%;
-      top: 76.15%;
-      width: 8.6%;
-      height: 7.2%;
-    }
-
-    /* Leaderboard button */
-    .leaderboard-zone {
-      left: 43.95%;
-      top: 94.4%;
-      width: 12.25%;
-      height: 4.35%;
-    }
-
-    .leaderboard-zone button {
-      width: 100%;
-      height: 100%;
-      border: none;
-      background: transparent;
-      color: #e9dfc3;
       font-weight: 700;
-      cursor: pointer;
-      font-size: clamp(11px, 1.05vw, 15px);
-      text-shadow:
-        0 1px 0 rgba(0,0,0,0.95),
-        0 0 8px rgba(0,0,0,0.45);
+      white-space: nowrap;
+      line-height: 1;
+      pointer-events: none;
+      font-size: clamp(8px, 0.82vw, 13px);
     }
 
-    /* TV Controls */
-    .tv-controls {
-      left: 31.45%;
-      top: 69.55%;
-      width: 14.1%;
-      height: 6.35%;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      gap: 0.7%;
-      transform: rotate(-6deg);
-      transform-origin: center center;
+    /* Total banked box: 81,155 to 215,179 */
+    #totalBanked {
+      left: 7.91%;
+      top: 27.73%;
+      width: 13.09%;
+      height: 4.29%;
     }
 
-    .tv-controls button {
-      width: 48.4%;
-      height: 74%;
+    /* Best heist box: 92,348 to 191,365 */
+    #bestHeist {
+      left: 8.98%;
+      top: 62.25%;
+      width: 9.67%;
+      height: 3.04%;
+      font-size: clamp(14px, 1.45vw, 20px);
+    }
+
+    /* Heists Played label: approx 811,301 to 922,316 */
+    #heistsPlayedLabel {
+      left: 79.20%;
+      top: 53.85%;
+      width: 10.84%;
+      height: 2.68%;
+    }
+
+    /* Heists Played number: 839,345 to 898,365 */
+    #heistsPlayed {
+      left: 81.93%;
+      top: 61.72%;
+      width: 5.76%;
+      height: 3.58%;
+    }
+
+    /* Paintings Stolen label: 813,404 to 920,420 */
+    #paintingsStolenLabel {
+      left: 79.39%;
+      top: 72.27%;
+      width: 10.45%;
+      height: 2.86%;
+    }
+
+    /* Paintings Stolen number: 840,451 to 900,470 */
+    #paintingsStolen {
+      left: 82.03%;
+      top: 80.68%;
+      width: 5.86%;
+      height: 3.40%;
+    }
+
+    /* Start / how to play buttons on TV */
+    .tv-btn {
       border: 1px solid rgba(166, 245, 220, 0.28);
       border-radius: 8px;
       background: rgba(5, 28, 21, 0.84);
       color: #bdf0da;
       font-weight: 700;
-      font-size: clamp(9px, 0.86vw, 13px);
+      font-size: clamp(9px, 0.82vw, 12px);
       cursor: pointer;
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,0.06),
         0 3px 8px rgba(0,0,0,0.3);
+      transform: rotate(-5deg);
+      transform-origin: center center;
       padding: 0 4px;
     }
 
-    /* Dynamite reset button hotspot */
-    .dynamite-reset {
-      left: 723px;
-      top: 478px;
-      width: 110px;
-      height: 38px;
+    /* Start Heist box from your coords */
+    #startHeistBtn {
+      left: 27.73%;
+      top: 70.30%;
+      width: 7.81%;
+      height: 4.83%;
     }
 
-    .dynamite-reset button {
-      width: 100%;
-      height: 100%;
+    /* How to Play box from your coords */
+    #instructionsBtn {
+      left: 27.44%;
+      top: 75.67%;
+      width: 8.11%;
+      height: 5.19%;
+    }
+
+    /* Leaderboard bottom middle */
+    #leaderboardBtn {
+      left: 44.20%;
+      top: 94.10%;
+      width: 12.30%;
+      height: 4.50%;
       border: none;
       background: transparent;
+      color: #e9dfc3;
+      font-weight: 700;
       cursor: pointer;
+      font-size: clamp(11px, 1.0vw, 15px);
+      text-shadow:
+        0 1px 0 rgba(0,0,0,0.95),
+        0 0 8px rgba(0,0,0,0.45);
+    }
+
+    /* Invisible reset hotspot over dynamite */
+    #resetProgressBtn {
+      left: 64.45%;
+      top: 85.51%;
+      width: 7.23%;
+      height: 6.80%;
+      border: none;
+      background: transparent;
       opacity: 0;
+      cursor: pointer;
       border-radius: 50%;
     }
 
-    .dynamite-reset button:focus-visible,
-    .tv-controls button:focus-visible,
-    .leaderboard-zone button:focus-visible {
+    #resetProgressBtn:focus-visible,
+    #leaderboardBtn:focus-visible,
+    .tv-btn:focus-visible {
       outline: 2px solid #fff6b3;
       outline-offset: 2px;
       opacity: 1;
       background: rgba(255,255,255,0.08);
     }
 
-    /* Hub Table */
-    .hub-table {
-      left: 77.95%;
-      top: 10.45%;
-      width: 16.7%;
-      height: 25.7%;
-      color: #34261a;
-      font-size: clamp(8px, 0.82vw, 12px);
-      display: grid;
-      grid-template-rows: auto 1fr;
-      pointer-events: none;
-    }
-
-    .hub-log-head {
-      display: grid;
-      grid-template-columns: 42% 38% 20%;
-      align-items: center;
-      height: 21%;
-      font-weight: 700;
-      text-align: center;
-      padding-top: 1%;
-    }
-
-    .hub-log-body {
-      display: grid;
-      grid-template-rows: repeat(5, 1fr);
-      height: 79%;
-    }
-
-    .hub-log-row {
-      display: grid;
-      grid-template-columns: 42% 38% 20%;
-      align-items: center;
-      text-align: center;
+    /* Top-right heist history cells */
+    .hub-log-cell {
+      transform: translate(-50%, -50%);
       color: #3a2c1f;
+      font-size: clamp(8px, 0.8vw, 12px);
+      line-height: 1;
+      text-align: center;
+      pointer-events: none;
+      white-space: nowrap;
     }
 
-    .hub-log-result.success {
+    .hub-log-cell.result.success {
       color: #3f7e3a;
       font-weight: 700;
     }
 
-    .hub-log-result.fail {
+    .hub-log-cell.result.fail {
       color: #9a3f3f;
       font-weight: 700;
     }
@@ -597,4 +561,362 @@
       }
 
       #interactBtn {
-        width:
+        width: 100%;
+        max-width: 240px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameBanner"></div>
+
+  <!-- HUB -->
+  <section id="hubScreen" class="screen active">
+    <div class="hub-wrap">
+      <div class="hub-value hub-money" id="totalBanked">£0.00</div>
+      <div class="hub-value hub-money" id="bestHeist">£0.00</div>
+
+      <div class="hub-label" id="heistsPlayedLabel">Heists Played</div>
+      <div class="hub-value hub-number" id="heistsPlayed">0</div>
+
+      <div class="hub-label" id="paintingsStolenLabel">Paintings Stolen</div>
+      <div class="hub-value hub-number" id="paintingsStolen">0</div>
+
+      <button class="hub-ui-button tv-btn" id="startHeistBtn" type="button">Start Heist</button>
+      <button class="hub-ui-button tv-btn" id="instructionsBtn" type="button">How to Play</button>
+
+      <button class="hub-ui-button" id="leaderboardBtn" type="button">Leaderboard</button>
+      <button class="hub-hotspot" id="resetProgressBtn" type="button" aria-label="Reset progress" title="Reset progress"></button>
+
+      <!-- 5 rows x 3 columns -->
+      <div class="hub-log-cell" id="date1"></div>
+      <div class="hub-log-cell" id="date2"></div>
+      <div class="hub-log-cell" id="date3"></div>
+      <div class="hub-log-cell" id="date4"></div>
+      <div class="hub-log-cell" id="date5"></div>
+
+      <div class="hub-log-cell" id="heist1"></div>
+      <div class="hub-log-cell" id="heist2"></div>
+      <div class="hub-log-cell" id="heist3"></div>
+      <div class="hub-log-cell" id="heist4"></div>
+      <div class="hub-log-cell" id="heist5"></div>
+
+      <div class="hub-log-cell result" id="result1"></div>
+      <div class="hub-log-cell result" id="result2"></div>
+      <div class="hub-log-cell result" id="result3"></div>
+      <div class="hub-log-cell result" id="result4"></div>
+      <div class="hub-log-cell result" id="result5"></div>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="gameScreen" class="screen">
+    <div class="game-topbar">
+      <div class="game-chip">Current haul: <span id="haulValue">£0.00</span></div>
+      <div class="game-chip">Strikes: <span id="strikesValue">0 / 3</span></div>
+      <div class="game-chip">Paintings left: <span id="paintingsLeftValue">0</span></div>
+      <button id="backToHubBtn" type="button">Back to hub</button>
+    </div>
+
+    <div class="game-shell">
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="1024" height="670"></canvas>
+      </div>
+
+      <div class="game-controls">
+        <div id="joystick">
+          <button class="joy-btn" data-dir="up" type="button">▲</button>
+          <button class="joy-btn" data-dir="left" type="button">◀</button>
+          <button class="joy-btn" data-dir="down" type="button">▼</button>
+          <button class="joy-btn" data-dir="right" type="button">▶</button>
+        </div>
+
+        <button id="interactBtn" type="button">INTERACT</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUESTION MODAL -->
+  <div id="questionModal" class="hidden">
+    <div class="modal-card">
+      <h2>Security Check</h2>
+      <div id="questionText"></div>
+      <input id="answerInput" type="text" inputmode="text" />
+      <div class="modal-actions">
+        <button id="submitAnswerBtn" type="button">Submit</button>
+        <button id="cancelAnswerBtn" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY OVERLAY -->
+  <div id="summaryOverlay" class="hidden">
+    <div class="modal-card">
+      <h2 id="summaryTitle">Heist Complete</h2>
+      <div id="summarySubtitle"></div>
+      <div class="modal-actions">
+        <button id="summaryContinueBtn" type="button">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTRUCTIONS POPUP -->
+  <div id="instructionsOverlay" class="overlay">
+    <div class="popup-panel instructions-panel">
+      <h2>How to Play</h2>
+      <div class="instructions-copy">
+Move Nana around the museum.
+Walk up to an artwork or floor item and attempt to grab it.
+Each item triggers a question.
+Get it right and you steal it.
+Get it wrong and it greys out, and you get a strike.
+Three strikes brings the guard in.
+If you make it to the exit, you escape with your haul.
+Questions only get used once until you reset your progress.
+      </div>
+      <div class="popup-actions">
+        <button id="closeInstructionsBtn" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESET CONFIRM -->
+  <div id="resetConfirmOverlay" class="overlay">
+    <div class="popup-panel confirm-panel">
+      <h2>Reset Progress?</h2>
+      <p>You are about to reset your data. Are you sure?</p>
+      <div class="popup-actions">
+        <button id="confirmResetBtn" class="danger" type="button">Yes, Reset</button>
+        <button id="cancelResetBtn" type="button">No</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Position the 15 log cells from your centre points */
+    const hubCellPositions = {
+      date1:   { x: 80.18, y: 23.43 },
+      date2:   { x: 80.18, y: 26.83 },
+      date3:   { x: 80.18, y: 29.87 },
+      date4:   { x: 80.18, y: 33.45 },
+      date5:   { x: 80.18, y: 36.14 },
+
+      heist1:  { x: 86.52, y: 23.43 },
+      heist2:  { x: 86.43, y: 26.65 },
+      heist3:  { x: 86.43, y: 30.05 },
+      heist4:  { x: 86.43, y: 33.45 },
+      heist5:  { x: 86.43, y: 35.96 },
+
+      result1: { x: 91.80, y: 23.26 },
+      result2: { x: 91.80, y: 26.65 },
+      result3: { x: 91.80, y: 29.87 },
+      result4: { x: 91.80, y: 33.27 },
+      result5: { x: 91.80, y: 35.96 }
+    };
+
+    Object.entries(hubCellPositions).forEach(([id, pos]) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.left = `${pos.x}%`;
+        el.style.top = `${pos.y}%`;
+      }
+    });
+  </script>
+
+  <script src="questions.js"></script>
+  <script src="game.js"></script>
+  <script>
+    (() => {
+      const instructionsBtn = document.getElementById('instructionsBtn');
+      const instructionsOverlay = document.getElementById('instructionsOverlay');
+      const closeInstructionsBtn = document.getElementById('closeInstructionsBtn');
+
+      const resetBtn = document.getElementById('resetProgressBtn');
+      const resetConfirmOverlay = document.getElementById('resetConfirmOverlay');
+      const confirmResetBtn = document.getElementById('confirmResetBtn');
+      const cancelResetBtn = document.getElementById('cancelResetBtn');
+
+      const leaderboardBtn = document.getElementById('leaderboardBtn');
+
+      const SAVE_KEY = 'nanaHeistSave_v11';
+      const LAST_HEIST_WRONG_KEY = 'nanaHeistLastWrong_v11';
+      const HISTORY_KEY = 'nanaHeistHistory_v1';
+      const WATCH_KEY = 'nanaHeistHistoryWatch_v1';
+
+      const dateEls = [
+        document.getElementById('date1'),
+        document.getElementById('date2'),
+        document.getElementById('date3'),
+        document.getElementById('date4'),
+        document.getElementById('date5')
+      ];
+
+      const heistEls = [
+        document.getElementById('heist1'),
+        document.getElementById('heist2'),
+        document.getElementById('heist3'),
+        document.getElementById('heist4'),
+        document.getElementById('heist5')
+      ];
+
+      const resultEls = [
+        document.getElementById('result1'),
+        document.getElementById('result2'),
+        document.getElementById('result3'),
+        document.getElementById('result4'),
+        document.getElementById('result5')
+      ];
+
+      function readSave() {
+        try {
+          return JSON.parse(localStorage.getItem(SAVE_KEY)) || {
+            totalBanked: 0,
+            bestHeist: 0,
+            heistsPlayed: 0,
+            paintingsStolen: 0,
+            usedQuestionIds: []
+          };
+        } catch {
+          return {
+            totalBanked: 0,
+            bestHeist: 0,
+            heistsPlayed: 0,
+            paintingsStolen: 0,
+            usedQuestionIds: []
+          };
+        }
+      }
+
+      function readHistory() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY));
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function writeHistory(history) {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      }
+
+      function readWatch() {
+        try {
+          return JSON.parse(localStorage.getItem(WATCH_KEY));
+        } catch {
+          return null;
+        }
+      }
+
+      function writeWatch(watch) {
+        localStorage.setItem(WATCH_KEY, JSON.stringify(watch));
+      }
+
+      function formatDateShort(d = new Date()) {
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = String(d.getFullYear()).slice(-2);
+        return `${day}/${month}/${year}`;
+      }
+
+      function renderHistory() {
+        const history = readHistory().slice(-5).reverse();
+
+        for (let i = 0; i < 5; i++) {
+          const entry = history[i];
+          dateEls[i].textContent = entry ? entry.date : '';
+          heistEls[i].textContent = entry ? entry.heistNumber : '';
+          resultEls[i].textContent = entry ? (entry.success ? '✓' : '✕') : '';
+          resultEls[i].className = 'hub-log-cell result' + (entry ? (entry.success ? ' success' : ' fail') : '');
+        }
+      }
+
+      function syncHistoryFromSave() {
+        const save = readSave();
+        const previous = readWatch();
+
+        if (!previous) {
+          writeWatch({
+            heistsPlayed: save.heistsPlayed || 0,
+            totalBanked: save.totalBanked || 0
+          });
+          renderHistory();
+          return;
+        }
+
+        if ((save.heistsPlayed || 0) < (previous.heistsPlayed || 0)) {
+          writeWatch({
+            heistsPlayed: save.heistsPlayed || 0,
+            totalBanked: save.totalBanked || 0
+          });
+          renderHistory();
+          return;
+        }
+
+        if ((save.heistsPlayed || 0) > (previous.heistsPlayed || 0)) {
+          const history = readHistory();
+          const success = (save.totalBanked || 0) > (previous.totalBanked || 0);
+
+          history.push({
+            date: formatDateShort(),
+            heistNumber: save.heistsPlayed || 0,
+            success
+          });
+
+          writeHistory(history.slice(-50));
+          writeWatch({
+            heistsPlayed: save.heistsPlayed || 0,
+            totalBanked: save.totalBanked || 0
+          });
+          renderHistory();
+          return;
+        }
+
+        renderHistory();
+      }
+
+      function show(el) {
+        el.classList.add('show');
+      }
+
+      function hide(el) {
+        el.classList.remove('show');
+      }
+
+      instructionsBtn.addEventListener('click', () => show(instructionsOverlay));
+      closeInstructionsBtn.addEventListener('click', () => hide(instructionsOverlay));
+      instructionsOverlay.addEventListener('click', (e) => {
+        if (e.target === instructionsOverlay) hide(instructionsOverlay);
+      });
+
+      resetBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        show(resetConfirmOverlay);
+      }, true);
+
+      cancelResetBtn.addEventListener('click', () => hide(resetConfirmOverlay));
+
+      confirmResetBtn.addEventListener('click', () => {
+        localStorage.removeItem(SAVE_KEY);
+        localStorage.removeItem(LAST_HEIST_WRONG_KEY);
+        localStorage.removeItem(HISTORY_KEY);
+        localStorage.removeItem(WATCH_KEY);
+        location.reload();
+      });
+
+      resetConfirmOverlay.addEventListener('click', (e) => {
+        if (e.target === resetConfirmOverlay) hide(resetConfirmOverlay);
+      });
+
+      leaderboardBtn.addEventListener('click', () => {
+        alert('Leaderboard coming soon.');
+      });
+
+      renderHistory();
+      syncHistoryFromSave();
+      setInterval(syncHistoryFromSave, 700);
+    })();
+  </script>
+</body>
+</html>
