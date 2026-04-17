@@ -175,54 +175,47 @@
 
     /* TV buttons */
     .tv-btn {
-      border: 1px solid rgba(79, 49, 26, 0.35);
-      border-radius: 8px;
-      background:
-        linear-gradient(180deg, var(--title-brown-light) 0%, var(--title-brown-mid) 100%);
-      color: var(--title-brown-dark);
-      font-weight: 700;
-      font-family: var(--hub-font);
-      cursor: pointer;
-      text-shadow: 0 1px 0 rgba(255,255,255,0.18);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.22),
-        inset 0 -2px 0 rgba(79, 49, 26, 0.22),
-        0 3px 8px rgba(0,0,0,0.28);
-      padding: 0 4px;
-      transform: rotate(-5deg);
-      transform-origin: center center;
-      transition: transform 0.08s ease, filter 0.08s ease;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .tv-btn:hover {
-      filter: brightness(1.05);
-    }
-
-    .tv-btn:active {
-      transform: rotate(-5deg) translateY(1px);
-    }
+  border: 1px solid rgba(79, 49, 26, 0.35);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, var(--title-brown-light) 0%, var(--title-brown-mid) 100%);
+  color: var(--title-brown-dark);
+  font-weight: 700;
+  font-family: var(--hub-font);
+  cursor: pointer;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 -2px 0 rgba(79, 49, 26, 0.22),
+    0 3px 8px rgba(0,0,0,0.28);
+  padding: 0 2px;
+  transform: rotate(-5deg);
+  transform-origin: center center;
+  transition: transform 0.08s ease, filter 0.08s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
 
     /* Start Heist */
     #startHeistBtn {
-      left: 27.73%;
-      top: 69.59%;
-      width: 7.81%;
-      height: 5.55%;
-      font-size: clamp(8px, 0.82vw, 12px);
-    }
+  left: 28.18%;
+  top: 69.59%;
+  width: 6.95%;
+  height: 5.55%;
+  font-size: clamp(7.6px, 0.73vw, 10.5px);
+}
 
     /* How to Play - smaller text so it stays on one line */
     #instructionsBtn {
-      left: 27.44%;
-      top: 75.13%;
-      width: 8.11%;
-      height: 5.90%;
-      font-size: clamp(7px, 0.68vw, 10px);
-      letter-spacing: 0;
-    }
+  left: 27.92%;
+  top: 75.13%;
+  width: 7.15%;
+  height: 5.90%;
+  font-size: clamp(8.4px, 0.82vw, 11.2px);
+  letter-spacing: -0.1px;
+}
 
     /* Leaderboard centred to 511,541 */
     #leaderboardBtn {
