@@ -12,6 +12,8 @@
       --bg: #0f1217;
       --gold: #d8b15a;
       --text: #f3efe5;
+      --hub-font: Georgia, "Times New Roman", Garamond, serif;
+      --ui-font: Arial, Helvetica, sans-serif;
     }
 
     * {
@@ -25,7 +27,7 @@
       min-height: 100%;
       background: var(--bg);
       color: var(--text);
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: var(--ui-font);
     }
 
     body {
@@ -66,6 +68,7 @@
       overflow: hidden;
       box-shadow: 0 18px 50px rgba(0,0,0,0.45);
       user-select: none;
+      font-family: var(--hub-font);
     }
 
     .hub-value,
@@ -82,19 +85,22 @@
       justify-content: center;
       text-align: center;
       color: #f5f2df;
-      text-shadow: 0 1px 0 rgba(0,0,0,0.9);
+      text-shadow:
+        0 1px 0 rgba(0,0,0,0.95),
+        0 0 4px rgba(0,0,0,0.25);
       font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
       pointer-events: none;
+      letter-spacing: 0.2px;
     }
 
     .hub-money {
-      font-size: clamp(16px, 1.9vw, 24px);
+      font-size: clamp(17px, 1.7vw, 24px);
     }
 
     .hub-number {
-      font-size: clamp(17px, 1.8vw, 25px);
+      font-size: clamp(18px, 1.75vw, 25px);
     }
 
     .hub-label {
@@ -103,32 +109,33 @@
       justify-content: center;
       text-align: center;
       color: #2c1c0f;
-      text-shadow: 0 1px 0 rgba(255,255,255,0.18);
+      text-shadow: 0 1px 0 rgba(255,255,255,0.22);
       font-weight: 700;
       white-space: nowrap;
       line-height: 1;
       pointer-events: none;
-      font-size: clamp(8px, 0.82vw, 13px);
+      font-size: clamp(8px, 0.8vw, 12px);
+      letter-spacing: 0.15px;
     }
 
-    /* Total banked box: 81,155 to 215,179 */
+    /* Total Banked - centered to 140,168 using original box size */
     #totalBanked {
-      left: 7.91%;
-      top: 27.73%;
+      left: 7.13%;
+      top: 27.91%;
       width: 13.09%;
       height: 4.29%;
     }
 
-    /* Best heist box: 92,348 to 191,365 */
+    /* Best Heist - centered to 142,357 */
     #bestHeist {
       left: 8.98%;
       top: 62.25%;
-      width: 9.67%;
-      height: 3.04%;
-      font-size: clamp(14px, 1.45vw, 20px);
+      width: 9.77%;
+      height: 3.22%;
+      font-size: clamp(15px, 1.45vw, 21px);
     }
 
-    /* Heists Played label: approx 811,301 to 922,316 */
+    /* Heists Played label */
     #heistsPlayedLabel {
       left: 79.20%;
       top: 53.85%;
@@ -136,15 +143,15 @@
       height: 2.68%;
     }
 
-    /* Heists Played number: 839,345 to 898,365 */
+    /* Heists Played number - centered to 870,356 */
     #heistsPlayed {
-      left: 81.93%;
-      top: 61.72%;
-      width: 5.76%;
+      left: 82.03%;
+      top: 61.90%;
+      width: 5.86%;
       height: 3.58%;
     }
 
-    /* Paintings Stolen label: 813,404 to 920,420 */
+    /* Paintings Stolen label */
     #paintingsStolenLabel {
       left: 79.39%;
       top: 72.27%;
@@ -152,61 +159,76 @@
       height: 2.86%;
     }
 
-    /* Paintings Stolen number: 840,451 to 900,470 */
+    /* Paintings Stolen number - centered to 868,462 */
     #paintingsStolen {
-      left: 82.03%;
-      top: 80.68%;
+      left: 81.84%;
+      top: 80.86%;
       width: 5.86%;
-      height: 3.40%;
+      height: 3.58%;
     }
 
-    /* Start / how to play buttons on TV */
+    /* TV buttons */
     .tv-btn {
-      border: 1px solid rgba(166, 245, 220, 0.28);
+      border: 1px solid rgba(162, 243, 217, 0.26);
       border-radius: 8px;
-      background: rgba(5, 28, 21, 0.84);
-      color: #bdf0da;
+      background:
+        linear-gradient(180deg, rgba(25, 76, 61, 0.96) 0%, rgba(8, 42, 31, 0.96) 100%);
+      color: #c8f3df;
       font-weight: 700;
-      font-size: clamp(9px, 0.82vw, 12px);
+      font-family: var(--hub-font);
+      font-size: clamp(9px, 0.84vw, 12px);
       cursor: pointer;
+      text-shadow: 0 1px 0 rgba(0,0,0,0.8);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.06),
-        0 3px 8px rgba(0,0,0,0.3);
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -2px 0 rgba(0,0,0,0.22),
+        0 3px 8px rgba(0,0,0,0.35);
+      padding: 0 4px;
       transform: rotate(-5deg);
       transform-origin: center center;
-      padding: 0 4px;
+      transition: transform 0.08s ease, filter 0.08s ease;
     }
 
-    /* Start Heist box from your coords */
+    .tv-btn:hover {
+      filter: brightness(1.06);
+    }
+
+    .tv-btn:active {
+      transform: rotate(-5deg) translateY(1px);
+    }
+
+    /* Start Heist from your coordinates */
     #startHeistBtn {
       left: 27.73%;
-      top: 70.30%;
+      top: 69.59%;
       width: 7.81%;
-      height: 4.83%;
+      height: 5.55%;
     }
 
-    /* How to Play box from your coords */
+    /* How to Play from your coordinates */
     #instructionsBtn {
       left: 27.44%;
-      top: 75.67%;
+      top: 75.13%;
       width: 8.11%;
-      height: 5.19%;
+      height: 5.90%;
     }
 
-    /* Leaderboard bottom middle */
+    /* Leaderboard centred to 511,541 */
     #leaderboardBtn {
-      left: 44.20%;
-      top: 94.10%;
-      width: 12.30%;
-      height: 4.50%;
+      left: 49.90%;
+      top: 96.78%;
+      width: 14.65%;
+      height: 5.37%;
+      transform: translate(-50%, -50%);
       border: none;
       background: transparent;
       color: #e9dfc3;
       font-weight: 700;
+      font-family: var(--hub-font);
       cursor: pointer;
-      font-size: clamp(11px, 1.0vw, 15px);
+      font-size: clamp(11px, 1vw, 15px);
       text-shadow:
-        0 1px 0 rgba(0,0,0,0.95),
+        0 1px 0 rgba(0,0,0,0.98),
         0 0 8px rgba(0,0,0,0.45);
     }
 
@@ -232,7 +254,7 @@
       background: rgba(255,255,255,0.08);
     }
 
-    /* Top-right heist history cells */
+    /* Heist history cells */
     .hub-log-cell {
       transform: translate(-50%, -50%);
       color: #3a2c1f;
@@ -241,6 +263,7 @@
       text-align: center;
       pointer-events: none;
       white-space: nowrap;
+      font-family: var(--hub-font);
     }
 
     .hub-log-cell.result.success {
@@ -285,6 +308,7 @@
       border: 12px solid #6d5539;
       padding: 22px 24px 20px;
       text-align: center;
+      font-family: var(--hub-font);
     }
 
     .instructions-panel h2 {
@@ -316,6 +340,7 @@
       cursor: pointer;
       background: #2c394c;
       color: #f2ede1;
+      font-family: var(--ui-font);
     }
 
     .popup-actions .danger {
@@ -328,6 +353,7 @@
       border: 12px solid #6d5539;
       padding: 22px 24px 20px;
       text-align: center;
+      font-family: var(--hub-font);
     }
 
     .confirm-panel h2 {
@@ -351,6 +377,7 @@
       gap: 14px;
       padding: 14px 14px 20px;
       background: linear-gradient(180deg, #090c12 0%, #0e1117 100%);
+      font-family: var(--ui-font);
     }
 
     .game-topbar {
@@ -477,6 +504,7 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease;
+      font-family: var(--ui-font);
     }
 
     #gameBanner.show {
@@ -493,6 +521,7 @@
       justify-content: center;
       padding: 18px;
       background: rgba(0,0,0,0.58);
+      font-family: var(--ui-font);
     }
 
     #questionModal.hidden,
@@ -588,7 +617,6 @@
       <button class="hub-ui-button" id="leaderboardBtn" type="button">Leaderboard</button>
       <button class="hub-hotspot" id="resetProgressBtn" type="button" aria-label="Reset progress" title="Reset progress"></button>
 
-      <!-- 5 rows x 3 columns -->
       <div class="hub-log-cell" id="date1"></div>
       <div class="hub-log-cell" id="date2"></div>
       <div class="hub-log-cell" id="date3"></div>
@@ -693,7 +721,6 @@ Questions only get used once until you reset your progress.
   </div>
 
   <script>
-    /* Position the 15 log cells from your centre points */
     const hubCellPositions = {
       date1:   { x: 80.18, y: 23.43 },
       date2:   { x: 80.18, y: 26.83 },
@@ -737,6 +764,11 @@ Questions only get used once until you reset your progress.
       const cancelResetBtn = document.getElementById('cancelResetBtn');
 
       const leaderboardBtn = document.getElementById('leaderboardBtn');
+
+      const totalBankedEl = document.getElementById('totalBanked');
+      const bestHeistEl = document.getElementById('bestHeist');
+      const heistsPlayedEl = document.getElementById('heistsPlayed');
+      const paintingsStolenEl = document.getElementById('paintingsStolen');
 
       const SAVE_KEY = 'nanaHeistSave_v11';
       const LAST_HEIST_WRONG_KEY = 'nanaHeistLastWrong_v11';
@@ -787,6 +819,14 @@ Questions only get used once until you reset your progress.
         }
       }
 
+      function renderHubStatFallback() {
+        const save = readSave();
+        totalBankedEl.textContent = `£${((save.totalBanked || 0) / 100).toFixed(2)}`;
+        bestHeistEl.textContent = `£${((save.bestHeist || 0) / 100).toFixed(2)}`;
+        heistsPlayedEl.textContent = `${save.heistsPlayed || 0}`;
+        paintingsStolenEl.textContent = `${save.paintingsStolen || 0}`;
+      }
+
       function readHistory() {
         try {
           const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY));
@@ -819,6 +859,23 @@ Questions only get used once until you reset your progress.
         return `${day}/${month}/${year}`;
       }
 
+      function backfillHistoryIfNeeded() {
+        const save = readSave();
+        const history = readHistory();
+
+        if (history.length === 0 && (save.heistsPlayed || 0) > 0) {
+          const inferredSuccess = (save.totalBanked || 0) > 0 || (save.bestHeist || 0) > 0;
+
+          const fallback = [{
+            date: formatDateShort(),
+            heistNumber: save.heistsPlayed || 1,
+            success: inferredSuccess
+          }];
+
+          writeHistory(fallback);
+        }
+      }
+
       function renderHistory() {
         const history = readHistory().slice(-5).reverse();
 
@@ -840,7 +897,9 @@ Questions only get used once until you reset your progress.
             heistsPlayed: save.heistsPlayed || 0,
             totalBanked: save.totalBanked || 0
           });
+          backfillHistoryIfNeeded();
           renderHistory();
+          renderHubStatFallback();
           return;
         }
 
@@ -849,7 +908,9 @@ Questions only get used once until you reset your progress.
             heistsPlayed: save.heistsPlayed || 0,
             totalBanked: save.totalBanked || 0
           });
+          backfillHistoryIfNeeded();
           renderHistory();
+          renderHubStatFallback();
           return;
         }
 
@@ -869,10 +930,13 @@ Questions only get used once until you reset your progress.
             totalBanked: save.totalBanked || 0
           });
           renderHistory();
+          renderHubStatFallback();
           return;
         }
 
+        backfillHistoryIfNeeded();
         renderHistory();
+        renderHubStatFallback();
       }
 
       function show(el) {
@@ -913,7 +977,9 @@ Questions only get used once until you reset your progress.
         alert('Leaderboard coming soon.');
       });
 
+      backfillHistoryIfNeeded();
       renderHistory();
+      renderHubStatFallback();
       syncHistoryFromSave();
       setInterval(syncHistoryFromSave, 700);
     })();
