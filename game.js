@@ -33,12 +33,17 @@
   const interactBtn = document.getElementById('interactBtn');
   const joystickButtons = [...document.querySelectorAll('.joystick button')];
 
-  const STORAGE_KEY = 'nanaHeistSave_v11';
+  const STORAGE_KEY = 'nanaHeistSave_v9';
 
   const SOURCE_W = 2816;
   const SOURCE_H = 1536;
   const sx = (x) => (x / SOURCE_W) * canvas.width;
   const sy = (y) => (y / SOURCE_H) * canvas.height;
+
+  const IS_MOBILE =
+    window.matchMedia('(pointer: coarse)').matches ||
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    window.innerWidth < 900;
 
   const FLOOR_POLY = [
     { x: sx(738),  y: sy(730)  },
@@ -66,10 +71,10 @@
   const GUARD_WIDTH = 100;
   const GUARD_HEIGHT = 100;
 
-  const MOVE_SPEED = 2.35;
-  const CHASE_PLAYER_SPEED = 2.0;
-  const GUARD_CATCH_SPEED = 4.0;
-  const GUARD_ESCORT_SPEED = 2.2;
+  const MOVE_SPEED = IS_MOBILE ? 3.35 : 2.35;
+  const CHASE_PLAYER_SPEED = IS_MOBILE ? 2.8 : 2.0;
+  const GUARD_CATCH_SPEED = IS_MOBILE ? 4.4 : 4.0;
+  const GUARD_ESCORT_SPEED = IS_MOBILE ? 2.8 : 2.2;
 
   const WALK_FRAME_MS = 120;
   const PULL_FRAME_MS = 120;
@@ -258,19 +263,19 @@
 
     if (item.floorKind === 'pedestal') {
       return {
-        x1: item.anchorX - item.drawW * 0.32,
+        x1: item.anchorX - item.drawW * 0.42,
         y1: item.anchorY - item.drawH * 0.18,
-        x2: item.anchorX + item.drawW * 0.32,
+        x2: item.anchorX + item.drawW * 0.42,
         y2: item.anchorY + 10
       };
     }
 
     if (item.floorKind === 'aboard') {
       return {
-        x1: item.anchorX - item.drawW * 0.36,
-        y1: item.anchorY - item.drawH * 0.20,
-        x2: item.anchorX + item.drawW * 0.36,
-        y2: item.anchorY + 12
+        x1: item.anchorX - item.drawW * 0.46,
+        y1: item.anchorY - item.drawH * 0.18,
+        x2: item.anchorX + item.drawW * 0.46,
+        y2: item.anchorY + 10
       };
     }
 
@@ -467,6 +472,21 @@
     state.screen = name;
     hubScreen.classList.toggle('active', name === 'hub');
     gameScreen.classList.toggle('active', name === 'game');
+
+    if (name === 'game') {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.overscrollBehavior = 'none';
+      document.body.style.touchAction = 'none';
+      canvas.style.touchAction = 'none';
+      window.scrollTo(0, 0);
+    } else {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.overscrollBehavior = '';
+      document.body.style.touchAction = '';
+      canvas.style.touchAction = '';
+    }
   }
 
   function createHeistItems(questions) {
@@ -474,19 +494,19 @@
     const roundNumber = getRoundNumber();
 
     const northSlots = [
-      { x: sx(800),  y: sy(420), w: sx(350), h: sy(150), anchorX: sx(975),  anchorY: sy(770), wall: 'north' },
-      { x: sx(1235), y: sy(420), w: sx(350), h: sy(150), anchorX: sx(1410), anchorY: sy(770), wall: 'north' },
-      { x: sx(1670), y: sy(420), w: sx(350), h: sy(150), anchorX: sx(1845), anchorY: sy(770), wall: 'north' }
+      { x: sx(800),  y: sy(360), w: sx(350), h: sy(150), anchorX: sx(975),  anchorY: sy(760), wall: 'north' },
+      { x: sx(1235), y: sy(360), w: sx(350), h: sy(150), anchorX: sx(1410), anchorY: sy(760), wall: 'north' },
+      { x: sx(1670), y: sy(360), w: sx(350), h: sy(150), anchorX: sx(1845), anchorY: sy(760), wall: 'north' }
     ];
 
     const westSlots = [
-      { x: sx(430), y: sy(460), w: sx(160), h: sy(320), anchorX: sx(700), anchorY: sy(790), wall: 'west' },
-      { x: sx(250), y: sy(760), w: sx(160), h: sy(320), anchorX: sx(585), anchorY: sy(1080), wall: 'west' }
+      { x: sx(390), y: sy(430), w: sx(160), h: sy(320), anchorX: sx(690), anchorY: sy(790), wall: 'west' },
+      { x: sx(220), y: sy(710), w: sx(160), h: sy(320), anchorX: sx(560), anchorY: sy(1030), wall: 'west' }
     ];
 
     const eastSlots = [
-      { x: sx(2240), y: sy(490), w: sx(160), h: sy(320), anchorX: sx(2115), anchorY: sy(795), wall: 'east' },
-      { x: sx(2395), y: sy(780), w: sx(160), h: sy(320), anchorX: sx(2215), anchorY: sy(1080), wall: 'east' }
+      { x: sx(2140), y: sy(430), w: sx(160), h: sy(320), anchorX: sx(2040), anchorY: sy(790), wall: 'east' },
+      { x: sx(2300), y: sy(710), w: sx(160), h: sy(320), anchorX: sx(2150), anchorY: sy(1035), wall: 'east' }
     ];
 
     const westSequence1 = [
@@ -566,8 +586,8 @@
       image: artImages.pedestal,
       anchorX: pedestalPos.x,
       anchorY: pedestalPos.y,
-      drawW: 104,
-      drawH: 170
+      drawW: 78,
+      drawH: 125
     });
     qIndex += 1;
 
@@ -586,8 +606,8 @@
       image: artImages.aboard,
       anchorX: aboardPos.x,
       anchorY: aboardPos.y,
-      drawW: 115,
-      drawH: 185
+      drawW: 88,
+      drawH: 135
     });
 
     return items;
@@ -878,6 +898,11 @@
     state.player.y = ny;
   }
 
+  function movePlayerUnrestricted(dx, dy) {
+    state.player.x += dx;
+    state.player.y += dy;
+  }
+
   function updateFX(delta) {
     if (state.fx.wrongFlashTimer > 0) {
       state.fx.wrongFlashTimer = Math.max(0, state.fx.wrongFlashTimer - delta);
@@ -895,6 +920,27 @@
       state.fx.shakeX = 0;
       state.fx.shakeY = 0;
     }
+  }
+
+  function getGuardImage() {
+    const direct = guardSprites[state.guard.direction];
+    if (imageReady(direct)) return direct;
+
+    const fallbackOrder = [
+      guardSprites.south,
+      guardSprites['south-west'],
+      guardSprites['south-east'],
+      guardSprites.east,
+      guardSprites.west,
+      guardSprites.north,
+      guardSprites['north-east'],
+      guardSprites['north-west']
+    ];
+
+    for (const img of fallbackOrder) {
+      if (imageReady(img)) return img;
+    }
+    return null;
   }
 
   function update(delta) {
@@ -926,7 +972,6 @@
       updatePullAnimation(delta);
 
     } else if (state.run.mode === 'chase') {
-      // Nana runs for the door while the guard chases her.
       const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
       const targetY = EXIT_ZONE.y2 + sy(20);
 
@@ -939,7 +984,7 @@
 
       state.player.moving = true;
       state.player.direction = vectorToDirection(pmx, pmy);
-      tryMove(pmx, pmy, { ignoreBlockers: true });
+      movePlayerUnrestricted(pmx, pmy);
       updateWalkAnimation(delta);
 
       const gdx = state.player.x - state.guard.x;
@@ -966,7 +1011,7 @@
       const dy = targetY - state.player.y;
       const len = Math.hypot(dx, dy) || 1;
 
-      if (len < 18) {
+      if (len < 20) {
         state.player.visible = false;
         state.guard.visible = false;
         returnCaughtToHub();
@@ -978,7 +1023,7 @@
 
       state.player.moving = true;
       state.player.direction = vectorToDirection(mx, my);
-      tryMove(mx, my, { ignoreBlockers: true });
+      movePlayerUnrestricted(mx, my);
       updateWalkAnimation(delta);
 
       const guardTargetX = state.player.x;
@@ -1008,7 +1053,7 @@
 
       state.player.moving = true;
       state.player.direction = vectorToDirection(mx, my);
-      tryMove(mx, my, { ignoreBlockers: true });
+      movePlayerUnrestricted(mx, my);
       updateWalkAnimation(delta);
 
       if (state.player.y >= EXIT_ZONE.y2 - sy(10)) {
@@ -1034,9 +1079,7 @@
   }
 
   function drawWallItem(item) {
-    if (!imageReady(item.image)) {
-      return;
-    }
+    if (!imageReady(item.image)) return;
 
     if (item.status === 'failed') {
       ctx.save();
@@ -1062,9 +1105,7 @@
     ctx.fill();
     ctx.restore();
 
-    if (!imageReady(item.image)) {
-      return;
-    }
+    if (!imageReady(item.image)) return;
 
     if (item.status === 'failed') {
       ctx.save();
@@ -1126,7 +1167,7 @@
 
     const drawX = state.guard.x - GUARD_WIDTH / 2;
     const drawY = state.guard.y - GUARD_HEIGHT;
-    const img = guardSprites[state.guard.direction];
+    const img = getGuardImage();
 
     if (imageReady(img)) {
       ctx.drawImage(img, drawX, drawY, GUARD_WIDTH, GUARD_HEIGHT);
@@ -1221,6 +1262,49 @@
     requestAnimationFrame(gameLoop);
   }
 
+  function applyJoystickLayout() {
+    const joy = document.querySelector('.joystick');
+    if (!joy) return;
+
+    joy.style.display = 'grid';
+    joy.style.gridTemplateColumns = 'repeat(3, minmax(48px, 1fr))';
+    joy.style.gridTemplateRows = 'repeat(3, auto)';
+    joy.style.gap = '8px';
+    joy.style.alignItems = 'center';
+    joy.style.justifyItems = 'center';
+
+    const up = joy.querySelector('[data-dir="up"]');
+    const down = joy.querySelector('[data-dir="down"]');
+    const left = joy.querySelector('[data-dir="left"]');
+    const right = joy.querySelector('[data-dir="right"]');
+
+    if (up) {
+      up.style.gridColumn = '2';
+      up.style.gridRow = '1';
+    }
+    if (left) {
+      left.style.gridColumn = '1';
+      left.style.gridRow = '2';
+    }
+    if (down) {
+      down.style.gridColumn = '2';
+      down.style.gridRow = '2';
+    }
+    if (right) {
+      right.style.gridColumn = '3';
+      right.style.gridRow = '2';
+    }
+  }
+
+  document.addEventListener('touchmove', (e) => {
+    if (state.screen === 'game') {
+      const tag = (e.target && e.target.tagName || '').toLowerCase();
+      if (tag !== 'input' && tag !== 'textarea') {
+        e.preventDefault();
+      }
+    }
+  }, { passive: false });
+
   document.addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
 
@@ -1263,6 +1347,11 @@
       press(false);
     }, { passive: false });
 
+    btn.addEventListener('touchcancel', (e) => {
+      e.preventDefault();
+      press(false);
+    }, { passive: false });
+
     btn.addEventListener('mousedown', () => press(true));
     btn.addEventListener('mouseup', () => press(false));
     btn.addEventListener('mouseleave', () => press(false));
@@ -1297,5 +1386,6 @@
 
   renderHubStats();
   showScreen('hub');
+  applyJoystickLayout();
   requestAnimationFrame(gameLoop);
 })();
