@@ -88,7 +88,7 @@
   function loadImage(src) {
     const img = new Image();
     img.src = src;
-    img.onerror = () => console.warn(`Failed to load ${src}`);
+    img.onerror = () => console.warn(`Failed to load image: ${src}`);
     return img;
   }
 
@@ -100,7 +100,7 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return JSON.parse(raw);
-    } catch (e) {}
+    } catch (_) {}
     return {
       totalBanked: 0,
       bestHeist: 0,
@@ -221,11 +221,15 @@
   }
 
   function selectQuestions(count) {
-    let available = window.QUESTION_BANK.filter(q => !state.save.usedQuestionIds.includes(q.id));
+    let available = window.QUESTION_BANK.filter(
+      (q) => !state.save.usedQuestionIds.includes(q.id)
+    );
+
     if (available.length < count) {
       state.save.usedQuestionIds = [];
       available = [...window.QUESTION_BANK];
     }
+
     return shuffle(available).slice(0, count);
   }
 
@@ -285,10 +289,12 @@
 
   function pointHitsFloorBlocker(px, py) {
     if (!state.run) return false;
+
     for (const item of state.run.items) {
       const blocker = getFloorItemBlocker(item);
       if (blocker && pointInRect(px, py, blocker)) return true;
     }
+
     return false;
   }
 
@@ -302,9 +308,9 @@
     }, 3500);
   }
 
-  // =========
+  // ===================
   // AUDIO
-  // =========
+  // ===================
   const chaChingSound = new Audio('ChaChing.mp3');
   const sirenSound = new Audio('Siren.mp3');
   const withMeSound = new Audio('WithMe.mp3');
@@ -354,7 +360,9 @@
       heyStopSound.volume = 0.95;
       heyStopSound.addEventListener('ended', startSiren, { once: true });
       const p = heyStopSound.play();
-      if (p && typeof p.catch === 'function') p.catch(() => startSiren());
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => startSiren());
+      }
     } catch (_) {
       startSiren();
     }
@@ -366,9 +374,9 @@
     }, 1200);
   }
 
-  // =========
+  // ===================
   // ASSETS
-  // =========
+  // ===================
   const roomBackground = loadImage('museum-room.png');
 
   const walkAnimations = {
@@ -496,7 +504,8 @@
       loadImage('ABOARD_ART_PIECE.PNG'),
       loadImage('A-BOARD_ART_PIECE.PNG'),
       loadImage('A-Board Art Piece.png'),
-      loadImage('A-Board_Art_Piece.png')
+      loadImage('A-Board_Art_Piece.png'),
+      loadImage('A_Board_Art_Piece.png')
     ]
   };
 
@@ -538,12 +547,40 @@
     }
   };
 
+  function renderHubStats() {
+    totalBankedEl.textContent = formatMoney(state.save.totalBanked);
+    bestHeistEl.textContent = formatMoney(state.save.bestHeist);
+    heistsPlayedEl.textContent = String(state.save.heistsPlayed);
+    paintingsStolenEl.textContent = String(state.save.paintingsStolen);
+  }
+
   function resolveItemImage(item) {
     if (item.image && imageReady(item.image)) return item.image;
     if (item.imageCandidates) {
       for (const img of item.imageCandidates) {
         if (imageReady(img)) return img;
       }
+    }
+    return null;
+  }
+
+  function getGuardImage() {
+    const direct = guardSprites[state.guard.direction];
+    if (imageReady(direct)) return direct;
+
+    const fallbackOrder = [
+      guardSprites.south,
+      guardSprites['south-west'],
+      guardSprites['south-east'],
+      guardSprites.east,
+      guardSprites.west,
+      guardSprites.north,
+      guardSprites['north-east'],
+      guardSprites['north-west']
+    ];
+
+    for (const img of fallbackOrder) {
+      if (imageReady(img)) return img;
     }
     return null;
   }
@@ -575,75 +612,19 @@
     const roundNumber = getRoundNumber();
 
     const northSlots = [
-      {
-        x: sx(898 - 175),
-        y: sy(443 - 75),
-        w: sx(350),
-        h: sy(150),
-        anchorX: sx(975),
-        anchorY: sy(760),
-        wall: 'north'
-      },
-      {
-        x: sx(1414 - 175),
-        y: sy(393 - 75),
-        w: sx(350),
-        h: sy(150),
-        anchorX: sx(1410),
-        anchorY: sy(760),
-        wall: 'north'
-      },
-      {
-        x: sx(1925 - 175),
-        y: sy(440 - 75),
-        w: sx(350),
-        h: sy(150),
-        anchorX: sx(1845),
-        anchorY: sy(760),
-        wall: 'north'
-      }
+      { x: sx(898 - 175),  y: sy(443 - 75), w: sx(350), h: sy(150), anchorX: sx(975),  anchorY: sy(760), wall: 'north' },
+      { x: sx(1414 - 175), y: sy(393 - 75), w: sx(350), h: sy(150), anchorX: sx(1410), anchorY: sy(760), wall: 'north' },
+      { x: sx(1925 - 175), y: sy(440 - 75), w: sx(350), h: sy(150), anchorX: sx(1845), anchorY: sy(760), wall: 'north' }
     ];
 
     const westSlots = [
-      {
-        x: sx(503 - 80),
-        y: sy(576 - 160),
-        w: sx(160),
-        h: sy(320),
-        anchorX: sx(690),
-        anchorY: sy(790),
-        wall: 'west'
-      },
-      {
-        x: sx(291 - 80),
-        y: sy(806 - 160),
-        w: sx(160),
-        h: sy(320),
-        anchorX: sx(530),
-        anchorY: sy(1015),
-        wall: 'west'
-      }
+      { x: sx(503 - 80), y: sy(576 - 160), w: sx(160), h: sy(320), anchorX: sx(690), anchorY: sy(790), wall: 'west' },
+      { x: sx(291 - 80), y: sy(806 - 160), w: sx(160), h: sy(320), anchorX: sx(530), anchorY: sy(1015), wall: 'west' }
     ];
 
     const eastSlots = [
-      {
-        x: sx(2219 - 80),
-        y: sy(525 - 160),
-        w: sx(160),
-        h: sy(320),
-        anchorX: sx(2040),
-        anchorY: sy(785),
-        wall: 'east'
-      },
-      {
-        x: sx(2405 - 80),
-        y: sy(721 - 160),
-        w: sx(160),
-        h: sy(320),
-        anchorX: sx(2150),
-        anchorY: sy(1015),
-        wall: 'east'
-      }
+      { x: sx(2219 - 80), y: sy(525 - 160), w: sx(160), h: sy(320), anchorX: sx(2040), anchorY: sy(785), wall: 'east' },
+      { x: sx(2405 - 80), y: sy(721 - 160), w: sx(160), h: sy(320), anchorX: sx(2150), anchorY: sy(1015), wall: 'east' }
     ];
 
     const westSequence1 = [
@@ -824,7 +805,7 @@
     if (!state.run) return;
     currentHaulEl.textContent = formatMoney(state.run.haul);
     strikeCountEl.textContent = `${state.run.strikes} / 3`;
-    paintingsLeftEl.textContent = String(state.run.items.filter(i => i.status === 'available').length);
+    paintingsLeftEl.textContent = String(state.run.items.filter((i) => i.status === 'available').length);
   }
 
   function maybeEscape() {
@@ -864,11 +845,13 @@
     questionModal.classList.remove('hidden');
     window.scrollTo(0, 0);
 
-    try {
-      answerInput.focus({ preventScroll: true });
-    } catch (_) {
-      answerInput.focus();
-    }
+    setTimeout(() => {
+      try {
+        answerInput.focus({ preventScroll: true });
+      } catch (_) {
+        answerInput.focus();
+      }
+    }, 0);
   }
 
   function startPullAnimation(item) {
@@ -909,7 +892,7 @@
     state.player.controlLocked = false;
     state.run.mode = 'play';
 
-    const anyAvailable = state.run.items.some(i => i.status === 'available');
+    const anyAvailable = state.run.items.some((i) => i.status === 'available');
     if (!anyAvailable) {
       showBanner('All items attempted. Head for the exit to bank your haul.');
     }
@@ -1076,27 +1059,6 @@
     }
   }
 
-  function getGuardImage() {
-    const direct = guardSprites[state.guard.direction];
-    if (imageReady(direct)) return direct;
-
-    const fallbackOrder = [
-      guardSprites.south,
-      guardSprites['south-west'],
-      guardSprites['south-east'],
-      guardSprites.east,
-      guardSprites.west,
-      guardSprites.north,
-      guardSprites['north-east'],
-      guardSprites['north-west']
-    ];
-
-    for (const img of fallbackOrder) {
-      if (imageReady(img)) return img;
-    }
-    return null;
-  }
-
   function update(delta) {
     updateFX(delta);
 
@@ -1227,8 +1189,18 @@
   }
 
   function drawFallbackRoom() {
-    ctx.fillStyle = '#20242b';
+    const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    g.addColorStop(0, '#d8d8de');
+    g.addColorStop(0.55, '#ded6cf');
+    g.addColorStop(1, '#cfc6be');
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillRect(canvas.width * 0.22, canvas.height * 0.1, canvas.width * 0.56, canvas.height * 0.35);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.06)';
+    ctx.fillRect(0, canvas.height * 0.55, canvas.width, canvas.height * 0.45);
   }
 
   function drawImageFit(img, x, y, w, h) {
@@ -1239,6 +1211,26 @@
     const dx = x + (w - dw) / 2;
     const dy = y + (h - dh) / 2;
     ctx.drawImage(img, dx, dy, dw, dh);
+  }
+
+  function drawExitMat() {
+    const matX = EXIT_ZONE.x1 + 8;
+    const matY = EXIT_ZONE.y1 + 14;
+    const matW = (EXIT_ZONE.x2 - EXIT_ZONE.x1) - 16;
+    const matH = 28;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(42, 45, 50, 0.72)';
+    ctx.fillRect(matX, matY, matW, matH);
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(matX, matY, matW, matH);
+    ctx.fillStyle = '#e9dfc8';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('EXIT', matX + matW / 2, matY + matH / 2 + 1);
+    ctx.restore();
   }
 
   function drawWallItem(item) {
@@ -1346,20 +1338,24 @@
 
     const item = getNearbyItem();
     if (item) {
-      ctx.fillStyle = 'rgba(0,0,0,.72)';
-      ctx.fillRect(state.player.x - 60, state.player.y - PLAYER_HEIGHT - 24, 120, 20);
+      ctx.fillStyle = 'rgba(0,0,0,0.72)';
+      ctx.fillRect(state.player.x - 62, state.player.y - PLAYER_HEIGHT - 24, 124, 20);
       ctx.fillStyle = '#f7e7b0';
       ctx.font = '12px Arial';
-      ctx.fillText('Press E / Interact', state.player.x - 48, state.player.y - PLAYER_HEIGHT - 10);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Attempt to grab', state.player.x, state.player.y - PLAYER_HEIGHT - 14);
       return;
     }
 
     if (pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
-      ctx.fillStyle = 'rgba(0,0,0,.72)';
+      ctx.fillStyle = 'rgba(0,0,0,0.72)';
       ctx.fillRect(state.player.x - 45, state.player.y - PLAYER_HEIGHT - 24, 90, 20);
       ctx.fillStyle = '#f7e7b0';
       ctx.font = '12px Arial';
-      ctx.fillText('Exit & bank', state.player.x - 28, state.player.y - PLAYER_HEIGHT - 10);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Exit', state.player.x, state.player.y - PLAYER_HEIGHT - 14);
     }
   }
 
@@ -1375,16 +1371,21 @@
       drawFallbackRoom();
     }
 
+    drawExitMat();
+
     if (state.run) {
-      const wallItems = state.run.items.filter(i => i.type === 'wall' && i.status !== 'stolen');
-      const floorItems = state.run.items.filter(i => i.type === 'floor' && i.status !== 'stolen');
+      const wallItems = state.run.items.filter((i) => i.type === 'wall' && i.status !== 'stolen');
+      const floorItems = state.run.items.filter((i) => i.type === 'floor' && i.status !== 'stolen');
 
       wallItems.forEach(drawWallItem);
 
       const floorDrawables = [];
 
-      floorItems.forEach(item => {
-        floorDrawables.push({ y: item.anchorY, draw: () => drawFloorItem(item) });
+      floorItems.forEach((item) => {
+        floorDrawables.push({
+          y: item.anchorY,
+          draw: () => drawFloorItem(item)
+        });
       });
 
       if (state.player.visible) {
@@ -1395,7 +1396,7 @@
         floorDrawables.push({ y: state.guard.y, draw: drawGuard });
       }
 
-      floorDrawables.sort((a, b) => a.y - b.y).forEach(d => d.draw());
+      floorDrawables.sort((a, b) => a.y - b.y).forEach((d) => d.draw());
     }
 
     drawPrompt();
@@ -1422,8 +1423,20 @@
     const delta = timestamp - state.lastTimestamp;
     state.lastTimestamp = timestamp;
 
-    update(delta);
-    drawRoom();
+    try {
+      update(delta);
+      drawRoom();
+    } catch (err) {
+      console.error(err);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Game error - check console', canvas.width / 2, canvas.height / 2);
+    }
+
     requestAnimationFrame(gameLoop);
   }
 
@@ -1466,7 +1479,7 @@
     }
   }
 
-  // Mobile input zoom prevention
+  // mobile input zoom prevention
   answerInput.style.fontSize = '16px';
   answerInput.style.lineHeight = '1.2';
   answerInput.style.transform = 'translateZ(0)';
@@ -1474,14 +1487,18 @@
   answerInput.autocomplete = 'off';
   answerInput.spellcheck = false;
 
-  document.addEventListener('touchmove', (e) => {
-    if (state.screen === 'game') {
-      const tag = (e.target?.tagName || '').toLowerCase();
-      if (tag !== 'input' && tag !== 'textarea') {
-        e.preventDefault();
+  document.addEventListener(
+    'touchmove',
+    (e) => {
+      if (state.screen === 'game') {
+        const tag = (e.target?.tagName || '').toLowerCase();
+        if (tag !== 'input' && tag !== 'textarea') {
+          e.preventDefault();
+        }
       }
-    }
-  }, { passive: false });
+    },
+    { passive: false }
+  );
 
   document.addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
@@ -1513,22 +1530,36 @@
   joystickButtons.forEach((btn) => {
     const dir = btn.dataset.dir;
     const map = { up: 'up', down: 'down', left: 'left', right: 'right' };
-    const press = (val) => { state.keys[map[dir]] = val; };
+    const press = (val) => {
+      state.keys[map[dir]] = val;
+    };
 
-    btn.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      press(true);
-    }, { passive: false });
+    btn.addEventListener(
+      'touchstart',
+      (e) => {
+        e.preventDefault();
+        press(true);
+      },
+      { passive: false }
+    );
 
-    btn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      press(false);
-    }, { passive: false });
+    btn.addEventListener(
+      'touchend',
+      (e) => {
+        e.preventDefault();
+        press(false);
+      },
+      { passive: false }
+    );
 
-    btn.addEventListener('touchcancel', (e) => {
-      e.preventDefault();
-      press(false);
-    }, { passive: false });
+    btn.addEventListener(
+      'touchcancel',
+      (e) => {
+        e.preventDefault();
+        press(false);
+      },
+      { passive: false }
+    );
 
     btn.addEventListener('mousedown', () => press(true));
     btn.addEventListener('mouseup', () => press(false));
