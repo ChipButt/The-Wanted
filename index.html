@@ -14,6 +14,9 @@
       --text: #f3efe5;
       --hub-font: Georgia, "Times New Roman", Garamond, serif;
       --ui-font: Arial, Helvetica, sans-serif;
+      --title-brown-light: #b59662;
+      --title-brown-mid: #9a7a4b;
+      --title-brown-dark: #4f311a;
     }
 
     * {
@@ -118,7 +121,7 @@
       letter-spacing: 0.15px;
     }
 
-    /* Total Banked - centered to 140,168 using original box size */
+    /* Total Banked - centered to 140,168 */
     #totalBanked {
       left: 7.13%;
       top: 27.91%;
@@ -143,12 +146,13 @@
       height: 2.68%;
     }
 
-    /* Heists Played number - centered to 870,356 */
+    /* Heists Played number - nudged up slightly */
     #heistsPlayed {
       left: 82.03%;
       top: 61.90%;
       width: 5.86%;
       height: 3.58%;
+      transform: translateY(-4px);
     }
 
     /* Paintings Stolen label */
@@ -159,7 +163,7 @@
       height: 2.86%;
     }
 
-    /* Paintings Stolen number - centered to 868,462 */
+    /* Paintings Stolen number */
     #paintingsStolen {
       left: 81.84%;
       top: 80.86%;
@@ -169,48 +173,53 @@
 
     /* TV buttons */
     .tv-btn {
-      border: 1px solid rgba(162, 243, 217, 0.26);
+      border: 1px solid rgba(79, 49, 26, 0.35);
       border-radius: 8px;
       background:
-        linear-gradient(180deg, rgba(25, 76, 61, 0.96) 0%, rgba(8, 42, 31, 0.96) 100%);
-      color: #c8f3df;
+        linear-gradient(180deg, var(--title-brown-light) 0%, var(--title-brown-mid) 100%);
+      color: var(--title-brown-dark);
       font-weight: 700;
       font-family: var(--hub-font);
-      font-size: clamp(9px, 0.84vw, 12px);
       cursor: pointer;
-      text-shadow: 0 1px 0 rgba(0,0,0,0.8);
+      text-shadow: 0 1px 0 rgba(255,255,255,0.18);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.12),
-        inset 0 -2px 0 rgba(0,0,0,0.22),
-        0 3px 8px rgba(0,0,0,0.35);
+        inset 0 1px 0 rgba(255,255,255,0.22),
+        inset 0 -2px 0 rgba(79, 49, 26, 0.22),
+        0 3px 8px rgba(0,0,0,0.28);
       padding: 0 4px;
       transform: rotate(-5deg);
       transform-origin: center center;
       transition: transform 0.08s ease, filter 0.08s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .tv-btn:hover {
-      filter: brightness(1.06);
+      filter: brightness(1.05);
     }
 
     .tv-btn:active {
       transform: rotate(-5deg) translateY(1px);
     }
 
-    /* Start Heist from your coordinates */
+    /* Start Heist */
     #startHeistBtn {
       left: 27.73%;
       top: 69.59%;
       width: 7.81%;
       height: 5.55%;
+      font-size: clamp(8px, 0.82vw, 12px);
     }
 
-    /* How to Play from your coordinates */
+    /* How to Play - smaller text so it stays on one line */
     #instructionsBtn {
       left: 27.44%;
       top: 75.13%;
       width: 8.11%;
       height: 5.90%;
+      font-size: clamp(7px, 0.68vw, 10px);
+      letter-spacing: 0;
     }
 
     /* Leaderboard centred to 511,541 */
@@ -693,12 +702,20 @@
     <div class="popup-panel instructions-panel">
       <h2>How to Play</h2>
       <div class="instructions-copy">
-Move Nana around the museum.
-Walk up to an artwork or floor item and attempt to grab it.
+On a computer:
+Use the arrow keys to move.
+Press Space to interact.
+
+On a mobile:
+Use the on-screen joystick to move.
+Use the interact button to attempt to grab items.
+
+Walk Nana around the museum.
+Move up to an artwork or floor item and attempt to grab it.
 Each item triggers a question.
 Get it right and you steal it.
-Get it wrong and it greys out, and you get a strike.
-Three strikes brings the guard in.
+Get it wrong and it greys out and you get a strike.
+Three strikes brings in the guard.
 If you make it to the exit, you escape with your haul.
 Questions only get used once until you reset your progress.
       </div>
