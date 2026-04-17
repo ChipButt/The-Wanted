@@ -2,97 +2,919 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nana's Museum Heist</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
+  <title>Knowledge Heist</title>
+  <style>
+    :root {
+      --bg: #0f1217;
+      --panel: #1b2028;
+      --panel-2: #252c36;
+      --line: rgba(255,255,255,0.12);
+      --gold: #d8b15a;
+      --text: #f3efe5;
+      --muted: #b9b2a4;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      min-height: 100%;
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* =========================
+       HUB SCREEN
+    ========================= */
+    #hubScreen {
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background:
+        radial-gradient(circle at top, rgba(255,255,255,0.04), transparent 40%),
+        linear-gradient(180deg, #0e1116 0%, #151922 100%);
+    }
+
+    .hub-wrap {
+      width: min(1024px, 96vw);
+      aspect-ratio: 1024 / 559;
+      position: relative;
+      background-image: url("./Menu Screen.png");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+      user-select: none;
+    }
+
+    .hub-hotspot,
+    .hub-value,
+    .hub-label,
+    .hub-table,
+    .tv-controls,
+    .leaderboard-zone {
+      position: absolute;
+    }
+
+    .hub-value {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #f5f2df;
+      text-shadow: 0 1px 0 rgba(0,0,0,0.8);
+      font-weight: 700;
+      letter-spacing: 0.15px;
+      pointer-events: none;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .hub-money {
+      font-size: clamp(18px, 2vw, 26px);
+    }
+
+    .hub-small-number {
+      font-size: clamp(18px, 1.9vw, 27px);
+    }
+
+    .hub-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #2c1c0f;
+      font-weight: 700;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.18);
+      pointer-events: none;
+      white-space: nowrap;
+      font-size: clamp(9px, 0.95vw, 14px);
+      letter-spacing: 0;
+      line-height: 1;
+    }
+
+    .top-left-total {
+      left: 6.25%;
+      top: 19.55%;
+      width: 14.1%;
+      height: 7.15%;
+    }
+
+    .top-left-best {
+      left: 6.15%;
+      top: 56.65%;
+      width: 14.15%;
+      height: 7.15%;
+    }
+
+    .right-stat-one-label {
+      left: 78.55%;
+      top: 49.85%;
+      width: 13.55%;
+      height: 4.25%;
+    }
+
+    .right-stat-two-label {
+      left: 78.35%;
+      top: 69.75%;
+      width: 13.95%;
+      height: 4.25%;
+    }
+
+    .right-stat-one-value {
+      left: 80.8%;
+      top: 56.15%;
+      width: 8.6%;
+      height: 7.2%;
+    }
+
+    .right-stat-two-value {
+      left: 80.8%;
+      top: 76.15%;
+      width: 8.6%;
+      height: 7.2%;
+    }
+
+    .leaderboard-zone {
+      left: 43.95%;
+      top: 94.4%;
+      width: 12.25%;
+      height: 4.35%;
+    }
+
+    .leaderboard-zone button {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      color: #e9dfc3;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: clamp(11px, 1.05vw, 15px);
+      text-shadow:
+        0 1px 0 rgba(0,0,0,0.95),
+        0 0 8px rgba(0,0,0,0.45);
+    }
+
+    .tv-controls {
+      left: 31.45%;
+      top: 69.55%;
+      width: 14.1%;
+      height: 6.35%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 0.7%;
+      transform: rotate(-6deg);
+      transform-origin: center center;
+    }
+
+    .tv-controls button {
+      width: 48.4%;
+      height: 74%;
+      border: 1px solid rgba(166, 245, 220, 0.28);
+      border-radius: 8px;
+      background: rgba(5, 28, 21, 0.84);
+      color: #bdf0da;
+      font-weight: 700;
+      font-size: clamp(9px, 0.86vw, 13px);
+      cursor: pointer;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        0 3px 8px rgba(0,0,0,0.3);
+      padding: 0 4px;
+    }
+
+    .tv-controls button:last-child {
+      transform: translateY(-8px);
+    }
+
+    .tv-controls button:hover,
+    .leaderboard-zone button:hover {
+      filter: brightness(1.08);
+    }
+
+    .dynamite-reset {
+      left: 66.3%;
+      top: 80.1%;
+      width: 11.1%;
+      height: 10.8%;
+    }
+
+    .dynamite-reset button {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      opacity: 0;
+    }
+
+    .dynamite-reset button:focus-visible,
+    .tv-controls button:focus-visible,
+    .leaderboard-zone button:focus-visible {
+      outline: 2px solid #fff6b3;
+      outline-offset: 2px;
+      opacity: 1;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .hub-table {
+      left: 77.95%;
+      top: 10.45%;
+      width: 16.7%;
+      height: 25.7%;
+      color: #34261a;
+      font-size: clamp(8px, 0.82vw, 12px);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      pointer-events: none;
+    }
+
+    .hub-log-head {
+      display: grid;
+      grid-template-columns: 42% 38% 20%;
+      align-items: center;
+      height: 21%;
+      font-weight: 700;
+      text-align: center;
+      padding-top: 1%;
+    }
+
+    .hub-log-body {
+      display: grid;
+      grid-template-rows: repeat(5, 1fr);
+      height: 79%;
+    }
+
+    .hub-log-row {
+      display: grid;
+      grid-template-columns: 42% 38% 20%;
+      align-items: center;
+      text-align: center;
+      color: #3a2c1f;
+    }
+
+    .hub-log-result.success {
+      color: #3f7e3a;
+      font-weight: 700;
+    }
+
+    .hub-log-result.fail {
+      color: #9a3f3f;
+      font-weight: 700;
+    }
+
+    /* =========================
+       POPUPS
+    ========================= */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,0.56);
+      z-index: 10000;
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .popup-panel {
+      width: min(760px, 94vw);
+      max-height: 84vh;
+      overflow: auto;
+      border-radius: 18px;
+      box-shadow: 0 20px 55px rgba(0,0,0,0.45);
+    }
+
+    .instructions-panel {
+      background: linear-gradient(180deg, #efe6d2 0%, #e1d2b0 100%);
+      color: #2f2519;
+      border: 12px solid #6d5539;
+      padding: 22px 24px 20px;
+      text-align: center;
+    }
+
+    .instructions-panel h2 {
+      margin: 0 0 10px;
+      font-size: clamp(24px, 3vw, 38px);
+    }
+
+    .instructions-panel .instructions-copy {
+      font-size: clamp(15px, 1.5vw, 20px);
+      line-height: 1.55;
+      white-space: pre-line;
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    .popup-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .popup-actions button {
+      border: none;
+      border-radius: 999px;
+      padding: 11px 18px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #2c394c;
+      color: #f2ede1;
+    }
+
+    .popup-actions .danger {
+      background: #9f3939;
+    }
+
+    .confirm-panel {
+      background: linear-gradient(180deg, #ece2cd 0%, #ddceb1 100%);
+      color: #2f2519;
+      border: 12px solid #6d5539;
+      padding: 22px 24px 20px;
+      text-align: center;
+    }
+
+    .confirm-panel h2 {
+      margin: 0 0 10px;
+      font-size: clamp(22px, 2.5vw, 34px);
+    }
+
+    .confirm-panel p {
+      margin: 0;
+      font-size: clamp(15px, 1.5vw, 20px);
+      line-height: 1.5;
+    }
+
+    /* =========================
+       GAME SCREEN
+    ========================= */
+    #gameScreen {
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 14px;
+      padding: 14px 14px 20px;
+      background: linear-gradient(180deg, #090c12 0%, #0e1117 100%);
+    }
+
+    .game-topbar {
+      width: min(1100px, 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .game-chip,
+    .game-topbar button {
+      border-radius: 999px;
+      background: #2a3140;
+      color: #f4efe3;
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 10px 16px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .game-topbar button {
+      cursor: pointer;
+    }
+
+    .game-shell {
+      width: min(1100px, 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .canvas-wrap {
+      width: min(100%, 960px);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: #101722;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1024 / 670;
+      background: #111;
+    }
+
+    .game-controls {
+      width: min(100%, 960px);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    #joystick {
+      position: relative;
+      width: 168px;
+      height: 112px;
+    }
+
+    .joy-btn {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      border: none;
+      border-radius: 10px;
+      background: #3a4353;
+      color: #f5f1e9;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .joy-btn[data-dir="up"] {
+      left: 56px;
+      top: 0;
+    }
+
+    .joy-btn[data-dir="left"] {
+      left: 0;
+      top: 56px;
+    }
+
+    .joy-btn[data-dir="down"] {
+      left: 56px;
+      top: 56px;
+    }
+
+    .joy-btn[data-dir="right"] {
+      left: 112px;
+      top: 56px;
+    }
+
+    #interactBtn {
+      border: none;
+      border-radius: 12px;
+      background: var(--gold);
+      color: #1d1710;
+      font-weight: 800;
+      font-size: 18px;
+      padding: 16px 28px;
+      min-width: 140px;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    }
+
+    #gameBanner {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(18,22,29,0.92);
+      color: #f8f1db;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-weight: 700;
+      z-index: 9000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    #gameBanner.show {
+      opacity: 1;
+    }
+
+    #questionModal,
+    #summaryOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,0.58);
+    }
+
+    #questionModal.hidden,
+    #summaryOverlay.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      width: min(620px, 94vw);
+      background: #f0e6d0;
+      color: #241c14;
+      border-radius: 16px;
+      border: 8px solid #77593c;
+      padding: 18px;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.42);
+    }
+
+    .modal-card h2 {
+      margin: 0 0 12px;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    #questionText,
+    #summaryTitle,
+    #summarySubtitle {
+      text-align: center;
+      line-height: 1.45;
+    }
+
+    #answerInput {
+      width: 100%;
+      margin-top: 14px;
+      border-radius: 12px;
+      border: 2px solid #b8ab94;
+      background: #fffdf7;
+      padding: 12px 14px;
+      font-size: 16px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .modal-actions button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #283545;
+      color: #f3ede2;
+    }
+
+    @media (max-width: 900px) {
+      #hubScreen {
+        padding: 10px;
+      }
+
+      .game-controls {
+        justify-content: center;
+      }
+
+      #interactBtn {
+        width: 100%;
+        max-width: 240px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div id="app">
-    <section id="hubScreen" class="screen active">
-      <div class="panel">
-        <h1>Nana's Museum Heist</h1>
-        <p class="sub">Sneak in, answer questions, steal paintings, and get out before security catches you.</p>
+  <div id="gameBanner"></div>
 
-        <div class="stats">
-          <div class="stat"><span>Total Banked</span><strong id="totalBanked">£0.00</strong></div>
-          <div class="stat"><span>Best Heist</span><strong id="bestHeist">£0.00</strong></div>
-          <div class="stat"><span>Heists Played</span><strong id="heistsPlayed">0</strong></div>
-          <div class="stat"><span>Paintings Stolen</span><strong id="paintingsStolen">0</strong></div>
-        </div>
+  <!-- HUB -->
+  <section id="hubScreen" class="screen active">
+    <div class="hub-wrap">
+      <div class="hub-value hub-money top-left-total" id="totalBanked">£0.00</div>
+      <div class="hub-value hub-money top-left-best" id="bestHeist">£0.00</div>
 
-        <div class="instructions">
-          <h2>How to play</h2>
-          <ul>
-            <li>Move with <strong>WASD</strong> or <strong>arrow keys</strong>.</li>
-            <li>On mobile, use the on-screen controls.</li>
-            <li>Walk up to a painting and press <strong>E</strong> or tap <strong>INTERACT</strong>.</li>
-            <li>Correct answer: painting stolen and cash added.</li>
-            <li>Wrong answer: painting locks for this run and you gain a strike.</li>
-            <li>At <strong>3 strikes</strong>, the guard chases you out.</li>
-            <li>You can leave through the main door any time to bank your haul.</li>
-          </ul>
-        </div>
-
-        <div class="hub-actions">
-          <button id="startHeistBtn" class="primary">Start Heist</button>
-          <button id="resetProgressBtn" class="secondary">Reset Progress</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="gameScreen" class="screen">
-      <div class="game-ui">
-        <div class="ui-left">
-          <div class="badge">Current haul: <strong id="currentHaul">£0.00</strong></div>
-          <div class="badge">Strikes: <strong id="strikeCount">0 / 3</strong></div>
-          <div class="badge">Paintings left: <strong id="paintingsLeft">10</strong></div>
-        </div>
-        <div class="ui-right">
-          <button id="backToHubBtn" class="secondary small">Back to hub</button>
-        </div>
+      <div class="tv-controls">
+        <button id="instructionsBtn" type="button">How to Play</button>
+        <button id="startHeistBtn" type="button">Start Heist</button>
       </div>
 
-      <div id="messageBanner" class="message-banner"></div>
-      <canvas id="gameCanvas" width="960" height="640"></canvas>
-
-      <div class="mobile-controls">
-        <div class="joystick">
-          <button data-dir="up">▲</button>
-          <div class="mid-row">
-            <button data-dir="left">◀</button>
-            <button data-dir="down">▼</button>
-            <button data-dir="right">▶</button>
-          </div>
-        </div>
-        <button id="interactBtn" class="primary interact">INTERACT</button>
+      <div class="hub-hotspot dynamite-reset">
+        <button id="resetProgressBtn" type="button" aria-label="Reset progress" title="Reset progress"></button>
       </div>
-    </section>
 
-    <div id="questionModal" class="modal hidden">
-      <div class="modal-card">
-        <h2>Attempt theft</h2>
-        <p id="questionText"></p>
-        <input id="answerInput" type="text" placeholder="Type your answer..." autocomplete="off" />
-        <div class="modal-actions">
-          <button id="submitAnswerBtn" class="primary">Submit</button>
-          <button id="cancelAnswerBtn" class="secondary">Cancel</button>
+      <div class="hub-label right-stat-one-label">Heists Played</div>
+      <div class="hub-label right-stat-two-label">Paintings Stolen</div>
+
+      <div class="hub-value hub-small-number right-stat-one-value" id="heistsPlayed">0</div>
+      <div class="hub-value hub-small-number right-stat-two-value" id="paintingsStolen">0</div>
+
+      <div class="leaderboard-zone">
+        <button id="leaderboardBtn" type="button">Leaderboard</button>
+      </div>
+
+      <div class="hub-table" aria-hidden="true">
+        <div class="hub-log-head">
+          <div>Date</div>
+          <div>Heists</div>
+          <div>✓</div>
         </div>
-        <p class="small-note">Answer checking is forgiving about capitals, spaces, punctuation, and small typos.</p>
+        <div class="hub-log-body" id="hubLogBody">
+          <div class="hub-log-row"><div>-</div><div>-</div><div>-</div></div>
+          <div class="hub-log-row"><div>-</div><div>-</div><div>-</div></div>
+          <div class="hub-log-row"><div>-</div><div>-</div><div>-</div></div>
+          <div class="hub-log-row"><div>-</div><div>-</div><div>-</div></div>
+          <div class="hub-log-row"><div>-</div><div>-</div><div>-</div></div>
+        </div>
       </div>
     </div>
+  </section>
 
-    <div id="summaryModal" class="modal hidden">
-      <div class="modal-card">
-        <h2 id="summaryTitle">Heist complete</h2>
-        <p id="summaryText"></p>
-        <div class="modal-actions">
-          <button id="summaryContinueBtn" class="primary">Return to hub</button>
+  <!-- GAME -->
+  <section id="gameScreen" class="screen">
+    <div class="game-topbar">
+      <div class="game-chip">Current haul: <span id="haulValue">£0.00</span></div>
+      <div class="game-chip">Strikes: <span id="strikesValue">0 / 3</span></div>
+      <div class="game-chip">Paintings left: <span id="paintingsLeftValue">0</span></div>
+      <button id="backToHubBtn" type="button">Back to hub</button>
+    </div>
+
+    <div class="game-shell">
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="1024" height="670"></canvas>
+      </div>
+
+      <div class="game-controls">
+        <div id="joystick">
+          <button class="joy-btn" data-dir="up" type="button">▲</button>
+          <button class="joy-btn" data-dir="left" type="button">◀</button>
+          <button class="joy-btn" data-dir="down" type="button">▼</button>
+          <button class="joy-btn" data-dir="right" type="button">▶</button>
         </div>
+
+        <button id="interactBtn" type="button">INTERACT</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUESTION MODAL -->
+  <div id="questionModal" class="hidden">
+    <div class="modal-card">
+      <h2>Security Check</h2>
+      <div id="questionText"></div>
+      <input id="answerInput" type="text" inputmode="text" />
+      <div class="modal-actions">
+        <button id="submitAnswerBtn" type="button">Submit</button>
+        <button id="cancelAnswerBtn" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY OVERLAY -->
+  <div id="summaryOverlay" class="hidden">
+    <div class="modal-card">
+      <h2 id="summaryTitle">Heist Complete</h2>
+      <div id="summarySubtitle"></div>
+      <div class="modal-actions">
+        <button id="summaryContinueBtn" type="button">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTRUCTIONS POPUP -->
+  <div id="instructionsOverlay" class="overlay">
+    <div class="popup-panel instructions-panel">
+      <h2>How to Play</h2>
+      <div class="instructions-copy">
+Move Nana around the museum.
+Walk up to an artwork or floor item and attempt to grab it.
+Each item triggers a question.
+Get it right and you steal it.
+Get it wrong and it greys out, and you get a strike.
+Three strikes brings the guard in.
+If you make it to the exit, you escape with your haul.
+Questions only get used once until you reset your progress.
+      </div>
+      <div class="popup-actions">
+        <button id="closeInstructionsBtn" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESET CONFIRM -->
+  <div id="resetConfirmOverlay" class="overlay">
+    <div class="popup-panel confirm-panel">
+      <h2>Reset Progress?</h2>
+      <p>You are about to reset your data. Are you sure?</p>
+      <div class="popup-actions">
+        <button id="confirmResetBtn" class="danger" type="button">Yes, Reset</button>
+        <button id="cancelResetBtn" type="button">No</button>
       </div>
     </div>
   </div>
 
   <script src="questions.js"></script>
   <script src="game.js"></script>
+  <script>
+    (() => {
+      const instructionsBtn = document.getElementById('instructionsBtn');
+      const instructionsOverlay = document.getElementById('instructionsOverlay');
+      const closeInstructionsBtn = document.getElementById('closeInstructionsBtn');
+
+      const resetBtn = document.getElementById('resetProgressBtn');
+      const resetConfirmOverlay = document.getElementById('resetConfirmOverlay');
+      const confirmResetBtn = document.getElementById('confirmResetBtn');
+      const cancelResetBtn = document.getElementById('cancelResetBtn');
+
+      const leaderboardBtn = document.getElementById('leaderboardBtn');
+      const hubLogBody = document.getElementById('hubLogBody');
+
+      const SAVE_KEY = 'nanaHeistSave_v11';
+      const HISTORY_KEY = 'nanaHeistHistory_v1';
+      const WATCH_KEY = 'nanaHeistHistoryWatch_v1';
+
+      function readSave() {
+        try {
+          return JSON.parse(localStorage.getItem(SAVE_KEY)) || {
+            totalBanked: 0,
+            bestHeist: 0,
+            heistsPlayed: 0,
+            paintingsStolen: 0,
+            usedQuestionIds: []
+          };
+        } catch {
+          return {
+            totalBanked: 0,
+            bestHeist: 0,
+            heistsPlayed: 0,
+            paintingsStolen: 0,
+            usedQuestionIds: []
+          };
+        }
+      }
+
+      function readHistory() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY));
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function writeHistory(history) {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      }
+
+      function readWatch() {
+        try {
+          return JSON.parse(localStorage.getItem(WATCH_KEY));
+        } catch {
+          return null;
+        }
+      }
+
+      function writeWatch(watch) {
+        localStorage.setItem(WATCH_KEY, JSON.stringify(watch));
+      }
+
+      function formatDateShort(d = new Date()) {
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = String(d.getFullYear()).slice(-2);
+        return `${day}/${month}/${year}`;
+      }
+
+      function renderHistory() {
+        const history = readHistory().slice(-5).reverse();
+        hubLogBody.innerHTML = '';
+
+        for (let i = 0; i < 5; i++) {
+          const entry = history[i];
+          const row = document.createElement('div');
+          row.className = 'hub-log-row';
+
+          if (!entry) {
+            row.innerHTML = '<div>-</div><div>-</div><div>-</div>';
+          } else {
+            const resultClass = entry.success ? 'success' : 'fail';
+            const resultSymbol = entry.success ? '✓' : '✕';
+            row.innerHTML = `
+              <div>${entry.date}</div>
+              <div>${entry.heistNumber}</div>
+              <div class="hub-log-result ${resultClass}">${resultSymbol}</div>
+            `;
+          }
+
+          hubLogBody.appendChild(row);
+        }
+      }
+
+      function syncHistoryFromSave() {
+        const save = readSave();
+        const previous = readWatch();
+
+        if (!previous) {
+          writeWatch({
+            heistsPlayed: save.heistsPlayed || 0,
+            totalBanked: save.totalBanked || 0
+          });
+          renderHistory();
+          return;
+        }
+
+        if ((save.heistsPlayed || 0) < (previous.heistsPlayed || 0)) {
+          writeWatch({
+            heistsPlayed: save.heistsPlayed || 0,
+            totalBanked: save.totalBanked || 0
+          });
+          renderHistory();
+          return;
+        }
+
+        if ((save.heistsPlayed || 0) > (previous.heistsPlayed || 0)) {
+          const history = readHistory();
+          const success = (save.totalBanked || 0) > (previous.totalBanked || 0);
+
+          history.push({
+            date: formatDateShort(),
+            heistNumber: save.heistsPlayed || 0,
+            success
+          });
+
+          writeHistory(history.slice(-50));
+          writeWatch({
+            heistsPlayed: save.heistsPlayed || 0,
+            totalBanked: save.totalBanked || 0
+          });
+          renderHistory();
+          return;
+        }
+
+        renderHistory();
+      }
+
+      function show(el) {
+        el.classList.add('show');
+      }
+
+      function hide(el) {
+        el.classList.remove('show');
+      }
+
+      instructionsBtn.addEventListener('click', () => show(instructionsOverlay));
+      closeInstructionsBtn.addEventListener('click', () => hide(instructionsOverlay));
+      instructionsOverlay.addEventListener('click', (e) => {
+        if (e.target === instructionsOverlay) hide(instructionsOverlay);
+      });
+
+      resetBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        show(resetConfirmOverlay);
+      }, true);
+
+      cancelResetBtn.addEventListener('click', () => hide(resetConfirmOverlay));
+
+      confirmResetBtn.addEventListener('click', () => {
+        localStorage.removeItem(HISTORY_KEY);
+        localStorage.removeItem(WATCH_KEY);
+        hide(resetConfirmOverlay);
+        resetBtn.click();
+        setTimeout(renderHistory, 50);
+      });
+
+      resetConfirmOverlay.addEventListener('click', (e) => {
+        if (e.target === resetConfirmOverlay) hide(resetConfirmOverlay);
+      });
+
+      leaderboardBtn.addEventListener('click', () => {
+        alert('Leaderboard coming soon.');
+      });
+
+      renderHistory();
+      syncHistoryFromSave();
+      setInterval(syncHistoryFromSave, 700);
+    })();
+  </script>
 </body>
 </html>
