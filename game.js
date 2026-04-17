@@ -33,7 +33,7 @@
   const interactBtn = document.getElementById('interactBtn');
   const joystickButtons = [...document.querySelectorAll('.joystick button')];
 
-  const STORAGE_KEY = 'nanaHeistSave_v10';
+  const STORAGE_KEY = 'nanaHeistSave_v9';
 
   // =========================
   // Source image coordinate system
@@ -47,10 +47,10 @@
   // Geometry
   // =========================
   const FLOOR_POLY = [
-    { x: sx(738),  y: sy(730)  },   // top left
-    { x: sx(2073), y: sy(730)  },   // top right
-    { x: sx(2505), y: sy(1360) },   // bottom right
-    { x: sx(281),  y: sy(1360) }    // bottom left
+    { x: sx(738),  y: sy(730)  },
+    { x: sx(2073), y: sy(730)  },
+    { x: sx(2505), y: sy(1360) },
+    { x: sx(281),  y: sy(1360) }
   ];
 
   const GUARD_DOOR_ZONE = {
@@ -77,12 +77,12 @@
 
   const MOVE_SPEED = 2.35;
   const CHASE_SPEED = 3.0;
-  const GUARD_SPEED = 2.25;
+  const GUARD_SPEED = 2.2;
 
   const WALK_FRAME_MS = 120;
   const PULL_FRAME_MS = 120;
 
-  const INTERACT_DISTANCE = 72;
+  const INTERACT_DISTANCE = 62;
 
   // =========================
   // Helpers
@@ -98,46 +98,8 @@
     return !!img && img.complete && img.naturalWidth > 0;
   }
 
-  function distance(ax, ay, bx, by) {
-    return Math.hypot(ax - bx, ay - by);
-  }
-
-  function pointInRect(px, py, rect) {
-    return px >= rect.x1 && px <= rect.x2 && py >= rect.y1 && py <= rect.y2;
-  }
-
-  function pointInPolygon(point, polygon) {
-    let inside = false;
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-      const xi = polygon[i].x, yi = polygon[i].y;
-      const xj = polygon[j].x, yj = polygon[j].y;
-
-      const intersect =
-        ((yi > point.y) !== (yj > point.y)) &&
-        (point.x < ((xj - xi) * (point.y - yi)) / ((yj - yi) || 0.000001) + xi);
-
-      if (intersect) inside = !inside;
-    }
-    return inside;
-  }
-
-  function vectorToDirection(dx, dy) {
-    const sxn = Math.sign(dx);
-    const syn = Math.sign(dy);
-
-    if (sxn === 0 && syn < 0) return 'north';
-    if (sxn === 0 && syn > 0) return 'south';
-    if (sxn > 0 && syn === 0) return 'east';
-    if (sxn < 0 && syn === 0) return 'west';
-    if (sxn > 0 && syn < 0) return 'north-east';
-    if (sxn < 0 && syn < 0) return 'north-west';
-    if (sxn > 0 && syn > 0) return 'south-east';
-    if (sxn < 0 && syn > 0) return 'south-west';
-    return 'south';
-  }
-
-  function shuffle(arr) {
-    return [...arr].sort(() => Math.random() - 0.5);
+  function formatMoney(pence) {
+    return '£' + (pence / 100).toFixed(2);
   }
 
   function normalizeText(str) {
@@ -197,8 +159,86 @@
     return false;
   }
 
-  function formatMoney(pence) {
-    return '£' + (pence / 100).toFixed(2);
+  function distance(ax, ay, bx, by) {
+    return Math.hypot(ax - bx, ay - by);
+  }
+
+  function pointInPolygon(point, polygon) {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i].x, yi = polygon[i].y;
+      const xj = polygon[j].x, yj = polygon[j].y;
+
+      const intersect =
+        ((yi > point.y) !== (yj > point.y)) &&
+        (point.x < ((xj - xi) * (point.y - yi)) / ((yj - yi) || 0.000001) + xi);
+
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  function pointInRect(px, py, rect) {
+    return px >= rect.x1 && px <= rect.x2 && py >= rect.y1 && py <= rect.y2;
+  }
+
+  function getFloorItemBlocker(item) {
+    if (!item || item.type !== 'floor' || item.status === 'stolen') return null;
+
+    if (item.floorKind === 'pedestal') {
+      return {
+        x1: item.anchorX - item.drawW * 0.22,
+        y1: item.anchorY - item.drawH * 0.10,
+        x2: item.anchorX + item.drawW * 0.22,
+        y2: item.anchorY + 6
+      };
+    }
+
+    if (item.floorKind === 'aboard') {
+      return {
+        x1: item.anchorX - item.drawW * 0.26,
+        y1: item.anchorY - item.drawH * 0.14,
+        x2: item.anchorX + item.drawW * 0.26,
+        y2: item.anchorY + 8
+      };
+    }
+
+    return null;
+  }
+
+  function pointHitsFloorBlocker(px, py) {
+    if (!state.run) return false;
+
+    for (const item of state.run.items) {
+      const blocker = getFloorItemBlocker(item);
+      if (!blocker) continue;
+      if (pointInRect(px, py, blocker)) return true;
+    }
+
+    return false;
+  }
+
+  function showBanner(text) {
+    messageBanner.textContent = text;
+    messageBanner.classList.add('show');
+    clearTimeout(showBanner._timer);
+    showBanner._timer = setTimeout(() => {
+      messageBanner.classList.remove('show');
+      messageBanner.textContent = '';
+    }, 3500);
+  }
+
+  function shuffle(arr) {
+    return [...arr].sort(() => Math.random() - 0.5);
+  }
+
+  function selectQuestions(count) {
+    let available = window.QUESTION_BANK.filter(q => !state.save.usedQuestionIds.includes(q.id));
+    if (available.length < count) {
+      state.save.usedQuestionIds = [];
+      available = [...window.QUESTION_BANK];
+    }
+    return shuffle(available).slice(0, count);
   }
 
   function getRoundNumber() {
@@ -231,6 +271,21 @@
     }
 
     return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+  }
+
+  function vectorToDirection(dx, dy) {
+    const sxn = Math.sign(dx);
+    const syn = Math.sign(dy);
+
+    if (sxn === 0 && syn < 0) return 'north';
+    if (sxn === 0 && syn > 0) return 'south';
+    if (sxn > 0 && syn === 0) return 'east';
+    if (sxn < 0 && syn === 0) return 'west';
+    if (sxn > 0 && syn < 0) return 'north-east';
+    if (sxn < 0 && syn < 0) return 'north-west';
+    if (sxn > 0 && syn > 0) return 'south-east';
+    if (sxn < 0 && syn > 0) return 'south-west';
+    return 'south';
   }
 
   // =========================
@@ -409,7 +464,7 @@
   }
 
   // =========================
-  // Heist setup
+  // Heist items
   // =========================
   function createHeistItems(questions) {
     const items = [];
@@ -562,6 +617,9 @@
     return 'north';
   }
 
+  // =========================
+  // Game flow
+  // =========================
   function startHeist() {
     const chosenQuestions = selectQuestions(9);
 
@@ -600,9 +658,13 @@
     showBanner('Heist started.');
   }
 
-  // =========================
-  // Interaction
-  // =========================
+  function updateRunStats() {
+    if (!state.run) return;
+    currentHaulEl.textContent = formatMoney(state.run.haul);
+    strikeCountEl.textContent = `${state.run.strikes} / 3`;
+    paintingsLeftEl.textContent = String(state.run.items.filter(i => i.status === 'available').length);
+  }
+
   function maybeEscape() {
     if (!state.run || state.run.ended) return;
 
@@ -728,6 +790,7 @@
     if (!state.run) return;
 
     const lostHaul = state.run.haul;
+
     state.run.ended = true;
     state.save.heistsPlayed += 1;
     saveProgress();
@@ -809,14 +872,15 @@
     }
   }
 
-  function tryMove(dx, dy) {
+  function tryMove(dx, dy, options = {}) {
     const nx = state.player.x + dx;
     const ny = state.player.y + dy;
 
-    if (pointInPolygon({ x: nx, y: ny }, FLOOR_POLY)) {
-      state.player.x = nx;
-      state.player.y = ny;
-    }
+    if (!pointInPolygon({ x: nx, y: ny }, FLOOR_POLY)) return;
+    if (!options.ignoreBlockers && pointHitsFloorBlocker(nx, ny)) return;
+
+    state.player.x = nx;
+    state.player.y = ny;
   }
 
   function update(delta) {
@@ -846,7 +910,6 @@
       updatePullAnimation(delta);
 
     } else if (state.run.mode === 'chase') {
-      // Guard catches Nana first
       const gdx = state.player.x - state.guard.x;
       const gdy = state.player.y - state.guard.y;
       const glen = Math.hypot(gdx, gdy) || 1;
@@ -864,7 +927,6 @@
       }
 
     } else if (state.run.mode === 'escort') {
-      // Guard escorts Nana to the front door
       const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
       const targetY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
 
@@ -882,7 +944,7 @@
 
       state.player.moving = true;
       state.player.direction = vectorToDirection(mx, my);
-      tryMove(mx, my);
+      tryMove(mx, my, { ignoreBlockers: true });
       updateWalkAnimation(delta);
 
       const guardTargetX = state.player.x;
@@ -912,7 +974,7 @@
 
       state.player.moving = true;
       state.player.direction = vectorToDirection(mx, my);
-      tryMove(mx, my);
+      tryMove(mx, my, { ignoreBlockers: true });
       updateWalkAnimation(delta);
 
       if (state.player.y >= EXIT_ZONE.y2 - sy(10)) {
