@@ -300,23 +300,25 @@
   }
 
   function renderHubStats() {
-    totalBankedEl.textContent = `£${(state.save.totalBanked / 100).toFixed(2)}`;
-    bestHeistEl.textContent = `£${(state.save.bestHeist / 100).toFixed(2)}`;
-    heistsPlayedEl.textContent = `${state.save.heistsPlayed}`;
-    paintingsStolenEl.textContent = `${state.save.paintingsStolen}`;
+    if (totalBankedEl) totalBankedEl.textContent = `£${(state.save.totalBanked / 100).toFixed(2)}`;
+    if (bestHeistEl) bestHeistEl.textContent = `£${(state.save.bestHeist / 100).toFixed(2)}`;
+    if (heistsPlayedEl) heistsPlayedEl.textContent = `${state.save.heistsPlayed}`;
+    if (paintingsStolenEl) paintingsStolenEl.textContent = `${state.save.paintingsStolen}`;
   }
 
   function setHeistHeader(haul, strikes, left) {
-    haulValueEl.textContent = `£${(haul / 100).toFixed(2)}`;
-    strikesValueEl.textContent = `${strikes} / ${QUESTION_MAX_STRIKES}`;
-    paintingsLeftValueEl.textContent = `${left}`;
+    if (haulValueEl) haulValueEl.textContent = `£${(haul / 100).toFixed(2)}`;
+    if (strikesValueEl) strikesValueEl.textContent = `${strikes} / ${QUESTION_MAX_STRIKES}`;
+    if (paintingsLeftValueEl) paintingsLeftValueEl.textContent = `${left}`;
   }
 
   function showBanner(text) {
     state.fx.bannerText = text;
     state.fx.bannerTimer = BANNER_MS;
-    banner.textContent = text;
-    banner.classList.add('show');
+    if (banner) {
+      banner.textContent = text;
+      banner.classList.add('show');
+    }
   }
 
   function updateBanner(delta) {
@@ -324,7 +326,7 @@
       state.fx.bannerTimer -= delta;
       if (state.fx.bannerTimer <= 0) {
         state.fx.bannerTimer = 0;
-        banner.classList.remove('show');
+        if (banner) banner.classList.remove('show');
       }
     }
   }
@@ -433,7 +435,7 @@
     return String(text || '')
       .toLowerCase()
       .normalize('NFKD')
-      .replace(/[̀-ͯ]/g, '')
+      .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9%.\- ]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -469,7 +471,7 @@
   }
 
   function recordWrongQuestion(questionObj) {
-    if (!questionObj) return;
+    if (!questionObj || !state.run) return;
     const answer = Array.isArray(questionObj.answers) && questionObj.answers.length
       ? questionObj.answers[0]
       : '';
@@ -647,7 +649,6 @@
       if (type === 'aboard' && x < sx(1450)) continue;
       if (type === 'pedestal' && x > sx(1980)) continue;
 
-      const drawW = type === 'aboard' ? sx(120) : sx(130);
       const blockW = type === 'aboard' ? sx(110) : sx(120);
       const blockH = type === 'aboard' ? sy(88) : sy(80);
 
@@ -711,7 +712,7 @@
     }
   }
 
-  const EXIT_ZONE = scaleRect(EXIT_ZONE_RAW);
+  let EXIT_ZONE = scaleRect(EXIT_ZONE_RAW);
 
   function startHeist() {
     hideHomeworkPopup();
@@ -727,6 +728,7 @@
     };
 
     buildScaledRunData(state.run);
+    EXIT_ZONE = scaleRect(EXIT_ZONE_RAW);
 
     state.player.x = sx(1380);
     state.player.y = sy(1210);
@@ -805,7 +807,7 @@
   function interact() {
     if (state.screen !== 'game') return;
     if (!state.run || state.run.mode !== 'play') return;
-    if (!questionModal.classList.contains('hidden')) return;
+    if (!questionModal || !questionModal.classList.contains('hidden')) return;
     if (state.player.controlLocked) return;
 
     if (pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
@@ -826,12 +828,12 @@
     }
 
     state.activeItem = item;
-    questionTextEl.textContent = q.question;
-    answerInput.value = '';
-    questionModal.classList.remove('hidden');
+    if (questionTextEl) questionTextEl.textContent = q.question;
+    if (answerInput) answerInput.value = '';
+    if (questionModal) questionModal.classList.remove('hidden');
 
     requestAnimationFrame(() => {
-      answerInput.focus({ preventScroll: true });
+      if (answerInput) answerInput.focus({ preventScroll: true });
     });
   }
 
@@ -851,8 +853,8 @@
     const q = getCurrentQuestion();
     if (!q) return;
 
-    const ok = answerMatches(q, answerInput.value);
-    questionModal.classList.add('hidden');
+    const ok = answerMatches(q, answerInput ? answerInput.value : '');
+    if (questionModal) questionModal.classList.add('hidden');
 
     if (ok) {
       state.run.haul += Number(q.value || state.activeItem.value || 0);
@@ -866,6 +868,7 @@
         timer: 0,
         progress: 0
       };
+      state.run.mode = 'pull';
       showBanner(`Stolen! +£${(Number(q.value || 0) / 100).toFixed(2)}`);
     } else {
       state.activeItem.status = 'failed';
@@ -920,7 +923,6 @@
       state.save.bestHeist = Math.max(state.save.bestHeist, state.run.haul);
       state.save.heistsPlayed += 1;
       state.save.paintingsStolen += state.run.items.filter((i) => i.status === 'stolen').length;
-
       saveProgress();
       triggerHeistEndHomework();
       renderHubStats();
@@ -948,7 +950,7 @@
   function returnToHub() {
     state.run = null;
     state.activeItem = null;
-    summaryOverlay.classList.remove('show');
+    if (summaryOverlay) summaryOverlay.classList.add('hidden');
     showScreen('hub');
     renderHubStats();
     maybeShowHomeworkPopup();
@@ -1120,9 +1122,6 @@
     }
   }
 
-  // ===================
-  // NAVIGATION
-  // ===================
   const NAV_CELL = 28;
 
   function buildNavGrid() {
@@ -1244,17 +1243,25 @@
   }
 
   function refreshChasePaths() {
-    state.ai.guardChasePath = findPath(
-      state.guard.x, state.guard.y,
-      state.player.x, state.player.y
-    );
-
     const exitCenterX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
     const exitCenterY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
 
-    state.ai.playerEscapePath = findPath(
-      state.player.x, state.player.y,
-      exitCenterX, exitCenterY
+    if (!pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
+      state.ai.playerEscapePath = findPath(        
+        state.player.x,
+        state.player.y,
+        exitCenterX,
+        exitCenterY
+      );
+    } else {
+      state.ai.playerEscapePath = [];
+    }
+
+    state.ai.guardChasePath = findPath(
+      state.guard.x,
+      state.guard.y,
+      state.player.x,
+      state.player.y
     );
   }
 
@@ -1263,13 +1270,17 @@
     const exitCenterY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
 
     state.ai.escortGuardPath = findPath(
-      state.guard.x, state.guard.y,
-      exitCenterX + 18, exitCenterY + 8
+      state.guard.x,
+      state.guard.y,
+      exitCenterX + 18,
+      exitCenterY + 8
     );
 
     state.ai.escortPlayerPath = findPath(
-      state.player.x, state.player.y,
-      exitCenterX - 16, exitCenterY + 6
+      state.player.x,
+      state.player.y,
+      exitCenterX - 16,
+      exitCenterY + 6
     );
   }
 
@@ -1313,6 +1324,7 @@
     if (state.run.mode === 'play') {
       let dx = 0;
       let dy = 0;
+
       if (!state.player.controlLocked) {
         if (state.keys.left) dx -= 1;
         if (state.keys.right) dx += 1;
@@ -1437,6 +1449,7 @@
       state.player.direction = vectorToDirection(mx, my);
       state.player.x += mx;
       state.player.y += my;
+
       updateWalkAnimation(delta);
       updateGuardAnimation(delta);
 
@@ -1536,13 +1549,11 @@
 
   function getCurrentPlayerImage() {
     if (state.player.action && state.player.action.type === 'pull') {
-      const set = pullAnimations[state.player.action.dir];
-      if (!set) return null;
+      const set = pullAnimations[state.player.action.dir] || pullAnimations.south;
       return set[Math.min(state.player.action.frameIndex, set.length - 1)];
     }
 
-    const set = walkAnimations[state.player.direction];
-    if (!set) return null;
+    const set = walkAnimations[state.player.direction] || walkAnimations.south;
     return set[state.player.walkFrameIndex];
   }
 
@@ -1768,7 +1779,8 @@
       if (e.target === overlay) hideHomeworkPopup();
     });
 
-    document.getElementById('homeworkCloseBtn').addEventListener('click', hideHomeworkPopup);
+    const closeBtn = document.getElementById('homeworkCloseBtn');
+    if (closeBtn) closeBtn.addEventListener('click', hideHomeworkPopup);
   }
 
   function maybeShowHomeworkPopup() {
@@ -1777,6 +1789,8 @@
 
     const overlay = document.getElementById('homeworkOverlay');
     const list = document.getElementById('homeworkList');
+    if (!overlay || !list) return;
+
     list.innerHTML = '';
 
     state.homework.pending.forEach((entry) => {
@@ -1794,7 +1808,8 @@
 
   function hideHomeworkPopup() {
     ensureHomeworkPopup();
-    document.getElementById('homeworkOverlay').classList.remove('show');
+    const overlay = document.getElementById('homeworkOverlay');
+    if (overlay) overlay.classList.remove('show');
   }
 
   function gameLoop(timestamp) {
@@ -1821,15 +1836,15 @@
 
   function showScreen(name) {
     state.screen = name;
-    hubScreen.classList.toggle('active', name === 'hub');
-    gameScreen.classList.toggle('active', name === 'game');
+    if (hubScreen) hubScreen.classList.toggle('active', name === 'hub');
+    if (gameScreen) gameScreen.classList.toggle('active', name === 'game');
 
     if (name === 'game') {
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
       document.body.style.overscrollBehavior = 'none';
       document.body.style.touchAction = 'none';
-      canvas.style.touchAction = 'none';
+      if (canvas) canvas.style.touchAction = 'none';
       window.scrollTo(0, 0);
     } else {
       stopAllGameAudio();
@@ -1837,7 +1852,7 @@
       document.body.style.overflow = '';
       document.body.style.overscrollBehavior = '';
       document.body.style.touchAction = '';
-      canvas.style.touchAction = '';
+      if (canvas) canvas.style.touchAction = '';
     }
   }
 
@@ -1879,12 +1894,14 @@
     }
   }
 
-  answerInput.style.fontSize = '16px';
-  answerInput.style.lineHeight = '1.2';
-  answerInput.style.transform = 'translateZ(0)';
-  answerInput.autocapitalize = 'off';
-  answerInput.autocomplete = 'off';
-  answerInput.spellcheck = false;
+  if (answerInput) {
+    answerInput.style.fontSize = '16px';
+    answerInput.style.lineHeight = '1.2';
+    answerInput.style.transform = 'translateZ(0)';
+    answerInput.autocapitalize = 'off';
+    answerInput.autocomplete = 'off';
+    answerInput.spellcheck = false;
+  }
 
   document.addEventListener(
     'touchmove',
@@ -1907,12 +1924,12 @@
     if (k === 'arrowleft' || k === 'a') state.keys.left = true;
     if (k === 'arrowright' || k === 'd') state.keys.right = true;
 
-    if ((k === 'e' || k === ' ') && questionModal.classList.contains('hidden') && state.screen === 'game') {
+    if ((k === 'e' || k === ' ') && questionModal && questionModal.classList.contains('hidden') && state.screen === 'game') {
       e.preventDefault();
       interact();
     }
 
-    if (k === 'enter' && !questionModal.classList.contains('hidden')) {
+    if (k === 'enter' && questionModal && !questionModal.classList.contains('hidden')) {
       submitAnswer();
     }
 
@@ -1943,38 +1960,42 @@
     btn.addEventListener('mouseleave', () => press(false));
   });
 
-  interactBtn.addEventListener('click', interact);
-  startHeistBtn.addEventListener('click', startHeist);
+  if (interactBtn) interactBtn.addEventListener('click', interact);
+  if (startHeistBtn) startHeistBtn.addEventListener('click', startHeist);
 
-  resetProgressBtn.addEventListener('click', () => {
-    state.save = {
-      totalBanked: 0,
-      bestHeist: 0,
-      heistsPlayed: 0,
-      paintingsStolen: 0,
-      usedQuestionIds: []
-    };
-    state.homework.pending = [];
-    hideHomeworkPopup();
-    localStorage.removeItem(LAST_HEIST_WRONG_KEY);
-    saveProgress();
-    renderHubStats();
-    showBanner('Progress reset.');
-  });
+  if (resetProgressBtn) {
+    resetProgressBtn.addEventListener('click', () => {
+      state.save = {
+        totalBanked: 0,
+        bestHeist: 0,
+        heistsPlayed: 0,
+        paintingsStolen: 0,
+        usedQuestionIds: []
+      };
+      state.homework.pending = [];
+      localStorage.removeItem(LAST_HEIST_WRONG_KEY);
+      hideHomeworkPopup();
+      saveProgress();
+      renderHubStats();
+      showBanner('Progress reset.');
+    });
+  }
 
-  backToHubBtn.addEventListener('click', () => showScreen('hub'));
+  if (backToHubBtn) backToHubBtn.addEventListener('click', () => showScreen('hub'));
+  if (submitAnswerBtn) submitAnswerBtn.addEventListener('click', submitAnswer);
 
-  submitAnswerBtn.addEventListener('click', submitAnswer);
+  if (cancelAnswerBtn) {
+    cancelAnswerBtn.addEventListener('click', () => {
+      if (questionModal) questionModal.classList.add('hidden');
+      state.activeItem = null;
+    });
+  }
 
-  cancelAnswerBtn.addEventListener('click', () => {
-    questionModal.classList.add('hidden');
-    state.activeItem = null;
-  });
+  if (summaryContinueBtn) summaryContinueBtn.addEventListener('click', returnToHub);
 
   renderHubStats();
   showScreen('hub');
   applyJoystickLayout();
   ensureHomeworkPopup();
-  maybeShowHomeworkPopup();
   requestAnimationFrame(gameLoop);
 })();
