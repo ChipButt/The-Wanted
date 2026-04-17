@@ -33,14 +33,13 @@
   const interactBtn = document.getElementById('interactBtn');
   const joystickButtons = [...document.querySelectorAll('.joystick button')];
 
-  const STORAGE_KEY = 'nanaHeistSave_v9';
+  const STORAGE_KEY = 'nanaHeistSave_v10';
 
   // =========================
   // Source image coordinate system
   // =========================
   const SOURCE_W = 2816;
   const SOURCE_H = 1536;
-
   const sx = (x) => (x / SOURCE_W) * canvas.width;
   const sy = (y) => (y / SOURCE_H) * canvas.height;
 
@@ -48,10 +47,10 @@
   // Geometry
   // =========================
   const FLOOR_POLY = [
-    { x: sx(738),  y: sy(730)  }, // top left
-    { x: sx(2073), y: sy(730)  }, // top right
-    { x: sx(2505), y: sy(1360) }, // bottom right
-    { x: sx(281),  y: sy(1360) }  // bottom left
+    { x: sx(738),  y: sy(730)  },   // top left
+    { x: sx(2073), y: sy(730)  },   // top right
+    { x: sx(2505), y: sy(1360) },   // bottom right
+    { x: sx(281),  y: sy(1360) }    // bottom left
   ];
 
   const GUARD_DOOR_ZONE = {
@@ -78,15 +77,15 @@
 
   const MOVE_SPEED = 2.35;
   const CHASE_SPEED = 3.0;
-  const GUARD_SPEED = 2.2;
+  const GUARD_SPEED = 2.25;
 
   const WALK_FRAME_MS = 120;
   const PULL_FRAME_MS = 120;
 
-  const INTERACT_DISTANCE = 62;
+  const INTERACT_DISTANCE = 72;
 
   // =========================
-  // Image loader
+  // Helpers
   // =========================
   function loadImage(src) {
     const img = new Image();
@@ -95,8 +94,147 @@
     return img;
   }
 
+  function imageReady(img) {
+    return !!img && img.complete && img.naturalWidth > 0;
+  }
+
+  function distance(ax, ay, bx, by) {
+    return Math.hypot(ax - bx, ay - by);
+  }
+
+  function pointInRect(px, py, rect) {
+    return px >= rect.x1 && px <= rect.x2 && py >= rect.y1 && py <= rect.y2;
+  }
+
+  function pointInPolygon(point, polygon) {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i].x, yi = polygon[i].y;
+      const xj = polygon[j].x, yj = polygon[j].y;
+
+      const intersect =
+        ((yi > point.y) !== (yj > point.y)) &&
+        (point.x < ((xj - xi) * (point.y - yi)) / ((yj - yi) || 0.000001) + xi);
+
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  function vectorToDirection(dx, dy) {
+    const sxn = Math.sign(dx);
+    const syn = Math.sign(dy);
+
+    if (sxn === 0 && syn < 0) return 'north';
+    if (sxn === 0 && syn > 0) return 'south';
+    if (sxn > 0 && syn === 0) return 'east';
+    if (sxn < 0 && syn === 0) return 'west';
+    if (sxn > 0 && syn < 0) return 'north-east';
+    if (sxn < 0 && syn < 0) return 'north-west';
+    if (sxn > 0 && syn > 0) return 'south-east';
+    if (sxn < 0 && syn > 0) return 'south-west';
+    return 'south';
+  }
+
+  function shuffle(arr) {
+    return [...arr].sort(() => Math.random() - 0.5);
+  }
+
+  function normalizeText(str) {
+    return String(str)
+      .toLowerCase()
+      .trim()
+      .replace(/[’']/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function levenshtein(a, b) {
+    const m = a.length;
+    const n = b.length;
+    const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1,
+          dp[i][j - 1] + 1,
+          dp[i - 1][j - 1] + cost
+        );
+      }
+    }
+    return dp[m][n];
+  }
+
+  function closeEnough(a, b) {
+    if (a.length < 5 || b.length < 5) return false;
+    const distance = levenshtein(a, b);
+    return distance <= 1 || distance / Math.max(a.length, b.length) <= 0.15;
+  }
+
+  function isAnswerCorrect(input, question) {
+    const cleanedInput = normalizeText(input);
+    if (!cleanedInput) return false;
+    const answers = question.answers.map(normalizeText);
+
+    if (question.matchType === 'contains') {
+      for (const ans of answers) {
+        if (cleanedInput.includes(ans)) return true;
+        if (closeEnough(cleanedInput, ans)) return true;
+      }
+      return false;
+    }
+
+    for (const ans of answers) {
+      if (cleanedInput === ans) return true;
+      if (closeEnough(cleanedInput, ans)) return true;
+    }
+    return false;
+  }
+
+  function formatMoney(pence) {
+    return '£' + (pence / 100).toFixed(2);
+  }
+
+  function getRoundNumber() {
+    return state.save.heistsPlayed + 1;
+  }
+
+  function sequencePick(sequence, roundNumber) {
+    return sequence[(roundNumber - 1) % sequence.length];
+  }
+
+  function randomFloorPoint(minX, maxX, minY, maxY, avoid = []) {
+    for (let i = 0; i < 500; i++) {
+      const x = minX + Math.random() * (maxX - minX);
+      const y = minY + Math.random() * (maxY - minY);
+
+      if (!pointInPolygon({ x, y }, FLOOR_POLY)) continue;
+      if (pointInRect(x, y, EXIT_ZONE)) continue;
+      if (distance(x, y, sx(1410), sy(1220)) < 90) continue;
+
+      let tooClose = false;
+      for (const other of avoid) {
+        if (distance(x, y, other.x, other.y) < 120) {
+          tooClose = true;
+          break;
+        }
+      }
+      if (tooClose) continue;
+
+      return { x, y };
+    }
+
+    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+  }
+
   // =========================
-  // Core assets
+  // Assets
   // =========================
   const roomBackground = loadImage('museum-room.png');
 
@@ -211,19 +349,15 @@
       loadImage('painting_mona_lisa_large.png'),
       loadImage('painting_starry_night.png')
     ],
-
-    // Rotating left-wall variants
     westVariants: [
       loadImage('painting_portrait_left_lower_angle.png'),
       loadImage('painting_portrait_left_lower_angle_2.png'),
       loadImage('painting_portrait_left_lower_angle_3.png')
     ],
-
     east: [
       loadImage('painting_mona_lisa_right_lower_angle.png'),
       loadImage('painting_portrait_right_angle.png')
     ],
-
     pedestal: loadImage('statue_on_pedestal.png'),
     aboard: loadImage('A-Board Art Piece.png')
   };
@@ -259,147 +393,8 @@
   };
 
   // =========================
-  // Save
+  // UI
   // =========================
-  function loadSave() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (e) {}
-    return {
-      totalBanked: 0,
-      bestHeist: 0,
-      heistsPlayed: 0,
-      paintingsStolen: 0,
-      usedQuestionIds: []
-    };
-  }
-
-  function saveProgress() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.save));
-    renderHubStats();
-  }
-
-  function resetProgress() {
-    state.save = {
-      totalBanked: 0,
-      bestHeist: 0,
-      heistsPlayed: 0,
-      paintingsStolen: 0,
-      usedQuestionIds: []
-    };
-    saveProgress();
-    showBanner('Progress reset.');
-  }
-
-  // =========================
-  // Utility
-  // =========================
-  function formatMoney(pence) {
-    return '£' + (pence / 100).toFixed(2);
-  }
-
-  function normalizeText(str) {
-    return String(str)
-      .toLowerCase()
-      .trim()
-      .replace(/[’']/g, '')
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  function levenshtein(a, b) {
-    const m = a.length;
-    const n = b.length;
-    const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-    for (let i = 0; i <= m; i++) dp[i][0] = i;
-    for (let j = 0; j <= n; j++) dp[0][j] = j;
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        dp[i][j] = Math.min(
-          dp[i - 1][j] + 1,
-          dp[i][j - 1] + 1,
-          dp[i - 1][j - 1] + cost
-        );
-      }
-    }
-    return dp[m][n];
-  }
-
-  function closeEnough(a, b) {
-    if (a.length < 5 || b.length < 5) return false;
-    const distance = levenshtein(a, b);
-    return distance <= 1 || distance / Math.max(a.length, b.length) <= 0.15;
-  }
-
-  function isAnswerCorrect(input, question) {
-    const cleanedInput = normalizeText(input);
-    if (!cleanedInput) return false;
-    const answers = question.answers.map(normalizeText);
-
-    if (question.matchType === 'contains') {
-      for (const ans of answers) {
-        if (cleanedInput.includes(ans)) return true;
-        if (closeEnough(cleanedInput, ans)) return true;
-      }
-      return false;
-    }
-
-    for (const ans of answers) {
-      if (cleanedInput === ans) return true;
-      if (closeEnough(cleanedInput, ans)) return true;
-    }
-    return false;
-  }
-
-  function distance(ax, ay, bx, by) {
-    return Math.hypot(ax - bx, ay - by);
-  }
-
-  function pointInPolygon(point, polygon) {
-    let inside = false;
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-      const xi = polygon[i].x, yi = polygon[i].y;
-      const xj = polygon[j].x, yj = polygon[j].y;
-
-      const intersect =
-        ((yi > point.y) !== (yj > point.y)) &&
-        (point.x < ((xj - xi) * (point.y - yi)) / ((yj - yi) || 0.000001) + xi);
-
-      if (intersect) inside = !inside;
-    }
-    return inside;
-  }
-
-  function pointInRect(px, py, rect) {
-    return px >= rect.x1 && px <= rect.x2 && py >= rect.y1 && py <= rect.y2;
-  }
-
-  function showBanner(text) {
-    messageBanner.textContent = text;
-    messageBanner.classList.add('show');
-    clearTimeout(showBanner._timer);
-    showBanner._timer = setTimeout(() => {
-      messageBanner.classList.remove('show');
-      messageBanner.textContent = '';
-    }, 3500);
-  }
-
-  function shuffle(arr) {
-    return [...arr].sort(() => Math.random() - 0.5);
-  }
-
-  function selectQuestions(count) {
-    let available = window.QUESTION_BANK.filter(q => !state.save.usedQuestionIds.includes(q.id));
-    if (available.length < count) {
-      state.save.usedQuestionIds = [];
-      available = [...window.QUESTION_BANK];
-    }
-    return shuffle(available).slice(0, count);
-  }
-
   function renderHubStats() {
     totalBankedEl.textContent = formatMoney(state.save.totalBanked);
     bestHeistEl.textContent = formatMoney(state.save.bestHeist);
@@ -413,41 +408,8 @@
     gameScreen.classList.toggle('active', name === 'game');
   }
 
-  function getRoundNumber() {
-    return state.save.heistsPlayed + 1;
-  }
-
-  function sequencePick(sequence, roundNumber) {
-    return sequence[(roundNumber - 1) % sequence.length];
-  }
-
-  function randomFloorPoint(minX, maxX, minY, maxY, avoid = []) {
-    for (let i = 0; i < 500; i++) {
-      const x = minX + Math.random() * (maxX - minX);
-      const y = minY + Math.random() * (maxY - minY);
-
-      if (!pointInPolygon({ x, y }, FLOOR_POLY)) continue;
-      if (pointInRect(x, y, EXIT_ZONE)) continue;
-      if (distance(x, y, sx(1410), sy(1220)) < 90) continue;
-
-      let tooClose = false;
-      for (const other of avoid) {
-        if (distance(x, y, other.x, other.y) < 120) {
-          tooClose = true;
-          break;
-        }
-      }
-      if (tooClose) continue;
-
-      return { x, y };
-    }
-
-    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
-  }
-
   // =========================
-  // Heist items (9 total)
-  // 3 back wall / 2 left / 2 right / 1 pedestal / 1 A-board
+  // Heist setup
   // =========================
   function createHeistItems(questions) {
     const items = [];
@@ -470,11 +432,11 @@
     ];
 
     const westSequence1 = [
-      artImages.westVariants[1], // _2
-      artImages.westVariants[2], // _3
-      artImages.westVariants[0], // base
-      artImages.westVariants[2], // _3
-      artImages.westVariants[0]  // base
+      artImages.westVariants[1],
+      artImages.westVariants[2],
+      artImages.westVariants[0],
+      artImages.westVariants[2],
+      artImages.westVariants[0]
     ];
 
     const westSequence2 = [
@@ -600,9 +562,6 @@
     return 'north';
   }
 
-  // =========================
-  // Game flow
-  // =========================
   function startHeist() {
     const chosenQuestions = selectQuestions(9);
 
@@ -613,6 +572,8 @@
       ended: false,
       mode: 'play'
     };
+
+    state.activeItem = null;
 
     state.player = {
       x: sx(1410),
@@ -639,13 +600,9 @@
     showBanner('Heist started.');
   }
 
-  function updateRunStats() {
-    if (!state.run) return;
-    currentHaulEl.textContent = formatMoney(state.run.haul);
-    strikeCountEl.textContent = `${state.run.strikes} / 3`;
-    paintingsLeftEl.textContent = String(state.run.items.filter(i => i.status === 'available').length);
-  }
-
+  // =========================
+  // Interaction
+  // =========================
   function maybeEscape() {
     if (!state.run || state.run.ended) return;
 
@@ -764,7 +721,32 @@
     state.player.controlLocked = true;
     state.guard.active = true;
     state.run.mode = 'chase';
-    showBanner('Security! Run for it... too late.');
+    showBanner('Security is coming...');
+  }
+
+  function returnCaughtToHub() {
+    if (!state.run) return;
+
+    const lostHaul = state.run.haul;
+    state.run.ended = true;
+    state.save.heistsPlayed += 1;
+    saveProgress();
+
+    state.run = null;
+    state.activeItem = null;
+
+    state.player.action = null;
+    state.player.controlLocked = false;
+    state.player.moving = false;
+    state.player.visible = true;
+
+    state.guard.active = false;
+    state.guard.visible = true;
+
+    summaryModal.classList.add('hidden');
+    showScreen('hub');
+    renderHubStats();
+    showBanner(`Caught! You lost ${formatMoney(lostHaul)}.`);
   }
 
   function endHeist(escaped) {
@@ -780,13 +762,13 @@
       }
       summaryTitle.textContent = 'Heist complete';
       summaryText.textContent = `You escaped with ${formatMoney(state.run.haul)}. It has been added to your total banked cash.`;
-    } else {
-      summaryTitle.textContent = 'Caught by security';
-      summaryText.textContent = `You were chased out and lost this run's haul of ${formatMoney(state.run.haul)}.`;
+      saveProgress();
+      summaryModal.classList.remove('hidden');
+      return;
     }
 
     saveProgress();
-    summaryModal.classList.remove('hidden');
+    returnCaughtToHub();
   }
 
   function returnToHub() {
@@ -797,20 +779,8 @@
   }
 
   // =========================
-  // Movement / animation
+  // Animation / movement
   // =========================
-  function vectorToDirection(dx, dy) {
-    if (dy < 0 && dx === 0) return 'north';
-    if (dy > 0 && dx === 0) return 'south';
-    if (dx > 0 && dy === 0) return 'east';
-    if (dx < 0 && dy === 0) return 'west';
-    if (dx > 0 && dy < 0) return 'north-east';
-    if (dx < 0 && dy < 0) return 'north-west';
-    if (dx > 0 && dy > 0) return 'south-east';
-    if (dx < 0 && dy > 0) return 'south-west';
-    return 'south';
-  }
-
   function updateWalkAnimation(delta) {
     if (!state.player.moving) {
       state.player.walkFrameIndex = 0;
@@ -871,42 +841,64 @@
       }
 
       updateWalkAnimation(delta);
+
     } else if (state.run.mode === 'pull') {
       updatePullAnimation(delta);
+
     } else if (state.run.mode === 'chase') {
+      // Guard catches Nana first
+      const gdx = state.player.x - state.guard.x;
+      const gdy = state.player.y - state.guard.y;
+      const glen = Math.hypot(gdx, gdy) || 1;
+
+      const gmx = (gdx / glen) * (GUARD_SPEED + 0.9);
+      const gmy = (gdy / glen) * (GUARD_SPEED + 0.9);
+
+      state.guard.direction = vectorToDirection(gmx, gmy);
+      state.guard.x += gmx;
+      state.guard.y += gmy;
+
+      if (distance(state.guard.x, state.guard.y, state.player.x, state.player.y) < 24) {
+        state.run.mode = 'escort';
+        showBanner('Caught! Escorted out.');
+      }
+
+    } else if (state.run.mode === 'escort') {
+      // Guard escorts Nana to the front door
       const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
-      const targetY = EXIT_ZONE.y2 + sy(30);
+      const targetY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
 
       const dx = targetX - state.player.x;
       const dy = targetY - state.player.y;
       const len = Math.hypot(dx, dy) || 1;
 
-      const mx = (dx / len) * CHASE_SPEED;
-      const my = (dy / len) * CHASE_SPEED;
+      if (len < 12) {
+        returnCaughtToHub();
+        return;
+      }
+
+      const mx = (dx / len) * MOVE_SPEED;
+      const my = (dy / len) * MOVE_SPEED;
 
       state.player.moving = true;
       state.player.direction = vectorToDirection(mx, my);
       tryMove(mx, my);
       updateWalkAnimation(delta);
 
-      const gdx = state.player.x - state.guard.x;
-      const gdy = state.player.y - state.guard.y;
-      const glen = Math.hypot(gdx, gdy) || 1;
+      const guardTargetX = state.player.x;
+      const guardTargetY = state.player.y - 36;
 
-      const gmx = (gdx / glen) * GUARD_SPEED;
-      const gmy = (gdy / glen) * GUARD_SPEED;
+      const egdx = guardTargetX - state.guard.x;
+      const egdy = guardTargetY - state.guard.y;
+      const eglen = Math.hypot(egdx, egdy) || 1;
 
-      state.guard.direction = vectorToDirection(gmx, gmy);
-      state.guard.x += gmx;
-      state.guard.y += gmy;
+      const egmx = (egdx / eglen) * GUARD_SPEED;
+      const egmy = (egdy / eglen) * GUARD_SPEED;
 
-      if (state.player.y >= EXIT_ZONE.y2 - sy(10)) {
-        state.player.visible = false;
-      }
+      state.guard.direction = vectorToDirection(egmx, egmy);
+      state.guard.x += egmx;
+      state.guard.y += egmy;
 
-      if (!state.player.visible && state.guard.y >= EXIT_ZONE.y1) {
-        endHeist(false);
-      }
     } else if (state.run.mode === 'escape') {
       const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
       const targetY = EXIT_ZONE.y2 + sy(30);
@@ -939,7 +931,7 @@
   }
 
   function drawImageFit(img, x, y, w, h) {
-    if (!img || !img.complete || !img.naturalWidth) return;
+    if (!imageReady(img)) return;
     const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
     const dw = img.naturalWidth * scale;
     const dh = img.naturalHeight * scale;
@@ -949,6 +941,14 @@
   }
 
   function drawWallItem(item) {
+    if (!imageReady(item.image)) {
+      ctx.fillStyle = item.status === 'failed' ? '#8f4c4c' : '#ffffff';
+      ctx.fillRect(item.x, item.y, item.w, item.h);
+      ctx.strokeStyle = '#333';
+      ctx.strokeRect(item.x, item.y, item.w, item.h);
+      return;
+    }
+
     if (item.status === 'failed') {
       ctx.save();
       ctx.globalAlpha = 0.55;
@@ -980,10 +980,18 @@
     ctx.fill();
     ctx.restore();
 
+    if (!imageReady(item.image)) {
+      ctx.fillStyle = item.status === 'failed' ? '#8f4c4c' : '#ccc';
+      ctx.fillRect(drawX, drawY, drawW, drawH);
+      ctx.strokeStyle = '#333';
+      ctx.strokeRect(drawX, drawY, drawW, drawH);
+      return;
+    }
+
     if (item.status === 'failed') {
       ctx.save();
       ctx.globalAlpha = 0.55;
-      if (item.image.complete) ctx.drawImage(item.image, drawX, drawY, drawW, drawH);
+      ctx.drawImage(item.image, drawX, drawY, drawW, drawH);
       ctx.restore();
 
       ctx.strokeStyle = '#6b1f1f';
@@ -995,9 +1003,7 @@
       return;
     }
 
-    if (item.image.complete) {
-      ctx.drawImage(item.image, drawX, drawY, drawW, drawH);
-    }
+    ctx.drawImage(item.image, drawX, drawY, drawW, drawH);
   }
 
   function getCurrentPlayerImage() {
@@ -1030,7 +1036,7 @@
     const drawY = state.player.y - PLAYER_HEIGHT;
     const img = getCurrentPlayerImage();
 
-    if (img && img.complete) {
+    if (imageReady(img)) {
       ctx.drawImage(img, drawX, drawY, PLAYER_WIDTH, PLAYER_HEIGHT);
     } else {
       drawFallbackPlayer();
@@ -1051,7 +1057,7 @@
     const drawY = state.guard.y - GUARD_HEIGHT;
     const img = guardSprites[state.guard.direction];
 
-    if (img && img.complete) {
+    if (imageReady(img)) {
       ctx.drawImage(img, drawX, drawY, GUARD_WIDTH, GUARD_HEIGHT);
     } else {
       drawFallbackGuard();
@@ -1083,7 +1089,7 @@
   function drawRoom() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (roomBackground.complete) {
+    if (imageReady(roomBackground)) {
       ctx.drawImage(roomBackground, 0, 0, canvas.width, canvas.height);
     } else {
       drawFallbackRoom();
