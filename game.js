@@ -33,21 +33,25 @@
   const interactBtn = document.getElementById('interactBtn');
   const joystickButtons = [...document.querySelectorAll('.joystick button')];
 
-  const STORAGE_KEY = 'nanaHeistSave_v7';
+  const STORAGE_KEY = 'nanaHeistSave_v9';
 
-  // Source image coordinate system from your museum-room asset workflow.
+  // =========================
+  // Source image coordinate system
+  // =========================
   const SOURCE_W = 2816;
   const SOURCE_H = 1536;
 
   const sx = (x) => (x / SOURCE_W) * canvas.width;
   const sy = (y) => (y / SOURCE_H) * canvas.height;
 
-  // ===== Room geometry mapped from your coordinates =====
+  // =========================
+  // Geometry
+  // =========================
   const FLOOR_POLY = [
-    { x: sx(677), y: sy(662) },
-    { x: sx(2140), y: sy(663) },
-    { x: sx(2725), y: sy(1427) },
-    { x: sx(99), y: sy(1427) }
+    { x: sx(738),  y: sy(730)  }, // top left
+    { x: sx(2073), y: sy(730)  }, // top right
+    { x: sx(2505), y: sy(1360) }, // bottom right
+    { x: sx(281),  y: sy(1360) }  // bottom left
   ];
 
   const GUARD_DOOR_ZONE = {
@@ -57,187 +61,206 @@
     y2: sy(1325)
   };
 
-  // Bottom-center escape area on the floor.
   const EXIT_ZONE = {
     x1: sx(1180),
-    y1: sy(1285),
+    y1: sy(1280),
     x2: sx(1640),
     y2: sy(1495)
   };
 
-  // Scale
-  const PLAYER_HEIGHT = 200;
-  const PLAYER_WIDTH = 200;
-  const GUARD_HEIGHT = 190;
-  const GUARD_WIDTH = 120;
-  const FOOT_RADIUS = 14;
-  const MOVE_SPEED = 2.4;
+  // =========================
+  // Scale / timings
+  // =========================
+  const PLAYER_WIDTH = 100;
+  const PLAYER_HEIGHT = 100;
+  const GUARD_WIDTH = 100;
+  const GUARD_HEIGHT = 100;
+
+  const MOVE_SPEED = 2.35;
+  const CHASE_SPEED = 3.0;
+  const GUARD_SPEED = 2.2;
+
   const WALK_FRAME_MS = 120;
   const PULL_FRAME_MS = 120;
-  const INTERACT_DISTANCE = 70;
 
-  // ===== Background =====
-  const roomBackground = new Image();
-  let roomLoaded = false;
-  roomBackground.onload = () => { roomLoaded = true; };
-  roomBackground.onerror = () => console.warn('Failed to load museum-room.png');
-  roomBackground.src = 'museum-room.png';
+  const INTERACT_DISTANCE = 62;
 
-  // ===== Nana walking animations =====
-  const animationFiles = {
-    south: [
-      'Nana South Walking_0_delay-0.2s.png',
-      'Nana South Walking_1_delay-0.2s.png',
-      'Nana South Walking_2_delay-0.2s.png',
-      'Nana South Walking_3_delay-0.2s.png',
-      'Nana South Walking_4_delay-0.2s.png',
-      'Nana South Walking_5_delay-0.2s.png'
-    ],
-    'south-east': [
-      'Nana South-East Walking_0_delay-0.2s.png',
-      'Nana South-East Walking_1_delay-0.2s.png',
-      'Nana South-East Walking_2_delay-0.2s.png',
-      'Nana South-East Walking_3_delay-0.2s.png',
-      'Nana South-East Walking_4_delay-0.2s.png',
-      'Nana South-East Walking_5_delay-0.2s.png'
-    ],
-    east: [
-      'Nana East Walking_0_delay-0.2s.png',
-      'Nana East Walking_1_delay-0.2s.png',
-      'Nana East Walking_2_delay-0.2s.png',
-      'Nana East Walking_3_delay-0.2s.png',
-      'Nana East Walking_4_delay-0.2s.png',
-      'Nana East Walking_5_delay-0.2s.png'
-    ],
-    'north-east': [
-      'Nana North-East Walking_0_delay-0.2s.png',
-      'Nana North-East Walking_1_delay-0.2s.png',
-      'Nana North-East Walking_2_delay-0.2s.png',
-      'Nana North-East Walking_3_delay-0.2s.png',
-      'Nana North-East Walking_4_delay-0.2s.png',
-      'Nana North-East Walking_5_delay-0.2s.png'
-    ],
-    north: [
-      'Nana North Walking_0_delay-0.2s.png',
-      'Nana North Walking_1_delay-0.2s.png',
-      'Nana North Walking_2_delay-0.2s.png',
-      'Nana North Walking_3_delay-0.2s.png',
-      'Nana North Walking_4_delay-0.2s.png',
-      'Nana North Walking_5_delay-0.2s.png'
-    ],
-    'north-west': [
-      'Nana North-West Walking_0_delay-0.2s.png',
-      'Nana North-West Walking_1_delay-0.2s.png',
-      'Nana North-West Walking_2_delay-0.2s.png',
-      'Nana North-West Walking_3_delay-0.2s.png',
-      'Nana North-West Walking_4_delay-0.2s.png',
-      'Nana North-West Walking_5_delay-0.2s.png'
-    ],
-    west: [
-      'Nana West Walking_0_delay-0.2s.png',
-      'Nana West Walking_1_delay-0.2s.png',
-      'Nana West Walking_2_delay-0.2s.png',
-      'Nana West Walking_3_delay-0.2s.png',
-      'Nana West Walking_4_delay-0.2s.png',
-      'Nana West Walking_5_delay-0.2s.png'
-    ],
-    'south-west': [
-      'Nana South-West Walking_0_delay-0.2s.png',
-      'Nana South-West Walking_1_delay-0.2s.png',
-      'Nana South-West Walking_2_delay-0.2s.png',
-      'Nana South-West Walking_3_delay-0.2s.png',
-      'Nana South-West Walking_4_delay-0.2s.png',
-      'Nana South-West Walking_5_delay-0.2s.png'
-    ]
-  };
-
-  // ===== Nana pull animations =====
-  const pullFiles = {
-    east: [
-      'Nana East Pull_0_delay-0.2s.png',
-      'Nana East Pull_1_delay-0.2s.png',
-      'Nana East Pull_2_delay-0.2s.png',
-      'Nana East Pull_3_delay-0.2s.png',
-      'Nana East Pull_4_delay-0.2s.png',
-      'Nana East Pull_5_delay-0.2s.png'
-    ],
-    north: [
-      'Nana North Pull_0_delay-0.2s.png',
-      'Nana North Pull_1_delay-0.2s.png',
-      'Nana North Pull_2_delay-0.2s.png',
-      'Nana North Pull_3_delay-0.2s.png',
-      'Nana North Pull_4_delay-0.2s.png',
-      'Nana North Pull_5_delay-0.2s.png'
-    ],
-    west: [
-      'Nana West Pull_0_delay-0.2s.png',
-      'Nana West Pull_1_delay-0.2s.png',
-      'Nana West Pull_2_delay-0.2s.png',
-      'Nana West Pull_3_delay-0.2s.png',
-      'Nana West Pull_4_delay-0.2s.png',
-      'Nana West Pull_5_delay-0.2s.png'
-    ]
-  };
-
-  const walkAnimations = {};
-  const pullAnimations = {};
-  let allSpritesLoaded = false;
-
-  function loadAnimationSet(source, target) {
-    let total = 0;
-    let loaded = 0;
-    const dirs = Object.keys(source);
-
-    dirs.forEach((dir) => {
-      target[dir] = [];
-      source[dir].forEach((file) => {
-        total += 1;
-        const img = new Image();
-        img.onload = () => {
-          loaded += 1;
-          if (loaded === total) {
-            target.__loaded = true;
-            if (walkAnimations.__loaded && pullAnimations.__loaded) {
-              allSpritesLoaded = true;
-            }
-          }
-        };
-        img.onerror = () => console.warn(`Failed to load ${file}`);
-        img.src = file;
-        target[dir].push(img);
-      });
-    });
+  // =========================
+  // Image loader
+  // =========================
+  function loadImage(src) {
+    const img = new Image();
+    img.src = src;
+    img.onerror = () => console.warn(`Failed to load ${src}`);
+    return img;
   }
 
-  // ===== State =====
+  // =========================
+  // Core assets
+  // =========================
+  const roomBackground = loadImage('museum-room.png');
+
+  const walkAnimations = {
+    south: [
+      loadImage('Nana South Walking_0_delay-0.2s.png'),
+      loadImage('Nana South Walking_1_delay-0.2s.png'),
+      loadImage('Nana South Walking_2_delay-0.2s.png'),
+      loadImage('Nana South Walking_3_delay-0.2s.png'),
+      loadImage('Nana South Walking_4_delay-0.2s.png'),
+      loadImage('Nana South Walking_5_delay-0.2s.png')
+    ],
+    'south-east': [
+      loadImage('Nana South-East Walking_0_delay-0.2s.png'),
+      loadImage('Nana South-East Walking_1_delay-0.2s.png'),
+      loadImage('Nana South-East Walking_2_delay-0.2s.png'),
+      loadImage('Nana South-East Walking_3_delay-0.2s.png'),
+      loadImage('Nana South-East Walking_4_delay-0.2s.png'),
+      loadImage('Nana South-East Walking_5_delay-0.2s.png')
+    ],
+    east: [
+      loadImage('Nana East Walking_0_delay-0.2s.png'),
+      loadImage('Nana East Walking_1_delay-0.2s.png'),
+      loadImage('Nana East Walking_2_delay-0.2s.png'),
+      loadImage('Nana East Walking_3_delay-0.2s.png'),
+      loadImage('Nana East Walking_4_delay-0.2s.png'),
+      loadImage('Nana East Walking_5_delay-0.2s.png')
+    ],
+    'north-east': [
+      loadImage('Nana North-East Walking_0_delay-0.2s.png'),
+      loadImage('Nana North-East Walking_1_delay-0.2s.png'),
+      loadImage('Nana North-East Walking_2_delay-0.2s.png'),
+      loadImage('Nana North-East Walking_3_delay-0.2s.png'),
+      loadImage('Nana North-East Walking_4_delay-0.2s.png'),
+      loadImage('Nana North-East Walking_5_delay-0.2s.png')
+    ],
+    north: [
+      loadImage('Nana North Walking_0_delay-0.2s.png'),
+      loadImage('Nana North Walking_1_delay-0.2s.png'),
+      loadImage('Nana North Walking_2_delay-0.2s.png'),
+      loadImage('Nana North Walking_3_delay-0.2s.png'),
+      loadImage('Nana North Walking_4_delay-0.2s.png'),
+      loadImage('Nana North Walking_5_delay-0.2s.png')
+    ],
+    'north-west': [
+      loadImage('Nana North-West Walking_0_delay-0.2s.png'),
+      loadImage('Nana North-West Walking_1_delay-0.2s.png'),
+      loadImage('Nana North-West Walking_2_delay-0.2s.png'),
+      loadImage('Nana North-West Walking_3_delay-0.2s.png'),
+      loadImage('Nana North-West Walking_4_delay-0.2s.png'),
+      loadImage('Nana North-West Walking_5_delay-0.2s.png')
+    ],
+    west: [
+      loadImage('Nana West Walking_0_delay-0.2s.png'),
+      loadImage('Nana West Walking_1_delay-0.2s.png'),
+      loadImage('Nana West Walking_2_delay-0.2s.png'),
+      loadImage('Nana West Walking_3_delay-0.2s.png'),
+      loadImage('Nana West Walking_4_delay-0.2s.png'),
+      loadImage('Nana West Walking_5_delay-0.2s.png')
+    ],
+    'south-west': [
+      loadImage('Nana South-West Walking_0_delay-0.2s.png'),
+      loadImage('Nana South-West Walking_1_delay-0.2s.png'),
+      loadImage('Nana South-West Walking_2_delay-0.2s.png'),
+      loadImage('Nana South-West Walking_3_delay-0.2s.png'),
+      loadImage('Nana South-West Walking_4_delay-0.2s.png'),
+      loadImage('Nana South-West Walking_5_delay-0.2s.png')
+    ]
+  };
+
+  const pullAnimations = {
+    east: [
+      loadImage('Nana East Pull_0_delay-0.2s.png'),
+      loadImage('Nana East Pull_1_delay-0.2s.png'),
+      loadImage('Nana East Pull_2_delay-0.2s.png'),
+      loadImage('Nana East Pull_3_delay-0.2s.png'),
+      loadImage('Nana East Pull_4_delay-0.2s.png'),
+      loadImage('Nana East Pull_5_delay-0.2s.png')
+    ],
+    north: [
+      loadImage('Nana North Pull_0_delay-0.2s.png'),
+      loadImage('Nana North Pull_1_delay-0.2s.png'),
+      loadImage('Nana North Pull_2_delay-0.2s.png'),
+      loadImage('Nana North Pull_3_delay-0.2s.png'),
+      loadImage('Nana North Pull_4_delay-0.2s.png'),
+      loadImage('Nana North Pull_5_delay-0.2s.png')
+    ],
+    west: [
+      loadImage('Nana West Pull_0_delay-0.2s.png'),
+      loadImage('Nana West Pull_1_delay-0.2s.png'),
+      loadImage('Nana West Pull_2_delay-0.2s.png'),
+      loadImage('Nana West Pull_3_delay-0.2s.png'),
+      loadImage('Nana West Pull_4_delay-0.2s.png'),
+      loadImage('Nana West Pull_5_delay-0.2s.png')
+    ]
+  };
+
+  const guardSprites = {
+    north: loadImage('Security Guard North.png'),
+    'north-east': loadImage('Security Guard North-East.png'),
+    east: loadImage('Security Guard East.png'),
+    'south-east': loadImage('Security Guard South-East.png'),
+    south: loadImage('Security Guard South.png'),
+    'south-west': loadImage('Security Guard South-West.png'),
+    west: loadImage('Security Guard West.png'),
+    'north-west': loadImage('Security Guard North-West.png')
+  };
+
+  const artImages = {
+    north: [
+      loadImage('painting_abstract_small.png'),
+      loadImage('painting_mona_lisa_large.png'),
+      loadImage('painting_starry_night.png')
+    ],
+
+    // Rotating left-wall variants
+    westVariants: [
+      loadImage('painting_portrait_left_lower_angle.png'),
+      loadImage('painting_portrait_left_lower_angle_2.png'),
+      loadImage('painting_portrait_left_lower_angle_3.png')
+    ],
+
+    east: [
+      loadImage('painting_mona_lisa_right_lower_angle.png'),
+      loadImage('painting_portrait_right_angle.png')
+    ],
+
+    pedestal: loadImage('statue_on_pedestal.png'),
+    aboard: loadImage('A-Board Art Piece.png')
+  };
+
+  // =========================
+  // State
+  // =========================
   const state = {
     save: loadSave(),
     screen: 'hub',
     keys: { up: false, down: false, left: false, right: false },
     run: null,
-    activePainting: null,
-    time: 0,
+    activeItem: null,
     lastTimestamp: 0,
     player: {
       x: sx(1410),
-      y: sy(1240),
+      y: sy(1220),
       direction: 'south',
       moving: false,
       visible: true,
       controlLocked: false,
       walkFrameIndex: 0,
       walkFrameTimer: 0,
-      action: null // null | { type:'pull', dir:'north'|'east'|'west', painting, frameIndex, timer }
+      action: null
     },
     guard: {
-      x: sx(2575),
-      y: sy(1260),
+      x: (GUARD_DOOR_ZONE.x1 + GUARD_DOOR_ZONE.x2) / 2,
+      y: GUARD_DOOR_ZONE.y2,
+      direction: 'south-west',
       active: false,
       visible: true
     }
   };
 
-  // ===== Save =====
+  // =========================
+  // Save
+  // =========================
   function loadSave() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -269,7 +292,9 @@
     showBanner('Progress reset.');
   }
 
-  // ===== Utilities =====
+  // =========================
+  // Utility
+  // =========================
   function formatMoney(pence) {
     return '£' + (pence / 100).toFixed(2);
   }
@@ -362,21 +387,6 @@
     }, 3500);
   }
 
-  // ===== UI =====
-  function renderHubStats() {
-    totalBankedEl.textContent = formatMoney(state.save.totalBanked);
-    bestHeistEl.textContent = formatMoney(state.save.bestHeist);
-    heistsPlayedEl.textContent = String(state.save.heistsPlayed);
-    paintingsStolenEl.textContent = String(state.save.paintingsStolen);
-  }
-
-  function showScreen(name) {
-    state.screen = name;
-    hubScreen.classList.toggle('active', name === 'hub');
-    gameScreen.classList.toggle('active', name === 'game');
-  }
-
-  // ===== Questions =====
   function shuffle(arr) {
     return [...arr].sort(() => Math.random() - 0.5);
   }
@@ -390,47 +400,190 @@
     return shuffle(available).slice(0, count);
   }
 
-  // ===== Paintings =====
-  function createPaintings(questions) {
-    const slots = [
-      // north/back wall
-      { x: sx(860),  y: sy(275),  w: sx(170) - sx(0), h: sy(68) - sy(0), anchorX: sx(945),  anchorY: sy(455), wall: 'north' },
-      { x: sx(1185), y: sy(275),  w: sx(170) - sx(0), h: sy(68) - sy(0), anchorX: sx(1270), anchorY: sy(455), wall: 'north' },
-      { x: sx(1510), y: sy(275),  w: sx(170) - sx(0), h: sy(68) - sy(0), anchorX: sx(1595), anchorY: sy(455), wall: 'north' },
-      { x: sx(1835), y: sy(275),  w: sx(170) - sx(0), h: sy(68) - sy(0), anchorX: sx(1920), anchorY: sy(455), wall: 'north' },
-
-      // west wall
-      { x: sx(500),  y: sy(520),  w: sx(58) - sx(0),  h: sy(165) - sy(0), anchorX: sx(715),  anchorY: sy(705),  wall: 'west' },
-      { x: sx(395),  y: sy(765),  w: sx(58) - sx(0),  h: sy(165) - sy(0), anchorX: sx(655),  anchorY: sy(930),  wall: 'west' },
-      { x: sx(300),  y: sy(1000), w: sx(58) - sx(0),  h: sy(165) - sy(0), anchorX: sx(590),  anchorY: sy(1145), wall: 'west' },
-
-      // east wall
-      { x: sx(2280), y: sy(555),  w: sx(58) - sx(0),  h: sy(165) - sy(0), anchorX: sx(2120), anchorY: sy(740),  wall: 'east' },
-      { x: sx(2380), y: sy(790),  w: sx(58) - sx(0),  h: sy(165) - sy(0), anchorX: sx(2180), anchorY: sy(960),  wall: 'east' },
-      { x: sx(2475), y: sy(1010), w: sx(58) - sx(0),  h: sy(165) - sy(0), anchorX: sx(2240), anchorY: sy(1165), wall: 'east' }
-    ];
-
-    return slots.map((slot, i) => ({
-      ...slot,
-      question: questions[i],
-      status: 'available', // available | failed | stolen
-      id: `painting-${i}`
-    }));
+  function renderHubStats() {
+    totalBankedEl.textContent = formatMoney(state.save.totalBanked);
+    bestHeistEl.textContent = formatMoney(state.save.bestHeist);
+    heistsPlayedEl.textContent = String(state.save.heistsPlayed);
+    paintingsStolenEl.textContent = String(state.save.paintingsStolen);
   }
 
-  function getNearbyPainting() {
+  function showScreen(name) {
+    state.screen = name;
+    hubScreen.classList.toggle('active', name === 'hub');
+    gameScreen.classList.toggle('active', name === 'game');
+  }
+
+  function getRoundNumber() {
+    return state.save.heistsPlayed + 1;
+  }
+
+  function sequencePick(sequence, roundNumber) {
+    return sequence[(roundNumber - 1) % sequence.length];
+  }
+
+  function randomFloorPoint(minX, maxX, minY, maxY, avoid = []) {
+    for (let i = 0; i < 500; i++) {
+      const x = minX + Math.random() * (maxX - minX);
+      const y = minY + Math.random() * (maxY - minY);
+
+      if (!pointInPolygon({ x, y }, FLOOR_POLY)) continue;
+      if (pointInRect(x, y, EXIT_ZONE)) continue;
+      if (distance(x, y, sx(1410), sy(1220)) < 90) continue;
+
+      let tooClose = false;
+      for (const other of avoid) {
+        if (distance(x, y, other.x, other.y) < 120) {
+          tooClose = true;
+          break;
+        }
+      }
+      if (tooClose) continue;
+
+      return { x, y };
+    }
+
+    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+  }
+
+  // =========================
+  // Heist items (9 total)
+  // 3 back wall / 2 left / 2 right / 1 pedestal / 1 A-board
+  // =========================
+  function createHeistItems(questions) {
+    const items = [];
+    const roundNumber = getRoundNumber();
+
+    const northSlots = [
+      { x: sx(980),  y: sy(285), w: sx(170), h: sy(68), anchorX: sx(1065), anchorY: sy(455), wall: 'north' },
+      { x: sx(1370), y: sy(285), w: sx(170), h: sy(68), anchorX: sx(1455), anchorY: sy(455), wall: 'north' },
+      { x: sx(1760), y: sy(285), w: sx(170), h: sy(68), anchorX: sx(1845), anchorY: sy(455), wall: 'north' }
+    ];
+
+    const westSlots = [
+      { x: sx(500), y: sy(555), w: sx(58), h: sy(165), anchorX: sx(710), anchorY: sy(730), wall: 'west' },
+      { x: sx(365), y: sy(900), w: sx(58), h: sy(165), anchorX: sx(620), anchorY: sy(1035), wall: 'west' }
+    ];
+
+    const eastSlots = [
+      { x: sx(2280), y: sy(585), w: sx(58), h: sy(165), anchorX: sx(2110), anchorY: sy(770), wall: 'east' },
+      { x: sx(2420), y: sy(940), w: sx(58), h: sy(165), anchorX: sx(2200), anchorY: sy(1085), wall: 'east' }
+    ];
+
+    const westSequence1 = [
+      artImages.westVariants[1], // _2
+      artImages.westVariants[2], // _3
+      artImages.westVariants[0], // base
+      artImages.westVariants[2], // _3
+      artImages.westVariants[0]  // base
+    ];
+
+    const westSequence2 = [
+      artImages.westVariants[2],
+      artImages.westVariants[0],
+      artImages.westVariants[1],
+      artImages.westVariants[0],
+      artImages.westVariants[1]
+    ];
+
+    let qIndex = 0;
+
+    northSlots.forEach((slot, i) => {
+      items.push({
+        ...slot,
+        id: `item-${qIndex}`,
+        type: 'wall',
+        status: 'available',
+        question: questions[qIndex],
+        image: artImages.north[i % artImages.north.length]
+      });
+      qIndex += 1;
+    });
+
+    items.push({
+      ...westSlots[0],
+      id: `item-${qIndex}`,
+      type: 'wall',
+      status: 'available',
+      question: questions[qIndex],
+      image: sequencePick(westSequence1, roundNumber)
+    });
+    qIndex += 1;
+
+    items.push({
+      ...westSlots[1],
+      id: `item-${qIndex}`,
+      type: 'wall',
+      status: 'available',
+      question: questions[qIndex],
+      image: sequencePick(westSequence2, roundNumber)
+    });
+    qIndex += 1;
+
+    eastSlots.forEach((slot, i) => {
+      items.push({
+        ...slot,
+        id: `item-${qIndex}`,
+        type: 'wall',
+        status: 'available',
+        question: questions[qIndex],
+        image: artImages.east[i % artImages.east.length]
+      });
+      qIndex += 1;
+    });
+
+    const pedestalPos = randomFloorPoint(
+      sx(1050), sx(1700),
+      sy(930), sy(1190),
+      []
+    );
+
+    items.push({
+      id: `item-${qIndex}`,
+      type: 'floor',
+      floorKind: 'pedestal',
+      status: 'available',
+      question: questions[qIndex],
+      image: artImages.pedestal,
+      anchorX: pedestalPos.x,
+      anchorY: pedestalPos.y,
+      drawW: 78,
+      drawH: 125
+    });
+    qIndex += 1;
+
+    const aboardPos = randomFloorPoint(
+      sx(1820), sx(2230),
+      sy(930), sy(1220),
+      [{ x: pedestalPos.x, y: pedestalPos.y }]
+    );
+
+    items.push({
+      id: `item-${qIndex}`,
+      type: 'floor',
+      floorKind: 'aboard',
+      status: 'available',
+      question: questions[qIndex],
+      image: artImages.aboard,
+      anchorX: aboardPos.x,
+      anchorY: aboardPos.y,
+      drawW: 88,
+      drawH: 135
+    });
+
+    return items;
+  }
+
+  function getNearbyItem() {
     if (!state.run) return null;
-    const px = state.player.x;
-    const py = state.player.y;
 
     let nearest = null;
     let nearestDist = Infinity;
 
-    for (const painting of state.run.paintings) {
-      if (painting.status !== 'available') continue;
-      const d = distance(px, py, painting.anchorX, painting.anchorY);
+    for (const item of state.run.items) {
+      if (item.status !== 'available') continue;
+      const d = distance(state.player.x, state.player.y, item.anchorX, item.anchorY);
       if (d < INTERACT_DISTANCE && d < nearestDist) {
-        nearest = painting;
+        nearest = item;
         nearestDist = d;
       }
     }
@@ -438,21 +591,32 @@
     return nearest;
   }
 
-  // ===== Game flow =====
+  function getPullDirectionForItem(item) {
+    if (item.type === 'wall') return item.wall;
+
+    const dx = item.anchorX - state.player.x;
+    if (dx > 22) return 'east';
+    if (dx < -22) return 'west';
+    return 'north';
+  }
+
+  // =========================
+  // Game flow
+  // =========================
   function startHeist() {
-    const chosenQuestions = selectQuestions(10);
+    const chosenQuestions = selectQuestions(9);
+
     state.run = {
       haul: 0,
       strikes: 0,
-      paintings: createPaintings(chosenQuestions),
+      items: createHeistItems(chosenQuestions),
       ended: false,
-      escaped: false,
-      mode: 'play' // play | pull | chase | escape
+      mode: 'play'
     };
 
     state.player = {
       x: sx(1410),
-      y: sy(1240),
+      y: sy(1220),
       direction: 'south',
       moving: false,
       visible: true,
@@ -463,8 +627,9 @@
     };
 
     state.guard = {
-      x: sx(2575),
-      y: sy(1260),
+      x: (GUARD_DOOR_ZONE.x1 + GUARD_DOOR_ZONE.x2) / 2,
+      y: GUARD_DOOR_ZONE.y2,
+      direction: 'south-west',
       active: false,
       visible: true
     };
@@ -478,17 +643,19 @@
     if (!state.run) return;
     currentHaulEl.textContent = formatMoney(state.run.haul);
     strikeCountEl.textContent = `${state.run.strikes} / 3`;
-    paintingsLeftEl.textContent = String(state.run.paintings.filter(p => p.status === 'available').length);
+    paintingsLeftEl.textContent = String(state.run.items.filter(i => i.status === 'available').length);
   }
 
   function maybeEscape() {
     if (!state.run || state.run.ended) return;
+
     if (pointInRect(state.player.x, state.player.y, EXIT_ZONE) && state.run.haul > 0) {
       state.player.controlLocked = true;
       state.run.mode = 'escape';
       state.player.direction = 'south';
       return;
     }
+
     if (pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
       showBanner('You need some stolen art before escaping.');
     }
@@ -503,53 +670,45 @@
       return;
     }
 
-    const painting = getNearbyPainting();
-    if (!painting) {
+    const item = getNearbyItem();
+    if (!item) {
       showBanner('Nothing to interact with here.');
       return;
     }
 
-    state.activePainting = painting;
-    questionText.textContent = `${painting.question.question} (${formatMoney(painting.question.value)})`;
+    state.activeItem = item;
+    questionText.textContent = `${item.question.question} (${formatMoney(item.question.value)})`;
     answerInput.value = '';
     questionModal.classList.remove('hidden');
     answerInput.focus();
   }
 
-  function startPullAnimation(painting) {
+  function startPullAnimation(item) {
+    const pullDir = getPullDirectionForItem(item);
+
     state.player.controlLocked = true;
     state.run.mode = 'pull';
-
-    let pullDir = painting.wall;
-    if (!pullAnimations[pullDir]) {
-      pullDir = 'north';
-    }
-
-    if (pullDir === 'north') {
-      state.player.direction = 'north';
-    } else if (pullDir === 'west') {
-      state.player.direction = 'west';
-    } else if (pullDir === 'east') {
-      state.player.direction = 'north-east';
-    }
-
     state.player.action = {
       type: 'pull',
       dir: pullDir,
-      painting,
+      item,
       frameIndex: 0,
       timer: 0
     };
+
+    if (pullDir === 'north') state.player.direction = 'north';
+    if (pullDir === 'west') state.player.direction = 'north-west';
+    if (pullDir === 'east') state.player.direction = 'north-east';
   }
 
   function finishSuccessfulPull() {
     const action = state.player.action;
     if (!action || action.type !== 'pull') return;
 
-    const painting = action.painting;
-    const q = painting.question;
+    const item = action.item;
+    const q = item.question;
 
-    painting.status = 'stolen';
+    item.status = 'stolen';
     state.run.haul += Number(q.value);
     state.save.paintingsStolen += 1;
     state.save.usedQuestionIds.push(q.id);
@@ -561,25 +720,25 @@
     state.player.controlLocked = false;
     state.run.mode = 'play';
 
-    const anyAvailable = state.run.paintings.some(p => p.status === 'available');
+    const anyAvailable = state.run.items.some(i => i.status === 'available');
     if (!anyAvailable) {
-      showBanner('All paintings attempted. Head for the exit to bank your haul.');
+      showBanner('All items attempted. Head for the exit to bank your haul.');
     }
   }
 
   function submitAnswer() {
-    if (!state.activePainting) return;
+    if (!state.activeItem) return;
 
-    const painting = state.activePainting;
-    const q = painting.question;
+    const item = state.activeItem;
+    const q = item.question;
     const input = answerInput.value;
 
     questionModal.classList.add('hidden');
 
     if (isAnswerCorrect(input, q)) {
-      startPullAnimation(painting);
+      startPullAnimation(item);
     } else {
-      painting.status = 'failed';
+      item.status = 'failed';
       state.run.strikes += 1;
       updateRunStats();
       flashWrong();
@@ -590,7 +749,7 @@
       }
     }
 
-    state.activePainting = null;
+    state.activeItem = null;
   }
 
   function flashWrong() {
@@ -637,29 +796,19 @@
     renderHubStats();
   }
 
-  // ===== Movement / animation =====
-  function updateDirection(dx, dy) {
-    if (dx === 0 && dy === 0) return;
-
-    if (dy < 0 && dx === 0) state.player.direction = 'north';
-    else if (dy > 0 && dx === 0) state.player.direction = 'south';
-    else if (dx > 0 && dy === 0) state.player.direction = 'east';
-    else if (dx < 0 && dy === 0) state.player.direction = 'west';
-    else if (dx > 0 && dy < 0) state.player.direction = 'north-east';
-    else if (dx < 0 && dy < 0) state.player.direction = 'north-west';
-    else if (dx > 0 && dy > 0) state.player.direction = 'south-east';
-    else if (dx < 0 && dy > 0) state.player.direction = 'south-west';
-  }
-
-  function tryMove(dx, dy) {
-    const nx = state.player.x + dx;
-    const ny = state.player.y + dy;
-
-    const footPoint = { x: nx, y: ny };
-    if (pointInPolygon(footPoint, FLOOR_POLY)) {
-      state.player.x = nx;
-      state.player.y = ny;
-    }
+  // =========================
+  // Movement / animation
+  // =========================
+  function vectorToDirection(dx, dy) {
+    if (dy < 0 && dx === 0) return 'north';
+    if (dy > 0 && dx === 0) return 'south';
+    if (dx > 0 && dy === 0) return 'east';
+    if (dx < 0 && dy === 0) return 'west';
+    if (dx > 0 && dy < 0) return 'north-east';
+    if (dx < 0 && dy < 0) return 'north-west';
+    if (dx > 0 && dy > 0) return 'south-east';
+    if (dx < 0 && dy > 0) return 'south-west';
+    return 'south';
   }
 
   function updateWalkAnimation(delta) {
@@ -684,16 +833,25 @@
     if (action.timer >= PULL_FRAME_MS) {
       action.timer = 0;
       action.frameIndex += 1;
-
       if (action.frameIndex >= 6) {
         finishSuccessfulPull();
       }
     }
   }
 
+  function tryMove(dx, dy) {
+    const nx = state.player.x + dx;
+    const ny = state.player.y + dy;
+
+    if (pointInPolygon({ x: nx, y: ny }, FLOOR_POLY)) {
+      state.player.x = nx;
+      state.player.y = ny;
+    }
+  }
+
   function update(delta) {
     if (state.screen !== 'game' || !state.run || state.run.ended) return;
-    if (!questionModal.classList.contains('hidden')) return;
+    if (!questionModal.classList.contains('hidden') && state.run.mode === 'play') return;
 
     state.player.moving = false;
 
@@ -708,7 +866,7 @@
 
       if (dx !== 0 || dy !== 0) {
         state.player.moving = true;
-        updateDirection(dx, dy);
+        state.player.direction = vectorToDirection(dx, dy);
         tryMove(dx, dy);
       }
 
@@ -716,8 +874,6 @@
     } else if (state.run.mode === 'pull') {
       updatePullAnimation(delta);
     } else if (state.run.mode === 'chase') {
-      // Placeholder guard chase until his own animations are added.
-      // Nana runs toward exit.
       const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
       const targetY = EXIT_ZONE.y2 + sy(30);
 
@@ -725,24 +881,29 @@
       const dy = targetY - state.player.y;
       const len = Math.hypot(dx, dy) || 1;
 
-      const mx = (dx / len) * (MOVE_SPEED * 1.45);
-      const my = (dy / len) * (MOVE_SPEED * 1.45);
+      const mx = (dx / len) * CHASE_SPEED;
+      const my = (dy / len) * CHASE_SPEED;
 
       state.player.moving = true;
-      updateDirection(mx, my);
+      state.player.direction = vectorToDirection(mx, my);
       tryMove(mx, my);
       updateWalkAnimation(delta);
 
-      // Guard placeholder moves from door toward Nana
       const gdx = state.player.x - state.guard.x;
       const gdy = state.player.y - state.guard.y;
       const glen = Math.hypot(gdx, gdy) || 1;
-      state.guard.x += (gdx / glen) * 1.8;
-      state.guard.y += (gdy / glen) * 1.8;
+
+      const gmx = (gdx / glen) * GUARD_SPEED;
+      const gmy = (gdy / glen) * GUARD_SPEED;
+
+      state.guard.direction = vectorToDirection(gmx, gmy);
+      state.guard.x += gmx;
+      state.guard.y += gmy;
 
       if (state.player.y >= EXIT_ZONE.y2 - sy(10)) {
         state.player.visible = false;
       }
+
       if (!state.player.visible && state.guard.y >= EXIT_ZONE.y1) {
         endHeist(false);
       }
@@ -758,7 +919,7 @@
       const my = (dy / len) * MOVE_SPEED;
 
       state.player.moving = true;
-      updateDirection(mx, my);
+      state.player.direction = vectorToDirection(mx, my);
       tryMove(mx, my);
       updateWalkAnimation(delta);
 
@@ -769,51 +930,74 @@
     }
   }
 
-  // ===== Drawing =====
+  // =========================
+  // Drawing
+  // =========================
   function drawFallbackRoom() {
     ctx.fillStyle = '#20242b';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  function drawPaintingFrame(p) {
-    const fill = p.status === 'failed' ? '#994444' : '#ffffff';
-    const shadow = p.status === 'failed' ? '#682828' : '#b7bcc4';
-
-    ctx.fillStyle = shadow;
-    ctx.fillRect(p.x + 2, p.y + 2, p.w, p.h);
-
-    ctx.fillStyle = fill;
-    ctx.fillRect(p.x, p.y, p.w, p.h);
-
-    ctx.strokeStyle = '#353535';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(p.x, p.y, p.w, p.h);
-
-    if (p.status === 'failed') {
-      ctx.strokeStyle = '#2f0e0e';
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      ctx.lineTo(p.x + p.w, p.y + p.h);
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    if (p.wall === 'north') {
-      ctx.fillRect(p.x + 4, p.y + 4, p.w - 8, 4);
-    } else {
-      ctx.fillRect(p.x + 4, p.y + 6, 4, p.h - 12);
-    }
+  function drawImageFit(img, x, y, w, h) {
+    if (!img || !img.complete || !img.naturalWidth) return;
+    const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+    const dw = img.naturalWidth * scale;
+    const dh = img.naturalHeight * scale;
+    const dx = x + (w - dw) / 2;
+    const dy = y + (h - dh) / 2;
+    ctx.drawImage(img, dx, dy, dw, dh);
   }
 
-  function drawFallbackPlayer() {
-    const drawX = state.player.x - PLAYER_WIDTH / 2;
-    const drawY = state.player.y - PLAYER_HEIGHT;
+  function drawWallItem(item) {
+    if (item.status === 'failed') {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      drawImageFit(item.image, item.x, item.y, item.w, item.h);
+      ctx.restore();
 
-    ctx.fillStyle = '#f3d082';
-    ctx.fillRect(drawX + 70, drawY + 40, 60, 120);
-    ctx.fillStyle = '#222';
-    ctx.fillRect(drawX + 88, drawY + 65, 8, 8);
-    ctx.fillRect(drawX + 105, drawY + 65, 8, 8);
+      ctx.strokeStyle = '#6b1f1f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(item.x, item.y);
+      ctx.lineTo(item.x + item.w, item.y + item.h);
+      ctx.stroke();
+      return;
+    }
+
+    drawImageFit(item.image, item.x, item.y, item.w, item.h);
+  }
+
+  function drawFloorItem(item) {
+    const drawW = item.drawW;
+    const drawH = item.drawH;
+    const drawX = item.anchorX - drawW / 2;
+    const drawY = item.anchorY - drawH;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    ctx.beginPath();
+    ctx.ellipse(item.anchorX, item.anchorY - 4, drawW * 0.32, drawH * 0.08, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    if (item.status === 'failed') {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      if (item.image.complete) ctx.drawImage(item.image, drawX, drawY, drawW, drawH);
+      ctx.restore();
+
+      ctx.strokeStyle = '#6b1f1f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(drawX, drawY);
+      ctx.lineTo(drawX + drawW, drawY + drawH);
+      ctx.stroke();
+      return;
+    }
+
+    if (item.image.complete) {
+      ctx.drawImage(item.image, drawX, drawY, drawW, drawH);
+    }
   }
 
   function getCurrentPlayerImage() {
@@ -828,18 +1012,36 @@
     return set[state.player.walkFrameIndex];
   }
 
-  function drawPlayer() {
-    if (!state.player.visible) return;
-
-    const img = getCurrentPlayerImage();
+  function drawFallbackPlayer() {
     const drawX = state.player.x - PLAYER_WIDTH / 2;
     const drawY = state.player.y - PLAYER_HEIGHT;
 
-    if (allSpritesLoaded && img && img.complete) {
+    ctx.fillStyle = '#f3d082';
+    ctx.fillRect(drawX + 34, drawY + 14, 32, 72);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(drawX + 44, drawY + 28, 6, 6);
+    ctx.fillRect(drawX + 56, drawY + 28, 6, 6);
+  }
+
+  function drawPlayer() {
+    if (!state.player.visible) return;
+
+    const drawX = state.player.x - PLAYER_WIDTH / 2;
+    const drawY = state.player.y - PLAYER_HEIGHT;
+    const img = getCurrentPlayerImage();
+
+    if (img && img.complete) {
       ctx.drawImage(img, drawX, drawY, PLAYER_WIDTH, PLAYER_HEIGHT);
     } else {
       drawFallbackPlayer();
     }
+  }
+
+  function drawFallbackGuard() {
+    const drawX = state.guard.x - GUARD_WIDTH / 2;
+    const drawY = state.guard.y - GUARD_HEIGHT;
+    ctx.fillStyle = '#6b8cff';
+    ctx.fillRect(drawX + 32, drawY + 12, 34, 76);
   }
 
   function drawGuard() {
@@ -847,55 +1049,79 @@
 
     const drawX = state.guard.x - GUARD_WIDTH / 2;
     const drawY = state.guard.y - GUARD_HEIGHT;
+    const img = guardSprites[state.guard.direction];
 
-    ctx.fillStyle = '#6b8cff';
-    ctx.fillRect(drawX + 35, drawY + 45, 50, 125);
-    ctx.fillStyle = '#162041';
-    ctx.fillRect(drawX + 50, drawY + 68, 8, 8);
-    ctx.fillRect(drawX + 66, drawY + 68, 8, 8);
+    if (img && img.complete) {
+      ctx.drawImage(img, drawX, drawY, GUARD_WIDTH, GUARD_HEIGHT);
+    } else {
+      drawFallbackGuard();
+    }
   }
 
   function drawPrompt() {
     if (!state.run || state.run.mode !== 'play' || state.player.controlLocked) return;
 
-    const painting = getNearbyPainting();
-    if (painting) {
+    const item = getNearbyItem();
+    if (item) {
       ctx.fillStyle = 'rgba(0,0,0,.72)';
-      ctx.fillRect(state.player.x - 60, state.player.y - PLAYER_HEIGHT - 28, 120, 20);
+      ctx.fillRect(state.player.x - 60, state.player.y - PLAYER_HEIGHT - 24, 120, 20);
       ctx.fillStyle = '#f7e7b0';
       ctx.font = '12px Arial';
-      ctx.fillText('Press E / Interact', state.player.x - 48, state.player.y - PLAYER_HEIGHT - 14);
+      ctx.fillText('Press E / Interact', state.player.x - 48, state.player.y - PLAYER_HEIGHT - 10);
       return;
     }
 
     if (pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
       ctx.fillStyle = 'rgba(0,0,0,.72)';
-      ctx.fillRect(state.player.x - 45, state.player.y - PLAYER_HEIGHT - 28, 90, 20);
+      ctx.fillRect(state.player.x - 45, state.player.y - PLAYER_HEIGHT - 24, 90, 20);
       ctx.fillStyle = '#f7e7b0';
       ctx.font = '12px Arial';
-      ctx.fillText('Exit & bank', state.player.x - 28, state.player.y - PLAYER_HEIGHT - 14);
+      ctx.fillText('Exit & bank', state.player.x - 28, state.player.y - PLAYER_HEIGHT - 10);
     }
   }
 
   function drawRoom() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (roomLoaded) {
+    if (roomBackground.complete) {
       ctx.drawImage(roomBackground, 0, 0, canvas.width, canvas.height);
     } else {
       drawFallbackRoom();
     }
 
     if (state.run) {
-      for (const p of state.run.paintings) {
-        if (p.status === 'stolen') continue;
-        drawPaintingFrame(p);
+      const wallItems = state.run.items.filter(i => i.type === 'wall' && i.status !== 'stolen');
+      const floorItems = state.run.items.filter(i => i.type === 'floor' && i.status !== 'stolen');
+
+      wallItems.forEach(drawWallItem);
+
+      const floorDrawables = [];
+
+      floorItems.forEach(item => {
+        floorDrawables.push({
+          y: item.anchorY,
+          draw: () => drawFloorItem(item)
+        });
+      });
+
+      if (state.player.visible) {
+        floorDrawables.push({
+          y: state.player.y,
+          draw: drawPlayer
+        });
       }
+
+      if (state.guard.active && state.guard.visible) {
+        floorDrawables.push({
+          y: state.guard.y,
+          draw: drawGuard
+        });
+      }
+
+      floorDrawables.sort((a, b) => a.y - b.y).forEach(d => d.draw());
     }
 
     drawPrompt();
-    drawPlayer();
-    drawGuard();
   }
 
   function gameLoop(timestamp) {
@@ -908,7 +1134,9 @@
     requestAnimationFrame(gameLoop);
   }
 
-  // ===== Events =====
+  // =========================
+  // Events
+  // =========================
   document.addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
 
@@ -964,14 +1192,14 @@
   submitAnswerBtn.addEventListener('click', submitAnswer);
   cancelAnswerBtn.addEventListener('click', () => {
     questionModal.classList.add('hidden');
-    state.activePainting = null;
+    state.activeItem = null;
   });
 
   summaryContinueBtn.addEventListener('click', returnToHub);
 
-  // ===== Init =====
-  loadAnimationSet(animationFiles, walkAnimations);
-  loadAnimationSet(pullFiles, pullAnimations);
+  // =========================
+  // Init
+  // =========================
   renderHubStats();
   showScreen('hub');
   requestAnimationFrame(gameLoop);
