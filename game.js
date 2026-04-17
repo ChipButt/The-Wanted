@@ -33,14 +33,22 @@ const ctx = canvas.getContext('2d');
 const interactBtn = document.getElementById('interactBtn');
 const joystickButtons = [...document.querySelectorAll('.joystick button')];
 
-const STORAGE_KEY = 'nanaHeistSave_v4';
-
-const ROOM = { x: 170, y: 150, w: 620, h: 340 };
-const DOOR = { x: 445, y: 470, w: 70, h: 28 };
-const GUARD_DOOR = { x: 748, y: 255, w: 26, h: 76 };
+const STORAGE_KEY = 'nanaHeistSave_v5';
 
 const PLAYER_SPRITE_SIZE = 36;
 const GUARD_SIZE = 18;
+
+// Play area tuned to the museum-room.png layout
+const WALK_BOUNDS = {
+  minX: 165,
+  maxX: 776,
+  minY: 155,
+  maxY: 476
+};
+
+// Exit and guard door trigger zones matched to the room image
+const DOOR_TRIGGER = { x: 432, y: 500, w: 96, h: 42 };
+const GUARD_SPAWN = { x: 768, y: 305 };
 
 const spriteFiles = {
   north: 'north.png',
@@ -55,6 +63,12 @@ const spriteFiles = {
 
 const playerSprites = {};
 let spritesLoaded = false;
+
+const roomBackground = new Image();
+let roomLoaded = false;
+roomBackground.onload = () => { roomLoaded = true; };
+roomBackground.onerror = () => { console.warn('Failed to load museum-room.png'); };
+roomBackground.src = 'museum-room.png';
 
 function loadPlayerSprites() {
   let loadedCount = 0;
@@ -80,7 +94,6 @@ const state = {
   keys: { up: false, down: false, left: false, right: false },
   run: null,
   activePainting: null,
-  currentTheme: null,
   player: {
     x: 480,
     y: 430,
@@ -92,49 +105,13 @@ const state = {
     direction: 'south'
   },
   guard: {
-    x: 900,
-    y: 320,
+    x: GUARD_SPAWN.x,
+    y: GUARD_SPAWN.y,
     w: GUARD_SIZE,
     h: GUARD_SIZE,
     active: false
   }
 };
-
-const themes = [
-  {
-    title: 'Blue Velvet Gallery',
-    backWall: '#4a5d78',
-    leftWall: '#38485f',
-    rightWall: '#314157',
-    floorTop: '#243142',
-    floorBottom: '#1a2431',
-    trim: '#9eb4d3',
-    frame: '#ffffff',
-    frameShadow: '#8ea0bb'
-  },
-  {
-    title: 'Crimson Vault Museum',
-    backWall: '#6d4d5b',
-    leftWall: '#563946',
-    rightWall: '#4d333f',
-    floorTop: '#34202a',
-    floorBottom: '#26161e',
-    trim: '#d6a8b9',
-    frame: '#ffffff',
-    frameShadow: '#c78ea6'
-  },
-  {
-    title: 'Emerald Wing Collection',
-    backWall: '#52715e',
-    leftWall: '#405948',
-    rightWall: '#374d3d',
-    floorTop: '#233629',
-    floorBottom: '#18261d',
-    trim: '#aed1ba',
-    frame: '#ffffff',
-    frameShadow: '#8db79b'
-  }
-];
 
 function loadSave() {
   try {
@@ -185,6 +162,7 @@ function levenshtein(a, b) {
   const m = a.length;
   const n = b.length;
   const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
   for (let i = 0; i <= m; i++) dp[i][0] = i;
   for (let j = 0; j <= n; j++) dp[0][j] = j;
 
@@ -264,19 +242,23 @@ function selectQuestions(count) {
 }
 
 function createPaintings(questions) {
+  // Positions matched to the blank wall areas in museum-room.png
   const slots = [
-    { x: 255, y: 154, w: 56, h: 18 },
-    { x: 370, y: 154, w: 56, h: 18 },
-    { x: 485, y: 154, w: 56, h: 18 },
-    { x: 600, y: 154, w: 56, h: 18 },
+    // back wall
+    { x: 260, y: 110, w: 62, h: 22 },
+    { x: 388, y: 110, w: 62, h: 22 },
+    { x: 516, y: 110, w: 62, h: 22 },
+    { x: 644, y: 110, w: 62, h: 22 },
 
-    { x: 250, y: 458, w: 56, h: 18 },
-    { x: 365, y: 458, w: 56, h: 18 },
-    { x: 595, y: 458, w: 56, h: 18 },
-    { x: 710, y: 458, w: 56, h: 18 },
+    // floor-facing lower frames / front wall line
+    { x: 250, y: 458, w: 62, h: 22 },
+    { x: 370, y: 458, w: 62, h: 22 },
+    { x: 590, y: 458, w: 62, h: 22 },
+    { x: 710, y: 458, w: 62, h: 22 },
 
-    { x: 186, y: 248, w: 18, h: 54 },
-    { x: 756, y: 352, w: 18, h: 54 }
+    // side walls
+    { x: 128, y: 238, w: 18, h: 62 },
+    { x: 824, y: 250, w: 18, h: 62 }
   ];
 
   return slots.map((slot, i) => ({
@@ -289,7 +271,6 @@ function createPaintings(questions) {
 
 function startHeist() {
   const chosenQuestions = selectQuestions(10);
-  state.currentTheme = themes[Math.floor(Math.random() * themes.length)];
   state.run = {
     haul: 0,
     strikes: 0,
@@ -300,7 +281,7 @@ function startHeist() {
 
   state.player = {
     x: 480,
-    y: 430,
+    y: 425,
     w: 18,
     h: 18,
     speed: 2.4,
@@ -310,8 +291,8 @@ function startHeist() {
   };
 
   state.guard = {
-    x: GUARD_DOOR.x + 4,
-    y: GUARD_DOOR.y + 28,
+    x: GUARD_SPAWN.x,
+    y: GUARD_SPAWN.y,
     w: GUARD_SIZE,
     h: GUARD_SIZE,
     active: false
@@ -319,7 +300,7 @@ function startHeist() {
 
   updateRunStats();
   showScreen('game');
-  showBanner('Heist started: ' + state.currentTheme.title);
+  showBanner('Heist started.');
 }
 
 function updateRunStats() {
@@ -335,13 +316,8 @@ function rectsOverlap(a, b) {
 
 function tryMove(dx, dy) {
   const p = state.player;
-  const minX = ROOM.x + 10;
-  const maxX = ROOM.x + ROOM.w - 10 - p.w;
-  const minY = ROOM.y + 28;
-  const maxY = ROOM.y + ROOM.h - 10 - p.h;
-
-  p.x = Math.max(minX, Math.min(maxX, p.x + dx));
-  p.y = Math.max(minY, Math.min(maxY, p.y + dy));
+  p.x = Math.max(WALK_BOUNDS.minX, Math.min(WALK_BOUNDS.maxX - p.w, p.x + dx));
+  p.y = Math.max(WALK_BOUNDS.minY, Math.min(WALK_BOUNDS.maxY - p.h, p.y + dy));
 }
 
 function updatePlayerDirection(dx, dy) {
@@ -367,11 +343,11 @@ function getNearbyPainting() {
 function maybeEscape() {
   if (!state.run || state.run.ended) return;
 
-  if (rectsOverlap(state.player, DOOR) && state.run.haul > 0) {
+  if (rectsOverlap(state.player, DOOR_TRIGGER) && state.run.haul > 0) {
     state.player.controlLocked = true;
     state.player.direction = 'south';
     state.run.escaped = true;
-  } else if (rectsOverlap(state.player, DOOR)) {
+  } else if (rectsOverlap(state.player, DOOR_TRIGGER)) {
     showBanner('You need some stolen art before escaping.');
   }
 }
@@ -379,7 +355,7 @@ function maybeEscape() {
 function interact() {
   if (!state.run || state.run.ended || state.player.controlLocked) return;
 
-  if (rectsOverlap(state.player, DOOR)) {
+  if (rectsOverlap(state.player, DOOR_TRIGGER)) {
     maybeEscape();
     return;
   }
@@ -496,24 +472,26 @@ function update() {
       tryMove(dx, dy);
     }
   } else if (state.guard.active) {
+    // caught animation
     state.player.direction = 'south';
 
     if (state.player.x > 470) state.player.x -= 2.1;
-    if (state.player.y < 488) state.player.y += 2.0;
+    if (state.player.y < 515) state.player.y += 2.0;
 
     if (state.guard.x > state.player.x + 24) state.guard.x -= 2.0;
     if (state.guard.y < state.player.y + 10) state.guard.y += 1.5;
     if (state.guard.y > state.player.y + 10) state.guard.y -= 1.5;
 
-    if (state.player.y >= 485) {
+    if (state.player.y >= 510) {
       state.player.visible = false;
     }
 
-    if (!state.player.visible && state.guard.y >= 475) {
+    if (!state.player.visible && state.guard.y >= 500) {
       endHeist(false);
     }
   } else if (state.run.escaped) {
-    if (state.player.y < 488) {
+    // successful exit animation
+    if (state.player.y < 515) {
       state.player.y += 2.0;
       state.player.direction = 'south';
     } else {
@@ -523,72 +501,10 @@ function update() {
   }
 }
 
-function drawPoly(points, fill, stroke = null, lineWidth = 1) {
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  for (let i = 1; i < points.length; i++) {
-    ctx.lineTo(points[i].x, points[i].y);
-  }
-  ctx.closePath();
-  if (fill) {
-    ctx.fillStyle = fill;
-    ctx.fill();
-  }
-  if (stroke) {
-    ctx.lineWidth = lineWidth;
-    ctx.strokeStyle = stroke;
-    ctx.stroke();
-  }
-}
-
-function drawGradientFloor(x, y, w, h, topColor, bottomColor) {
-  const grad = ctx.createLinearGradient(0, y, 0, y + h);
-  grad.addColorStop(0, topColor);
-  grad.addColorStop(1, bottomColor);
-  ctx.fillStyle = grad;
-  ctx.fillRect(x, y, w, h);
-}
-
-function drawExitDoor(theme) {
-  ctx.fillStyle = '#5d422c';
-  ctx.fillRect(DOOR.x, DOOR.y, DOOR.w, DOOR.h);
-  ctx.strokeStyle = '#322215';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(DOOR.x, DOOR.y, DOOR.w, DOOR.h);
-
-  ctx.fillStyle = '#7c5b3f';
-  ctx.fillRect(DOOR.x + 8, DOOR.y + 4, DOOR.w - 16, DOOR.h - 8);
-
-  ctx.strokeStyle = theme.trim;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(DOOR.x, DOOR.y);
-  ctx.lineTo(DOOR.x + DOOR.w, DOOR.y);
-  ctx.stroke();
-}
-
-function drawGuardDoor(theme) {
-  ctx.fillStyle = '#5d422c';
-  ctx.fillRect(GUARD_DOOR.x, GUARD_DOOR.y, GUARD_DOOR.w, GUARD_DOOR.h);
-  ctx.strokeStyle = '#322215';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(GUARD_DOOR.x, GUARD_DOOR.y, GUARD_DOOR.w, GUARD_DOOR.h);
-
-  ctx.fillStyle = '#7c5b3f';
-  ctx.fillRect(GUARD_DOOR.x + 4, GUARD_DOOR.y + 8, GUARD_DOOR.w - 8, GUARD_DOOR.h - 16);
-
-  ctx.strokeStyle = theme.trim;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(GUARD_DOOR.x, GUARD_DOOR.y);
-  ctx.lineTo(GUARD_DOOR.x + GUARD_DOOR.w, GUARD_DOOR.y);
-  ctx.stroke();
-}
-
-function drawPaintingFrame(p, theme) {
+function drawPaintingFrame(p) {
   const isVertical = p.h > p.w;
-  const fill = p.status === 'failed' ? '#994444' : theme.frame;
-  const shadow = p.status === 'failed' ? '#682828' : theme.frameShadow;
+  const fill = p.status === 'failed' ? '#994444' : '#ffffff';
+  const shadow = p.status === 'failed' ? '#682828' : '#b7bcc4';
 
   ctx.fillStyle = shadow;
   ctx.fillRect(p.x + 2, p.y + 2, p.w, p.h);
@@ -596,7 +512,7 @@ function drawPaintingFrame(p, theme) {
   ctx.fillStyle = fill;
   ctx.fillRect(p.x, p.y, p.w, p.h);
 
-  ctx.strokeStyle = '#1b1b1b';
+  ctx.strokeStyle = '#353535';
   ctx.lineWidth = 1;
   ctx.strokeRect(p.x, p.y, p.w, p.h);
 
@@ -609,10 +525,10 @@ function drawPaintingFrame(p, theme) {
   }
 
   if (!isVertical) {
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillStyle = 'rgba(255,255,255,0.24)';
     ctx.fillRect(p.x + 4, p.y + 3, p.w - 8, 3);
   } else {
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillStyle = 'rgba(255,255,255,0.24)';
     ctx.fillRect(p.x + 3, p.y + 4, 3, p.h - 8);
   }
 }
@@ -649,61 +565,26 @@ function drawGuard() {
   ctx.fillRect(state.guard.x + 11, state.guard.y + 4, 3, 3);
 }
 
+function drawFallbackRoom() {
+  ctx.fillStyle = '#20242b';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#d8d8de';
+  ctx.fillRect(120, 80, 720, 420);
+}
+
 function drawRoom() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const theme = state.currentTheme || themes[0];
 
-  ctx.fillStyle = '#101318';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const backWall = [
-    { x: ROOM.x + 34, y: ROOM.y },
-    { x: ROOM.x + ROOM.w - 34, y: ROOM.y },
-    { x: ROOM.x + ROOM.w - 8, y: ROOM.y + 30 },
-    { x: ROOM.x + 8, y: ROOM.y + 30 }
-  ];
-
-  const leftWall = [
-    { x: ROOM.x, y: ROOM.y + 28 },
-    { x: ROOM.x + 34, y: ROOM.y },
-    { x: ROOM.x + 34, y: ROOM.y + ROOM.h - 32 },
-    { x: ROOM.x, y: ROOM.y + ROOM.h }
-  ];
-
-  const rightWall = [
-    { x: ROOM.x + ROOM.w - 34, y: ROOM.y },
-    { x: ROOM.x + ROOM.w, y: ROOM.y + 28 },
-    { x: ROOM.x + ROOM.w, y: ROOM.y + ROOM.h },
-    { x: ROOM.x + ROOM.w - 34, y: ROOM.y + ROOM.h - 32 }
-  ];
-
-  drawPoly(backWall, theme.backWall, '#121821', 2);
-  drawPoly(leftWall, theme.leftWall, '#121821', 2);
-  drawPoly(rightWall, theme.rightWall, '#121821', 2);
-
-  drawGradientFloor(ROOM.x + 34, ROOM.y + 30, ROOM.w - 68, ROOM.h - 62, theme.floorTop, theme.floorBottom);
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 8; i++) {
-    const y = ROOM.y + 45 + i * 38;
-    ctx.beginPath();
-    ctx.moveTo(ROOM.x + 38, y);
-    ctx.lineTo(ROOM.x + ROOM.w - 38, y);
-    ctx.stroke();
+  if (roomLoaded) {
+    ctx.drawImage(roomBackground, 0, 0, canvas.width, canvas.height);
+  } else {
+    drawFallbackRoom();
   }
-
-  ctx.fillStyle = '#f4efe6';
-  ctx.font = '20px Arial';
-  ctx.fillText(theme.title, ROOM.x + 40, 42);
-
-  drawGuardDoor(theme);
-  drawExitDoor(theme);
 
   if (state.run) {
     for (const p of state.run.paintings) {
       if (p.status === 'stolen') continue;
-      drawPaintingFrame(p, theme);
+      drawPaintingFrame(p);
     }
   }
 
@@ -714,7 +595,7 @@ function drawRoom() {
     ctx.fillStyle = '#f7e7b0';
     ctx.font = '12px Arial';
     ctx.fillText('Press E / Interact', state.player.x - 4, state.player.y - 14);
-  } else if (rectsOverlap(state.player, DOOR) && !state.player.controlLocked) {
+  } else if (rectsOverlap(state.player, DOOR_TRIGGER) && !state.player.controlLocked) {
     ctx.fillStyle = 'rgba(0,0,0,.68)';
     ctx.fillRect(state.player.x - 8, state.player.y - 28, 86, 20);
     ctx.fillStyle = '#f7e7b0';
