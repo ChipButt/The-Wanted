@@ -302,6 +302,73 @@
     }, 3500);
   }
 
+  // =========
+  // AUDIO
+  // =========
+  const chaChingSound = new Audio('ChaChing.mp3');
+  const sirenSound = new Audio('Siren.mp3');
+  const withMeSound = new Audio('WithMe.mp3');
+  const heyStopSound = new Audio('Hey!Stop.mp3');
+  const backgroundMusic = new Audio('Minuet Antique.mp3');
+
+  sirenSound.loop = true;
+  backgroundMusic.loop = true;
+
+  function safeRestartAudio(audio, volume = 1) {
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = volume;
+      const p = audio.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch (_) {}
+  }
+
+  function stopAudio(audio) {
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch (_) {}
+  }
+
+  function stopAllGameAudio() {
+    stopAudio(sirenSound);
+    stopAudio(heyStopSound);
+    stopAudio(withMeSound);
+    stopAudio(chaChingSound);
+    stopAudio(backgroundMusic);
+  }
+
+  function playHeyStopThenSiren() {
+    state.audio.sirenStarted = false;
+
+    const startSiren = () => {
+      if (state.audio.sirenStarted) return;
+      state.audio.sirenStarted = true;
+      safeRestartAudio(sirenSound, 0.55);
+    };
+
+    try {
+      heyStopSound.pause();
+      heyStopSound.currentTime = 0;
+      heyStopSound.volume = 0.95;
+      heyStopSound.addEventListener('ended', startSiren, { once: true });
+      const p = heyStopSound.play();
+      if (p && typeof p.catch === 'function') p.catch(() => startSiren());
+    } catch (_) {
+      startSiren();
+    }
+
+    setTimeout(() => {
+      if (state.run && (state.run.mode === 'chase' || state.run.mode === 'escort')) {
+        startSiren();
+      }
+    }, 1200);
+  }
+
+  // =========
+  // ASSETS
+  // =========
   const roomBackground = loadImage('museum-room.png');
 
   const walkAnimations = {
@@ -464,15 +531,12 @@
       shakeTimer: 0,
       shakeX: 0,
       shakeY: 0
+    },
+    audio: {
+      sirenStarted: false,
+      withMePlayed: false
     }
   };
-
-  function renderHubStats() {
-    totalBankedEl.textContent = formatMoney(state.save.totalBanked);
-    bestHeistEl.textContent = formatMoney(state.save.bestHeist);
-    heistsPlayedEl.textContent = String(state.save.heistsPlayed);
-    paintingsStolenEl.textContent = String(state.save.paintingsStolen);
-  }
 
   function resolveItemImage(item) {
     if (item.image && imageReady(item.image)) return item.image;
@@ -497,6 +561,7 @@
       canvas.style.touchAction = 'none';
       window.scrollTo(0, 0);
     } else {
+      stopAllGameAudio();
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
       document.body.style.overscrollBehavior = '';
@@ -510,19 +575,75 @@
     const roundNumber = getRoundNumber();
 
     const northSlots = [
-      { x: sx(800),  y: sy(340), w: sx(350), h: sy(150), anchorX: sx(975),  anchorY: sy(760), wall: 'north' },
-      { x: sx(1235), y: sy(340), w: sx(350), h: sy(150), anchorX: sx(1410), anchorY: sy(760), wall: 'north' },
-      { x: sx(1670), y: sy(340), w: sx(350), h: sy(150), anchorX: sx(1845), anchorY: sy(760), wall: 'north' }
+      {
+        x: sx(898 - 175),
+        y: sy(443 - 75),
+        w: sx(350),
+        h: sy(150),
+        anchorX: sx(975),
+        anchorY: sy(760),
+        wall: 'north'
+      },
+      {
+        x: sx(1414 - 175),
+        y: sy(393 - 75),
+        w: sx(350),
+        h: sy(150),
+        anchorX: sx(1410),
+        anchorY: sy(760),
+        wall: 'north'
+      },
+      {
+        x: sx(1925 - 175),
+        y: sy(440 - 75),
+        w: sx(350),
+        h: sy(150),
+        anchorX: sx(1845),
+        anchorY: sy(760),
+        wall: 'north'
+      }
     ];
 
     const westSlots = [
-      { x: sx(360), y: sy(410), w: sx(160), h: sy(320), anchorX: sx(670), anchorY: sy(790), wall: 'west' },
-      { x: sx(180), y: sy(660), w: sx(160), h: sy(320), anchorX: sx(530), anchorY: sy(1015), wall: 'west' }
+      {
+        x: sx(503 - 80),
+        y: sy(576 - 160),
+        w: sx(160),
+        h: sy(320),
+        anchorX: sx(690),
+        anchorY: sy(790),
+        wall: 'west'
+      },
+      {
+        x: sx(291 - 80),
+        y: sy(806 - 160),
+        w: sx(160),
+        h: sy(320),
+        anchorX: sx(530),
+        anchorY: sy(1015),
+        wall: 'west'
+      }
     ];
 
     const eastSlots = [
-      { x: sx(2060), y: sy(370), w: sx(160), h: sy(320), anchorX: sx(1990), anchorY: sy(785), wall: 'east' },
-      { x: sx(2220), y: sy(650), w: sx(160), h: sy(320), anchorX: sx(2100), anchorY: sy(1015), wall: 'east' }
+      {
+        x: sx(2219 - 80),
+        y: sy(525 - 160),
+        w: sx(160),
+        h: sy(320),
+        anchorX: sx(2040),
+        anchorY: sy(785),
+        wall: 'east'
+      },
+      {
+        x: sx(2405 - 80),
+        y: sy(721 - 160),
+        w: sx(160),
+        h: sy(320),
+        anchorX: sx(2150),
+        anchorY: sy(1015),
+        wall: 'east'
+      }
     ];
 
     const westSequence1 = [
@@ -689,6 +810,11 @@
       visible: true
     };
 
+    stopAllGameAudio();
+    state.audio.sirenStarted = false;
+    state.audio.withMePlayed = false;
+    safeRestartAudio(backgroundMusic, 0.22);
+
     updateRunStats();
     showScreen('game');
     showBanner('Heist started.');
@@ -734,8 +860,15 @@
     state.activeItem = item;
     questionText.textContent = `${item.question.question} (${formatMoney(item.question.value)})`;
     answerInput.value = '';
+    answerInput.style.fontSize = '16px';
     questionModal.classList.remove('hidden');
-    answerInput.focus();
+    window.scrollTo(0, 0);
+
+    try {
+      answerInput.focus({ preventScroll: true });
+    } catch (_) {
+      answerInput.focus();
+    }
   }
 
   function startPullAnimation(item) {
@@ -770,6 +903,7 @@
 
     updateRunStats();
     showBanner(`Stolen! +${formatMoney(q.value)}`);
+    safeRestartAudio(chaChingSound, 0.9);
 
     state.player.action = null;
     state.player.controlLocked = false;
@@ -817,6 +951,8 @@
     state.guard.active = true;
     state.run.mode = 'chase';
     state.fx.guardFlashTimer = GUARD_FLASH_MS;
+    state.audio.withMePlayed = false;
+    playHeyStopThenSiren();
     showBanner('Security is coming...');
   }
 
@@ -851,6 +987,7 @@
 
     state.run.ended = true;
     state.save.heistsPlayed += 1;
+    stopAllGameAudio();
 
     if (escaped) {
       state.save.totalBanked += state.run.haul;
@@ -869,6 +1006,7 @@
   }
 
   function returnToHub() {
+    stopAllGameAudio();
     summaryModal.classList.add('hidden');
     state.run = null;
     showScreen('hub');
@@ -1016,13 +1154,16 @@
 
       if (distance(state.guard.x, state.guard.y, state.player.x, state.player.y) < 26) {
         state.run.mode = 'escort';
+
+        if (!state.audio.withMePlayed) {
+          state.audio.withMePlayed = true;
+          safeRestartAudio(withMeSound, 0.95);
+        }
+
         showBanner('Caught! Escorted out.');
       }
 
     } else if (state.run.mode === 'escort') {
-      const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
-      const targetY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
-
       if (
         pointInRect(state.player.x, state.player.y, EXIT_ZONE) ||
         pointInRect(state.guard.x, state.guard.y, EXIT_ZONE)
@@ -1032,6 +1173,9 @@
         returnCaughtToHub();
         return;
       }
+
+      const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
+      const targetY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
 
       const dx = targetX - state.player.x;
       const dy = targetY - state.player.y;
@@ -1296,18 +1440,39 @@
     const left = joystick.querySelector('[data-dir="left"]');
     const right = joystick.querySelector('[data-dir="right"]');
 
-    const place = (btn, leftPx, topPx) => {
+    const buttons = [up, down, left, right];
+    buttons.forEach((btn) => {
       if (!btn) return;
       btn.style.position = 'absolute';
-      btn.style.left = `${leftPx}px`;
-      btn.style.top = `${topPx}px`;
-    };
+      btn.style.width = '48px';
+      btn.style.height = '48px';
+    });
 
-    place(up, 56, 0);
-    place(left, 0, 56);
-    place(down, 56, 56);
-    place(right, 112, 56);
+    if (up) {
+      up.style.left = '56px';
+      up.style.top = '0px';
+    }
+    if (left) {
+      left.style.left = '0px';
+      left.style.top = '56px';
+    }
+    if (down) {
+      down.style.left = '56px';
+      down.style.top = '56px';
+    }
+    if (right) {
+      right.style.left = '112px';
+      right.style.top = '56px';
+    }
   }
+
+  // Mobile input zoom prevention
+  answerInput.style.fontSize = '16px';
+  answerInput.style.lineHeight = '1.2';
+  answerInput.style.transform = 'translateZ(0)';
+  answerInput.autocapitalize = 'off';
+  answerInput.autocomplete = 'off';
+  answerInput.spellcheck = false;
 
   document.addEventListener('touchmove', (e) => {
     if (state.screen === 'game') {
