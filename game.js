@@ -32,6 +32,7 @@
 
   const interactBtn = document.getElementById('interactBtn');
   const joystickButtons = [...document.querySelectorAll('.joystick button')];
+  const joystick = document.querySelector('.joystick');
 
   const STORAGE_KEY = 'nanaHeistSave_v9';
 
@@ -272,9 +273,9 @@
 
     if (item.floorKind === 'aboard') {
       return {
-        x1: item.anchorX - item.drawW * 0.46,
+        x1: item.anchorX - item.drawW * 0.48,
         y1: item.anchorY - item.drawH * 0.18,
-        x2: item.anchorX + item.drawW * 0.46,
+        x2: item.anchorX + item.drawW * 0.48,
         y2: item.anchorY + 10
       };
     }
@@ -424,7 +425,12 @@
       loadImage('painting_portrait_right_angle.png')
     ],
     pedestal: loadImage('statue_on_pedestal.png'),
-    aboard: loadImage('A-Board Art Piece.png')
+    aboardCandidates: [
+      loadImage('ABOARD_ART_PIECE.PNG'),
+      loadImage('A-BOARD_ART_PIECE.PNG'),
+      loadImage('A-Board Art Piece.png'),
+      loadImage('A-Board_Art_Piece.png')
+    ]
   };
 
   const state = {
@@ -468,6 +474,16 @@
     paintingsStolenEl.textContent = String(state.save.paintingsStolen);
   }
 
+  function resolveItemImage(item) {
+    if (item.image && imageReady(item.image)) return item.image;
+    if (item.imageCandidates) {
+      for (const img of item.imageCandidates) {
+        if (imageReady(img)) return img;
+      }
+    }
+    return null;
+  }
+
   function showScreen(name) {
     state.screen = name;
     hubScreen.classList.toggle('active', name === 'hub');
@@ -494,19 +510,19 @@
     const roundNumber = getRoundNumber();
 
     const northSlots = [
-      { x: sx(800),  y: sy(360), w: sx(350), h: sy(150), anchorX: sx(975),  anchorY: sy(760), wall: 'north' },
-      { x: sx(1235), y: sy(360), w: sx(350), h: sy(150), anchorX: sx(1410), anchorY: sy(760), wall: 'north' },
-      { x: sx(1670), y: sy(360), w: sx(350), h: sy(150), anchorX: sx(1845), anchorY: sy(760), wall: 'north' }
+      { x: sx(800),  y: sy(340), w: sx(350), h: sy(150), anchorX: sx(975),  anchorY: sy(760), wall: 'north' },
+      { x: sx(1235), y: sy(340), w: sx(350), h: sy(150), anchorX: sx(1410), anchorY: sy(760), wall: 'north' },
+      { x: sx(1670), y: sy(340), w: sx(350), h: sy(150), anchorX: sx(1845), anchorY: sy(760), wall: 'north' }
     ];
 
     const westSlots = [
-      { x: sx(390), y: sy(430), w: sx(160), h: sy(320), anchorX: sx(690), anchorY: sy(790), wall: 'west' },
-      { x: sx(220), y: sy(710), w: sx(160), h: sy(320), anchorX: sx(560), anchorY: sy(1030), wall: 'west' }
+      { x: sx(360), y: sy(410), w: sx(160), h: sy(320), anchorX: sx(670), anchorY: sy(790), wall: 'west' },
+      { x: sx(180), y: sy(660), w: sx(160), h: sy(320), anchorX: sx(530), anchorY: sy(1015), wall: 'west' }
     ];
 
     const eastSlots = [
-      { x: sx(2140), y: sy(430), w: sx(160), h: sy(320), anchorX: sx(2040), anchorY: sy(790), wall: 'east' },
-      { x: sx(2300), y: sy(710), w: sx(160), h: sy(320), anchorX: sx(2150), anchorY: sy(1035), wall: 'east' }
+      { x: sx(2060), y: sy(370), w: sx(160), h: sy(320), anchorX: sx(1990), anchorY: sy(785), wall: 'east' },
+      { x: sx(2220), y: sy(650), w: sx(160), h: sy(320), anchorX: sx(2100), anchorY: sy(1015), wall: 'east' }
     ];
 
     const westSequence1 = [
@@ -603,11 +619,11 @@
       floorKind: 'aboard',
       status: 'available',
       question: questions[qIndex],
-      image: artImages.aboard,
+      imageCandidates: artImages.aboardCandidates,
       anchorX: aboardPos.x,
       anchorY: aboardPos.y,
-      drawW: 88,
-      drawH: 135
+      drawW: 82,
+      drawH: 128
     });
 
     return items;
@@ -1007,16 +1023,19 @@
       const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
       const targetY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
 
-      const dx = targetX - state.player.x;
-      const dy = targetY - state.player.y;
-      const len = Math.hypot(dx, dy) || 1;
-
-      if (len < 20) {
+      if (
+        pointInRect(state.player.x, state.player.y, EXIT_ZONE) ||
+        pointInRect(state.guard.x, state.guard.y, EXIT_ZONE)
+      ) {
         state.player.visible = false;
         state.guard.visible = false;
         returnCaughtToHub();
         return;
       }
+
+      const dx = targetX - state.player.x;
+      const dy = targetY - state.player.y;
+      const len = Math.hypot(dx, dy) || 1;
 
       const mx = (dx / len) * MOVE_SPEED;
       const my = (dy / len) * MOVE_SPEED;
@@ -1079,17 +1098,18 @@
   }
 
   function drawWallItem(item) {
-    if (!imageReady(item.image)) return;
+    const img = resolveItemImage(item);
+    if (!img) return;
 
     if (item.status === 'failed') {
       ctx.save();
       ctx.filter = 'grayscale(100%) brightness(0.65)';
-      drawImageFit(item.image, item.x, item.y, item.w, item.h);
+      drawImageFit(img, item.x, item.y, item.w, item.h);
       ctx.restore();
       return;
     }
 
-    drawImageFit(item.image, item.x, item.y, item.w, item.h);
+    drawImageFit(img, item.x, item.y, item.w, item.h);
   }
 
   function drawFloorItem(item) {
@@ -1105,17 +1125,18 @@
     ctx.fill();
     ctx.restore();
 
-    if (!imageReady(item.image)) return;
+    const img = resolveItemImage(item);
+    if (!img) return;
 
     if (item.status === 'failed') {
       ctx.save();
       ctx.filter = 'grayscale(100%) brightness(0.65)';
-      ctx.drawImage(item.image, drawX, drawY, drawW, drawH);
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
       ctx.restore();
       return;
     }
 
-    ctx.drawImage(item.image, drawX, drawY, drawW, drawH);
+    ctx.drawImage(img, drawX, drawY, drawW, drawH);
   }
 
   function getCurrentPlayerImage() {
@@ -1263,42 +1284,34 @@
   }
 
   function applyJoystickLayout() {
-    const joy = document.querySelector('.joystick');
-    if (!joy) return;
+    if (!joystick) return;
 
-    joy.style.display = 'grid';
-    joy.style.gridTemplateColumns = 'repeat(3, minmax(48px, 1fr))';
-    joy.style.gridTemplateRows = 'repeat(3, auto)';
-    joy.style.gap = '8px';
-    joy.style.alignItems = 'center';
-    joy.style.justifyItems = 'center';
+    joystick.style.position = 'relative';
+    joystick.style.width = '168px';
+    joystick.style.height = '112px';
+    joystick.style.display = 'block';
 
-    const up = joy.querySelector('[data-dir="up"]');
-    const down = joy.querySelector('[data-dir="down"]');
-    const left = joy.querySelector('[data-dir="left"]');
-    const right = joy.querySelector('[data-dir="right"]');
+    const up = joystick.querySelector('[data-dir="up"]');
+    const down = joystick.querySelector('[data-dir="down"]');
+    const left = joystick.querySelector('[data-dir="left"]');
+    const right = joystick.querySelector('[data-dir="right"]');
 
-    if (up) {
-      up.style.gridColumn = '2';
-      up.style.gridRow = '1';
-    }
-    if (left) {
-      left.style.gridColumn = '1';
-      left.style.gridRow = '2';
-    }
-    if (down) {
-      down.style.gridColumn = '2';
-      down.style.gridRow = '2';
-    }
-    if (right) {
-      right.style.gridColumn = '3';
-      right.style.gridRow = '2';
-    }
+    const place = (btn, leftPx, topPx) => {
+      if (!btn) return;
+      btn.style.position = 'absolute';
+      btn.style.left = `${leftPx}px`;
+      btn.style.top = `${topPx}px`;
+    };
+
+    place(up, 56, 0);
+    place(left, 0, 56);
+    place(down, 56, 56);
+    place(right, 112, 56);
   }
 
   document.addEventListener('touchmove', (e) => {
     if (state.screen === 'game') {
-      const tag = (e.target && e.target.tagName || '').toLowerCase();
+      const tag = (e.target?.tagName || '').toLowerCase();
       if (tag !== 'input' && tag !== 'textarea') {
         e.preventDefault();
       }
@@ -1358,7 +1371,6 @@
   });
 
   interactBtn.addEventListener('click', interact);
-
   startHeistBtn.addEventListener('click', startHeist);
 
   resetProgressBtn.addEventListener('click', () => {
