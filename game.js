@@ -297,7 +297,7 @@
 
   const roomBackground = loadImage('museum-room.png');
 
-  const backgroundMusic = createAudio('Minuet Antique.mp3', 0.22, true);
+  const backgroundMusic = createAudio('Minuet Antique.mp3', 0.05, true);
   const chaChingSound = createAudio('ChaChing.mp3', 0.9, false);
   const sirenSound = createAudio('Siren.mp3', 0.55, true);
   const withMeSound = createAudio('WithMe.mp3', 0.95, false);
@@ -311,11 +311,17 @@
   ];
 
   function playRandomFailVoice() {
-    const file = failVoiceFiles[Math.floor(Math.random() * failVoiceFiles.length)];
-    const audio = createAudio(file, 0.9, false);
-    const p = audio.play();
-    if (p && typeof p.catch === 'function') p.catch(() => {});
+  if (!state.run) return;
+
+  if (!state.run.failVoicePool || state.run.failVoicePool.length === 0) {
+    state.run.failVoicePool = shuffle([...failVoiceFiles]);
   }
+
+  const file = state.run.failVoicePool.shift();
+  const audio = createAudio(file, 0.9, false);
+  const p = audio.play();
+  if (p && typeof p.catch === 'function') p.catch(() => {});
+}
 
   function stopAllGameAudio() {
     stopAudio(backgroundMusic);
@@ -806,6 +812,7 @@
     wrongQuestions: [],
     ended: false,
     mode: 'play'
+    failVoicePool: shuffle([...failVoiceFiles]),
   };
 
   buildScaledRunData(state.run);
