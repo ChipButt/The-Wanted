@@ -12,7 +12,7 @@
       --bg: #0f1217;
       --gold: #d8b15a;
       --text: #f3efe5;
-      --hub-font: "SH Pinscher", Georgia, "Times New Roman", Garamond, serif;
+      --hub-font: Georgia, "Times New Roman", Garamond, serif;
       --ui-font: Arial, Helvetica, sans-serif;
       --title-brown-light: #b59662;
       --title-brown-mid: #9a7a4b;
@@ -96,7 +96,6 @@
       overflow: hidden;
       pointer-events: none;
       letter-spacing: 0.2px;
-      z-index: 5;
     }
 
     .hub-money {
@@ -120,30 +119,28 @@
       pointer-events: none;
       font-size: clamp(8px, 0.8vw, 12px);
       letter-spacing: 0.15px;
-      z-index: 5;
     }
 
-    /* Total Banked */
+    /* Total Banked - centered to 140,168 */
     #totalBanked {
-      left: 7.13%;
-      top: 27.91%;
-      width: 13.09%;
-      height: 4.29%;
-      font-size: clamp(14px, 1.2vw, 18px);
-      line-height: 1;
-      white-space: nowrap;
-    }
+  left: 7.13%;
+  top: 27.91%;
+  width: 13.09%;
+  height: 4.29%;
+  font-size: clamp(14px, 1.2vw, 18px);
+  line-height: 1;
+  white-space: nowrap;
+}
 
-    /* Best Heist */
-    #bestHeist {
-      left: 8.98%;
-      top: 62.25%;
-      width: 9.77%;
-      height: 3.22%;
-      font-size: clamp(13px, 1.15vw, 17px);
-      line-height: 1;
-      white-space: nowrap;
-    }
+#bestHeist {
+  left: 8.98%;
+  top: 62.25%;
+  width: 9.77%;
+  height: 3.22%;
+  font-size: clamp(13px, 1.15vw, 17px);
+  line-height: 1;
+  white-space: nowrap;
+}
 
     /* Heists Played label */
     #heistsPlayedLabel {
@@ -153,7 +150,7 @@
       height: 2.68%;
     }
 
-    /* Heists Played number */
+    /* Heists Played number - nudged up slightly */
     #heistsPlayed {
       left: 82.03%;
       top: 61.90%;
@@ -182,51 +179,49 @@
 
     /* TV buttons */
     .tv-btn {
-      border: 1px solid rgba(79, 49, 26, 0.35);
-      border-radius: 8px;
-      background:
-        linear-gradient(180deg, var(--title-brown-light) 0%, var(--title-brown-mid) 100%);
-      color: var(--title-brown-dark);
-      font-weight: 700;
-      font-family: var(--hub-font);
-      cursor: pointer;
-      text-shadow: 0 1px 0 rgba(255,255,255,0.18);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.22),
-        inset 0 -2px 0 rgba(79, 49, 26, 0.22),
-        0 3px 8px rgba(0,0,0,0.28);
-      padding: 0 3px;
-      transform: rotate(-5deg);
-      transform-origin: center center;
-      transition: transform 0.08s ease, filter 0.08s ease;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1;
-      pointer-events: auto;
-      touch-action: manipulation;
-      position: absolute;
-      z-index: 40;
-    }
+  border: 1px solid rgba(79, 49, 26, 0.35);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, var(--title-brown-light) 0%, var(--title-brown-mid) 100%);
+  color: var(--title-brown-dark);
+  font-weight: 700;
+  font-family: var(--hub-font);
+  cursor: pointer;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 -2px 0 rgba(79, 49, 26, 0.22),
+    0 3px 8px rgba(0,0,0,0.28);
+  padding: 0 3px;
+  transform: rotate(-5deg);
+  transform-origin: center center;
+  transition: transform 0.08s ease, filter 0.08s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
 
+    /* Start Heist */
     #startHeistBtn {
-      left: 27.73%;
-      top: 70.15%;
-      width: 7.81%;
-      height: 4.45%;
-      font-size: clamp(7.8px, 0.75vw, 11px);
-    }
+  left: 27.73%;
+  top: 70.15%;
+  width: 7.81%;
+  height: 4.45%;
+  font-size: clamp(7.8px, 0.75vw, 11px);
+}
 
+    /* How to Play - smaller text so it stays on one line */
     #instructionsBtn {
-      left: 27.44%;
-      top: 75.55%;
-      width: 8.11%;
-      height: 4.65%;
-      font-size: clamp(8.8px, 0.86vw, 11.8px);
-      letter-spacing: -0.1px;
-    }
+  left: 27.44%;
+  top: 75.55%;
+  width: 8.11%;
+  height: 4.65%;
+  font-size: clamp(8.8px, 0.86vw, 11.8px);
+  letter-spacing: -0.1px;
+}
 
-    /* Leaderboard */
+    /* Leaderboard centred to 511,541 */
     #leaderboardBtn {
       left: 49.90%;
       top: 96.78%;
@@ -243,9 +238,6 @@
       text-shadow:
         0 1px 0 rgba(0,0,0,0.98),
         0 0 8px rgba(0,0,0,0.45);
-      z-index: 40;
-      pointer-events: auto;
-      touch-action: manipulation;
     }
 
     /* Invisible reset hotspot over dynamite */
@@ -259,9 +251,6 @@
       opacity: 0;
       cursor: pointer;
       border-radius: 50%;
-      z-index: 45;
-      pointer-events: auto;
-      touch-action: manipulation;
     }
 
     #resetProgressBtn:focus-visible,
@@ -283,7 +272,6 @@
       pointer-events: none;
       white-space: nowrap;
       font-family: var(--hub-font);
-      z-index: 5;
     }
 
     .hub-log-cell.result.success {
@@ -602,125 +590,7 @@
 
     @media (max-width: 900px) {
       #hubScreen {
-        padding: 6px;
-        align-items: flex-start;
-      }
-
-      .hub-wrap {
-        width: 100vw;
-        max-width: 100vw;
-        border-radius: 0;
-        box-shadow: none;
-      }
-
-      #totalBanked {
-        font-size: clamp(11px, 1.8vw, 15px);
-      }
-
-      #bestHeist {
-        font-size: clamp(10px, 1.7vw, 14px);
-      }
-
-      #heistsPlayedLabel,
-      #paintingsStolenLabel {
-        font-size: clamp(7px, 1vw, 10px);
-      }
-
-      #heistsPlayed,
-      #paintingsStolen {
-        font-size: clamp(14px, 2vw, 20px);
-        line-height: 1;
-        padding-bottom: 0;
-      }
-
-      .hub-log-cell {
-        font-size: clamp(6px, 0.8vw, 9px);
-      }
-
-      #startHeistBtn {
-        width: 8.9%;
-        height: 4.05%;
-        font-size: clamp(7px, 0.82vw, 10px);
-      }
-
-      #instructionsBtn {
-        width: 9.35%;
-        height: 4.05%;
-        font-size: clamp(6.8px, 0.78vw, 9.6px);
-      }
-
-      #leaderboardBtn {
-        top: 95.9%;
-        width: 15.5%;
-        font-size: clamp(9px, 1vw, 13px);
-      }
-
-      .game-controls {
-        justify-content: center;
-      }
-
-      #interactBtn {
-        width: 100%;
-        max-width: 240px;
-      }
-    }
-
-    @media (max-width: 600px) {
-      #hubScreen {
-        padding: 0;
-      }
-
-      .hub-wrap {
-        width: 100vw;
-        max-width: 100vw;
-      }
-
-      #totalBanked {
-        font-size: clamp(8px, 1.5vw, 11px);
-      }
-
-      #bestHeist {
-        font-size: clamp(7px, 1.35vw, 10px);
-      }
-
-      #heistsPlayedLabel,
-      #paintingsStolenLabel {
-        font-size: clamp(5px, 0.7vw, 7px);
-      }
-
-      #heistsPlayed,
-      #paintingsStolen {
-        font-size: clamp(10px, 1.5vw, 14px);
-      }
-
-      .hub-log-cell {
-        font-size: clamp(4px, 0.6vw, 6px);
-      }
-
-      #startHeistBtn {
-        left: 27.6%;
-        top: 70.1%;
-        width: 8.6%;
-        height: 3.8%;
-        font-size: clamp(5.2px, 0.62vw, 7.2px);
-      }
-
-      #instructionsBtn {
-        left: 27.35%;
-        top: 75.45%;
-        width: 9.15%;
-        height: 3.8%;
-        font-size: clamp(4.9px, 0.58vw, 6.8px);
-      }
-
-      #leaderboardBtn {
-        top: 95.5%;
-        width: 14.2%;
-        font-size: clamp(7px, 0.78vw, 10px);
-      }
-
-      .game-topbar {
-        gap: 6px;
+        padding: 10px;
       }
 
       .game-controls {
@@ -896,8 +766,8 @@ Questions only get used once until you reset your progress.
     });
   </script>
 
-  <script src="questions.js?v=12"></script>
-  <script src="game.js?v=12"></script>
+  <script src="questions.js"></script>
+  <script src="game.js"></script>
   <script>
     (() => {
       const instructionsBtn = document.getElementById('instructionsBtn');
