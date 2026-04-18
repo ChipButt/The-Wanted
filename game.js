@@ -2,7 +2,6 @@
   const hubScreen = document.getElementById('hubScreen');
   const gameScreen = document.getElementById('gameScreen');
   const startHeistBtn = document.getElementById('startHeistBtn');
-  const resetProgressBtn = document.getElementById('resetProgressBtn');
   const backToHubBtn = document.getElementById('backToHubBtn');
 
   const totalBankedEl = document.getElementById('totalBanked');
@@ -10,90 +9,76 @@
   const heistsPlayedEl = document.getElementById('heistsPlayed');
   const paintingsStolenEl = document.getElementById('paintingsStolen');
 
-  const currentHaulEl = document.getElementById('currentHaul');
-  const strikeCountEl = document.getElementById('strikeCount');
-  const paintingsLeftEl = document.getElementById('paintingsLeft');
+  const haulValueEl = document.getElementById('haulValue');
+  const strikesValueEl = document.getElementById('strikesValue');
+  const paintingsLeftValueEl = document.getElementById('paintingsLeftValue');
 
   const questionModal = document.getElementById('questionModal');
-  const questionText = document.getElementById('questionText');
+  const questionTextEl = document.getElementById('questionText');
   const answerInput = document.getElementById('answerInput');
   const submitAnswerBtn = document.getElementById('submitAnswerBtn');
   const cancelAnswerBtn = document.getElementById('cancelAnswerBtn');
 
-  const summaryModal = document.getElementById('summaryModal');
+  const summaryOverlay = document.getElementById('summaryOverlay');
   const summaryTitle = document.getElementById('summaryTitle');
-  const summaryText = document.getElementById('summaryText');
+  const summarySubtitle = document.getElementById('summarySubtitle');
   const summaryContinueBtn = document.getElementById('summaryContinueBtn');
 
-  const messageBanner = document.getElementById('messageBanner');
+  const banner = document.getElementById('gameBanner');
 
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
 
   const interactBtn = document.getElementById('interactBtn');
-  const joystickButtons = [...document.querySelectorAll('.joystick button')];
-  const joystick = document.querySelector('.joystick');
+  const joystick = document.getElementById('joystick');
+  const joystickButtons = Array.from(document.querySelectorAll('.joy-btn'));
 
-  const STORAGE_KEY = 'nanaHeistSave_v9';
+  const SAVE_KEY = 'nanaHeistSave_v11';
+  const LAST_HEIST_WRONG_KEY = 'nanaHeistLastWrong_v11';
 
   const SOURCE_W = 2816;
   const SOURCE_H = 1536;
-  const sx = (x) => (x / SOURCE_W) * canvas.width;
-  const sy = (y) => (y / SOURCE_H) * canvas.height;
 
-  const IS_MOBILE =
-    window.matchMedia('(pointer: coarse)').matches ||
-    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-    window.innerWidth < 900;
+  let VIEW_W = canvas.width;
+  let VIEW_H = canvas.height;
 
-  const FLOOR_POLY = [
-    { x: sx(738), y: sy(730) },
-    { x: sx(2073), y: sy(730) },
-    { x: sx(2505), y: sy(1360) },
-    { x: sx(281), y: sy(1360) }
-  ];
+  const sx = (x) => (x / SOURCE_W) * VIEW_W;
+  const sy = (y) => (y / SOURCE_H) * VIEW_H;
 
-  const GUARD_DOOR_ZONE = {
-    x1: sx(2522),
-    y1: sy(1174),
-    x2: sx(2639),
-    y2: sy(1325)
-  };
-
-  const EXIT_ZONE = {
-    x1: sx(1180),
-    y1: sy(1280),
-    x2: sx(1640),
-    y2: sy(1495)
-  };
-
-  const PLAYER_WIDTH = 100;
-  const PLAYER_HEIGHT = 100;
-  const GUARD_WIDTH = 100;
-  const GUARD_HEIGHT = 100;
-
-  const MOVE_SPEED = IS_MOBILE ? 3.35 : 2.35;
-  const CHASE_PLAYER_SPEED = IS_MOBILE ? 2.6 : 1.95;
-  const GUARD_CATCH_SPEED = IS_MOBILE ? 3.8 : 3.3;
-  const GUARD_ESCORT_SPEED = IS_MOBILE ? 2.35 : 2.0;
+  const MOVE_SPEED_DESKTOP = 2.35;
+  const MOVE_SPEED_MOBILE = 3.35;
+  const CHASE_PLAYER_SPEED = 2.6;
+  const GUARD_CHASE_SPEED = 3.35;
+  const GUARD_ESCORT_SPEED = 2.0;
 
   const WALK_FRAME_MS = 120;
+  const RUN_FRAME_MS = 95;
+  const GUARD_WALK_FRAME_MS = 130;
   const PULL_FRAME_MS = 120;
-  const INTERACT_DISTANCE = 90;
 
   const WRONG_FLASH_MS = 260;
   const SHAKE_MS = 260;
   const GUARD_FLASH_MS = 2200;
+  const BANNER_MS = 2500;
 
-  const NAV_CELL = 36;
-  const NAV_RECALC_CHASE_MS = 180;
-  const NAV_RECALC_ESCORT_MS = 220;
-  const PATH_POINT_REACHED = 10;
+  const INTERACT_DISTANCE = 90;
+  const CATCH_DISTANCE = 28;
+
+  function isMobileLike() {
+    return (
+      window.matchMedia('(pointer: coarse)').matches ||
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      window.innerWidth < 900
+    );
+  }
+
+  function getMoveSpeed() {
+    return isMobileLike() ? MOVE_SPEED_MOBILE : MOVE_SPEED_DESKTOP;
+  }
 
   function loadImage(src) {
     const img = new Image();
     img.src = src;
-    img.onerror = () => console.warn(`Failed to load image: ${src}`);
     return img;
   }
 
@@ -101,23 +86,62 @@
     return !!img && img.complete && img.naturalWidth > 0;
   }
 
+  function createAudio(src, volume = 1, loop = false) {
+    const a = new Audio(src);
+    a.preload = 'auto';
+    a.volume = volume;
+    a.loop = loop;
+    return a;
+  }
+
   function loadSave() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (_) {}
-    return {
-      totalBanked: 0,
-      bestHeist: 0,
-      heistsPlayed: 0,
-      paintingsStolen: 0,
-      usedQuestionIds: []
-    };
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) {
+        return {
+          totalBanked: 0,
+          bestHeist: 0,
+          heistsPlayed: 0,
+          paintingsStolen: 0,
+          usedQuestionIds: []
+        };
+      }
+      const parsed = JSON.parse(raw);
+      return {
+        totalBanked: Number(parsed.totalBanked || 0),
+        bestHeist: Number(parsed.bestHeist || 0),
+        heistsPlayed: Number(parsed.heistsPlayed || 0),
+        paintingsStolen: Number(parsed.paintingsStolen || 0),
+        usedQuestionIds: Array.isArray(parsed.usedQuestionIds) ? parsed.usedQuestionIds : []
+      };
+    } catch {
+      return {
+        totalBanked: 0,
+        bestHeist: 0,
+        heistsPlayed: 0,
+        paintingsStolen: 0,
+        usedQuestionIds: []
+      };
+    }
   }
 
   function saveProgress() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.save));
-    renderHubStats();
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state.save));
+  }
+
+  function loadLastHeistWrong() {
+    try {
+      const raw = localStorage.getItem(LAST_HEIST_WRONG_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveLastHeistWrong(items) {
+    localStorage.setItem(LAST_HEIST_WRONG_KEY, JSON.stringify(items || []));
   }
 
   function formatMoney(pence) {
@@ -129,7 +153,7 @@
       .toLowerCase()
       .trim()
       .replace(/[’']/g, '')
-      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/[^a-z0-9%.\-\s]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -164,7 +188,8 @@
   function isAnswerCorrect(input, question) {
     const cleanedInput = normalizeText(input);
     if (!cleanedInput) return false;
-    const answers = question.answers.map(normalizeText);
+
+    const answers = Array.isArray(question.answers) ? question.answers.map(normalizeText) : [];
 
     if (question.matchType === 'contains') {
       for (const ans of answers) {
@@ -198,8 +223,8 @@
       const yj = polygon[j].y;
 
       const intersect =
-        ((yi > point.y) !== (yj > point.y)) &&
-        (point.x < ((xj - xi) * (point.y - yi)) / ((yj - yi) || 0.000001) + xi);
+        (yi > point.y) !== (yj > point.y) &&
+        point.x < ((xj - xi) * (point.y - yi)) / ((yj - yi) || 0.000001) + xi;
 
       if (intersect) inside = !inside;
     }
@@ -225,111 +250,33 @@
     return [...arr].sort(() => Math.random() - 0.5);
   }
 
-  function selectQuestions(count) {
-    let available = window.QUESTION_BANK.filter(
-      (q) => !state.save.usedQuestionIds.includes(q.id)
-    );
-
-    if (available.length < count) {
-      state.save.usedQuestionIds = [];
-      available = [...window.QUESTION_BANK];
-    }
-
-    return shuffle(available).slice(0, count);
-  }
-
-  function getRoundNumber() {
-    return state.save.heistsPlayed + 1;
-  }
-
-  function sequencePick(sequence, roundNumber) {
-    return sequence[(roundNumber - 1) % sequence.length];
-  }
-
   function showBanner(text) {
-    messageBanner.textContent = text;
-    messageBanner.classList.add('show');
+    if (!banner) return;
+    banner.textContent = text;
+    banner.classList.add('show');
     clearTimeout(showBanner._timer);
     showBanner._timer = setTimeout(() => {
-      messageBanner.classList.remove('show');
-      messageBanner.textContent = '';
-    }, 3500);
+      banner.classList.remove('show');
+      banner.textContent = '';
+    }, BANNER_MS);
   }
 
-  function randomFloorPoint(minX, maxX, minY, maxY, avoid = []) {
-    for (let i = 0; i < 500; i++) {
-      const x = minX + Math.random() * (maxX - minX);
-      const y = minY + Math.random() * (maxY - minY);
+  function renderHubStats() {
+    if (totalBankedEl) totalBankedEl.textContent = formatMoney(state.save.totalBanked);
+    if (bestHeistEl) bestHeistEl.textContent = formatMoney(state.save.bestHeist);
+    if (heistsPlayedEl) heistsPlayedEl.textContent = String(state.save.heistsPlayed);
+    if (paintingsStolenEl) paintingsStolenEl.textContent = String(state.save.paintingsStolen);
+  }
 
-      if (!isWalkablePoint(x, y, { ignoreFloorBlockers: false })) continue;
-      if (pointInRect(x, y, EXIT_ZONE)) continue;
-      if (distance(x, y, sx(1410), sy(1220)) < 90) continue;
-
-      let tooClose = false;
-      for (const other of avoid) {
-        if (distance(x, y, other.x, other.y) < 150) {
-          tooClose = true;
-          break;
-        }
-      }
-      if (!tooClose) return { x, y };
+  function updateRunStats() {
+    if (!state.run) return;
+    if (haulValueEl) haulValueEl.textContent = formatMoney(state.run.haul);
+    if (strikesValueEl) strikesValueEl.textContent = `${state.run.strikes} / 3`;
+    if (paintingsLeftValueEl) {
+      const left = state.run.items.filter((i) => i.status === 'available').length;
+      paintingsLeftValueEl.textContent = String(left);
     }
-
-    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
   }
-
-  function getFloorItemBlocker(item) {
-    if (!item || item.type !== 'floor' || item.status === 'stolen') return null;
-
-    if (item.floorKind === 'pedestal') {
-      return {
-        x1: item.anchorX - item.drawW * 0.42,
-        y1: item.anchorY - item.drawH * 0.18,
-        x2: item.anchorX + item.drawW * 0.42,
-        y2: item.anchorY + 10
-      };
-    }
-
-    if (item.floorKind === 'aboard') {
-      return {
-        x1: item.anchorX - item.drawW * 0.48,
-        y1: item.anchorY - item.drawH * 0.18,
-        x2: item.anchorX + item.drawW * 0.48,
-        y2: item.anchorY + 10
-      };
-    }
-
-    return null;
-  }
-
-  function pointHitsFloorBlocker(px, py) {
-    if (!state.run) return false;
-
-    for (const item of state.run.items) {
-      const blocker = getFloorItemBlocker(item);
-      if (blocker && pointInRect(px, py, blocker)) return true;
-    }
-
-    return false;
-  }
-
-  function isWalkablePoint(x, y, options = {}) {
-    if (!pointInPolygon({ x, y }, FLOOR_POLY)) return false;
-    if (!options.ignoreFloorBlockers && pointHitsFloorBlocker(x, y)) return false;
-    return true;
-  }
-
-  // ===================
-  // AUDIO
-  // ===================
-  const chaChingSound = new Audio('ChaChing.mp3');
-  const sirenSound = new Audio('Siren.mp3');
-  const withMeSound = new Audio('WithMe.mp3');
-  const heyStopSound = new Audio('Hey!Stop.mp3');
-  const backgroundMusic = new Audio('Minuet Antique.mp3');
-
-  sirenSound.loop = true;
-  backgroundMusic.loop = true;
 
   function safeRestartAudio(audio, volume = 1) {
     try {
@@ -348,12 +295,34 @@
     } catch (_) {}
   }
 
+  const roomBackground = loadImage('museum-room.png');
+
+  const backgroundMusic = createAudio('Minuet Antique.mp3', 0.22, true);
+  const chaChingSound = createAudio('ChaChing.mp3', 0.9, false);
+  const sirenSound = createAudio('Siren.mp3', 0.55, true);
+  const withMeSound = createAudio('WithMe.mp3', 0.95, false);
+  const heyStopSound = createAudio('Hey!Stop.mp3', 0.95, false);
+
+  const failVoiceFiles = [
+    'Didntwantthat.mp3',
+    'GottaGetThemRight.mp3',
+    'IllGetTheNext.mp3',
+    'NextTime.mp3'
+  ];
+
+  function playRandomFailVoice() {
+    const file = failVoiceFiles[Math.floor(Math.random() * failVoiceFiles.length)];
+    const audio = createAudio(file, 0.9, false);
+    const p = audio.play();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  }
+
   function stopAllGameAudio() {
-    stopAudio(sirenSound);
-    stopAudio(heyStopSound);
-    stopAudio(withMeSound);
-    stopAudio(chaChingSound);
     stopAudio(backgroundMusic);
+    stopAudio(sirenSound);
+    stopAudio(withMeSound);
+    stopAudio(heyStopSound);
+    stopAudio(chaChingSound);
   }
 
   function playHeyStopThenSiren() {
@@ -390,7 +359,6 @@
     try {
       withMeSound.pause();
       withMeSound.currentTime = 0;
-      withMeSound.volume = 0.95;
       withMeSound.onended = () => {
         state.audio.withMeFinished = true;
       };
@@ -404,11 +372,6 @@
       state.audio.withMeFinished = true;
     }
   }
-
-  // ===================
-  // ASSETS
-  // ===================
-  const roomBackground = loadImage('museum-room.png');
 
   const walkAnimations = {
     south: [
@@ -504,61 +467,65 @@
     ]
   };
 
-  const guardSprites = {
-    north: loadImage('Security Guard North.png'),
-    'north-east': loadImage('Security Guard North-East.png'),
+  function loadSeq(prefix, count) {
+    return Array.from({ length: count }, (_, i) => loadImage(`${prefix}${i}_delay-0.2s.png`));
+  }
+
+  const guardRunAnimations = {
+    east: loadSeq('Security Guard East Running_', 6),
+    west: loadSeq('Security Guard West Running_', 6),
+    north: loadSeq('Security Guard North Running_', 6),
+    south: loadSeq('Security Guard South Running_', 6),
+    'north-east': loadSeq('Security Guard North-East Running_', 6),
+    'north-west': loadSeq('Security Guard North-West Running_', 6),
+    'south-east': loadSeq('Security Guard South-East Running_', 6),
+    'south-west': loadSeq('Security Guard South-West Running_', 6)
+  };
+
+  const guardWalkAnimations = {
+    south: loadSeq('Security Guard South Walking_', 6),
+    'south-east': loadSeq('Security Guard South-East Walking_', 6),
+    'south-west': loadSeq('Security Guard South-West Walking_', 6)
+  };
+
+  const guardFallbackSprites = {
     east: loadImage('Security Guard East.png'),
-    'south-east': loadImage('Security Guard South-East.png'),
-    south: loadImage('Security Guard South.png'),
-    'south-west': loadImage('Security Guard South-West.png'),
     west: loadImage('Security Guard West.png'),
-    'north-west': loadImage('Security Guard North-West.png')
+    north: loadImage('Security Guard North.png'),
+    south: loadImage('Security Guard South.png'),
+    'north-east': loadImage('Security Guard North-East.png'),
+    'north-west': loadImage('Security Guard North-West.png'),
+    'south-east': loadImage('Security Guard South-East.png'),
+    'south-west': loadImage('Security Guard South-West.png')
   };
 
   const artImages = {
-    north: [
-      loadImage('painting_abstract_small.png'),
-      loadImage('painting_mona_lisa_large.png'),
-      loadImage('painting_starry_night.png')
-    ],
-    westVariants: [
-      loadImage('painting_portrait_left_lower_angle.png'),
-      loadImage('painting_portrait_left_lower_angle_2.png'),
-      loadImage('painting_portrait_left_lower_angle_3.png')
-    ],
-    east: [
-      loadImage('painting_mona_lisa_right_lower_angle.png'),
-      loadImage('painting_portrait_right_angle.png')
-    ],
-    pedestal: loadImage('statue_on_pedestal.png'),
-    aboardCandidates: [
-      loadImage('ABOARD_ART_PIECE.PNG'),
-      loadImage('A-BOARD_ART_PIECE.PNG'),
-      loadImage('A-Board Art Piece.png'),
-      loadImage('A-Board_Art_Piece.png'),
-      loadImage('A_Board_Art_Piece.png')
-    ]
+    northA: loadImage('painting_abstract_small.png'),
+    northB: loadImage('painting_mona_lisa_large.png'),
+    northC: loadImage('painting_starry_night.png'),
+    westA: loadImage('painting_landscape_left_angle.png'),
+    westB: loadImage('painting_portrait_left_lower_angle.png'),
+    westC: loadImage('painting_portrait_left_lower_angle_2.png'),
+    westD: loadImage('painting_portrait_left_lower_angle_3.png'),
+    eastA: loadImage('painting_portrait_right_angle.png'),
+    eastB: loadImage('painting_mona_lisa_right_lower_angle.png'),
+    aboard: loadImage('A-Board_Art_Piece.png'),
+    pedestal: loadImage('statue_on_pedestal.png')
   };
 
   const state = {
     save: loadSave(),
+    homework: {
+      pending: loadLastHeistWrong()
+    },
     screen: 'hub',
     keys: { up: false, down: false, left: false, right: false },
     run: null,
     activeItem: null,
     lastTimestamp: 0,
-    nav: null,
-    ai: {
-      playerEscapePath: [],
-      guardChasePath: [],
-      escortGuardPath: [],
-      escortPlayerPath: [],
-      chaseRecalcMs: 0,
-      escortRecalcMs: 0
-    },
     player: {
-      x: sx(1410),
-      y: sy(1220),
+      x: 0,
+      y: 0,
       direction: 'south',
       moving: false,
       visible: true,
@@ -568,11 +535,15 @@
       action: null
     },
     guard: {
-      x: (GUARD_DOOR_ZONE.x1 + GUARD_DOOR_ZONE.x2) / 2,
-      y: GUARD_DOOR_ZONE.y2,
+      x: 0,
+      y: 0,
       direction: 'south-west',
       active: false,
-      visible: true
+      visible: true,
+      mode: 'run',
+      frameIndex: 0,
+      frameTimer: 0,
+      moving: false
     },
     fx: {
       wrongFlashTimer: 0,
@@ -588,124 +559,184 @@
     }
   };
 
-  function renderHubStats() {
-    totalBankedEl.textContent = formatMoney(state.save.totalBanked);
-    bestHeistEl.textContent = formatMoney(state.save.bestHeist);
-    heistsPlayedEl.textContent = String(state.save.heistsPlayed);
-    paintingsStolenEl.textContent = String(state.save.paintingsStolen);
-  }
-
-  function resolveItemImage(item) {
-    if (item.image && imageReady(item.image)) return item.image;
-    if (item.imageCandidates) {
-      for (const img of item.imageCandidates) {
-        if (imageReady(img)) return img;
-      }
-    }
-    return null;
-  }
-
-  function getGuardImage() {
-    const direct = guardSprites[state.guard.direction];
-    if (imageReady(direct)) return direct;
-
-    const fallbackOrder = [
-      guardSprites.south,
-      guardSprites['south-west'],
-      guardSprites['south-east'],
-      guardSprites.east,
-      guardSprites.west,
-      guardSprites.north,
-      guardSprites['north-east'],
-      guardSprites['north-west']
+  function getFloorPoly() {
+    return [
+      { x: sx(738), y: sy(730) },
+      { x: sx(2073), y: sy(730) },
+      { x: sx(2505), y: sy(1360) },
+      { x: sx(281), y: sy(1360) }
     ];
-
-    for (const img of fallbackOrder) {
-      if (imageReady(img)) return img;
-    }
-    return null;
   }
 
-  function createHeistItems(questions) {
+  function getExitZone() {
+    return {
+      x1: sx(1180),
+      y1: sy(1280),
+      x2: sx(1640),
+      y2: sy(1495)
+    };
+  }
+
+  function getGuardDoorZone() {
+    return {
+      x1: sx(2522),
+      y1: sy(1174),
+      x2: sx(2639),
+      y2: sy(1325)
+    };
+  }
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(1, Math.round(rect.width));
+    const height = Math.max(1, Math.round(rect.height));
+    canvas.width = width;
+    canvas.height = height;
+    VIEW_W = width;
+    VIEW_H = height;
+
+    if (state.run) {
+      buildScaledRunData(state.run);
+    }
+  }
+
+  function markQuestionUsed(questionId) {
+    if (!questionId) return;
+    if (!state.save.usedQuestionIds.includes(questionId)) {
+      state.save.usedQuestionIds.push(questionId);
+      saveProgress();
+    }
+  }
+
+  function getUnusedQuestions() {
+    const bank = Array.isArray(window.QUESTION_BANK) ? window.QUESTION_BANK : [];
+    const used = new Set(state.save.usedQuestionIds);
+    return bank.filter((q) => !used.has(q.id));
+  }
+
+  function chooseQuestionForItem(item) {
+    if (item.question) return item.question;
+
+    const available = getUnusedQuestions();
+    if (available.length === 0) return null;
+
+    const q = shuffle(available)[0];
+    item.question = q;
+    markQuestionUsed(q.id);
+    return q;
+  }
+
+  function recordWrongQuestion(questionObj) {
+    if (!questionObj || !state.run) return;
+    const firstAnswer =
+      Array.isArray(questionObj.answers) && questionObj.answers.length
+        ? questionObj.answers[0]
+        : '';
+    state.run.wrongQuestions.push({
+      question: questionObj.question,
+      answer: firstAnswer
+    });
+  }
+
+  function getFloorItemBlocker(item) {
+    if (!item || item.type !== 'floor' || item.status === 'stolen') return null;
+
+    return {
+      x1: item.anchorX - item.drawW * 0.46,
+      y1: item.anchorY - item.drawH * 0.18,
+      x2: item.anchorX + item.drawW * 0.46,
+      y2: item.anchorY + 10
+    };
+  }
+
+  function pointHitsFloorBlocker(px, py) {
+    if (!state.run) return false;
+
+    for (const item of state.run.items) {
+      const blocker = getFloorItemBlocker(item);
+      if (blocker && pointInRect(px, py, blocker)) return true;
+    }
+
+    return false;
+  }
+
+  function isWalkablePoint(x, y, options = {}) {
+    if (!pointInPolygon({ x, y }, getFloorPoly())) return false;
+    if (!options.ignoreFloorBlockers && pointHitsFloorBlocker(x, y)) return false;
+    return true;
+  }
+
+  function randomFloorPoint(minX, maxX, minY, maxY, avoid = []) {
+    for (let i = 0; i < 500; i++) {
+      const x = minX + Math.random() * (maxX - minX);
+      const y = minY + Math.random() * (maxY - minY);
+
+      if (!isWalkablePoint(x, y, { ignoreFloorBlockers: false })) continue;
+      if (pointInRect(x, y, getExitZone())) continue;
+      if (distance(x, y, sx(1410), sy(1220)) < 90) continue;
+
+      let tooClose = false;
+      for (const other of avoid) {
+        if (distance(x, y, other.x, other.y) < 150) {
+          tooClose = true;
+          break;
+        }
+      }
+      if (!tooClose) return { x, y };
+    }
+
+    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+  }
+
+  function createHeistItems() {
     const items = [];
-    const roundNumber = getRoundNumber();
 
     const northSlots = [
-      { x: sx(898 - 175),  y: sy(443 - 75), w: sx(350), h: sy(150), anchorX: sx(975),  anchorY: sy(760), wall: 'north' },
-      { x: sx(1414 - 175), y: sy(393 - 75), w: sx(350), h: sy(150), anchorX: sx(1410), anchorY: sy(760), wall: 'north' },
-      { x: sx(1925 - 175), y: sy(440 - 75), w: sx(350), h: sy(150), anchorX: sx(1845), anchorY: sy(760), wall: 'north' }
+      { x: sx(898 - 175), y: sy(443 - 75), w: sx(350), h: sy(150), anchorX: sx(975), anchorY: sy(760), wall: 'north', image: artImages.northA },
+      { x: sx(1414 - 175), y: sy(393 - 75), w: sx(350), h: sy(150), anchorX: sx(1410), anchorY: sy(760), wall: 'north', image: artImages.northB },
+      { x: sx(1925 - 175), y: sy(440 - 75), w: sx(350), h: sy(150), anchorX: sx(1845), anchorY: sy(760), wall: 'north', image: artImages.northC }
     ];
 
     const westSlots = [
-      { x: sx(503 - 80), y: sy(576 - 160), w: sx(160), h: sy(320), anchorX: sx(690), anchorY: sy(790), wall: 'west' },
-      { x: sx(291 - 80), y: sy(806 - 160), w: sx(160), h: sy(320), anchorX: sx(530), anchorY: sy(1015), wall: 'west' }
+      { x: sx(503 - 80), y: sy(576 - 160), w: sx(160), h: sy(320), anchorX: sx(690), anchorY: sy(790), wall: 'west', image: artImages.westA },
+      { x: sx(291 - 80), y: sy(806 - 160), w: sx(160), h: sy(320), anchorX: sx(530), anchorY: sy(1015), wall: 'west', image: shuffle([artImages.westB, artImages.westC, artImages.westD])[0] }
     ];
 
     const eastSlots = [
-      { x: sx(2219 - 80), y: sy(525 - 160), w: sx(160), h: sy(320), anchorX: sx(2040), anchorY: sy(785), wall: 'east' },
-      { x: sx(2405 - 80), y: sy(721 - 160), w: sx(160), h: sy(320), anchorX: sx(2150), anchorY: sy(1015), wall: 'east' }
+      { x: sx(2219 - 80), y: sy(525 - 160), w: sx(160), h: sy(320), anchorX: sx(2040), anchorY: sy(785), wall: 'east', image: artImages.eastA },
+      { x: sx(2405 - 80), y: sy(721 - 160), w: sx(160), h: sy(320), anchorX: sx(2150), anchorY: sy(1015), wall: 'east', image: artImages.eastB }
     ];
 
-    const westSequence1 = [
-      artImages.westVariants[1],
-      artImages.westVariants[2],
-      artImages.westVariants[0],
-      artImages.westVariants[2],
-      artImages.westVariants[0]
-    ];
+    let index = 0;
 
-    const westSequence2 = [
-      artImages.westVariants[2],
-      artImages.westVariants[0],
-      artImages.westVariants[1],
-      artImages.westVariants[0],
-      artImages.westVariants[1]
-    ];
-
-    let qIndex = 0;
-
-    northSlots.forEach((slot, i) => {
+    northSlots.forEach((slot) => {
       items.push({
-        ...slot,
-        id: `item-${qIndex}`,
+        id: `item-${index++}`,
         type: 'wall',
         status: 'available',
-        question: questions[qIndex],
-        image: artImages.north[i % artImages.north.length]
+        question: null,
+        ...slot
       });
-      qIndex += 1;
     });
 
-    items.push({
-      ...westSlots[0],
-      id: `item-${qIndex}`,
-      type: 'wall',
-      status: 'available',
-      question: questions[qIndex],
-      image: sequencePick(westSequence1, roundNumber)
-    });
-    qIndex += 1;
-
-    items.push({
-      ...westSlots[1],
-      id: `item-${qIndex}`,
-      type: 'wall',
-      status: 'available',
-      question: questions[qIndex],
-      image: sequencePick(westSequence2, roundNumber)
-    });
-    qIndex += 1;
-
-    eastSlots.forEach((slot, i) => {
+    westSlots.forEach((slot) => {
       items.push({
-        ...slot,
-        id: `item-${qIndex}`,
+        id: `item-${index++}`,
         type: 'wall',
         status: 'available',
-        question: questions[qIndex],
-        image: artImages.east[i % artImages.east.length]
+        question: null,
+        ...slot
       });
-      qIndex += 1;
+    });
+
+    eastSlots.forEach((slot) => {
+      items.push({
+        id: `item-${index++}`,
+        type: 'wall',
+        status: 'available',
+        question: null,
+        ...slot
+      });
     });
 
     const pedestalPos = randomFloorPoint(
@@ -715,18 +746,17 @@
     );
 
     items.push({
-      id: `item-${qIndex}`,
+      id: `item-${index++}`,
       type: 'floor',
       floorKind: 'pedestal',
       status: 'available',
-      question: questions[qIndex],
+      question: null,
       image: artImages.pedestal,
       anchorX: pedestalPos.x,
       anchorY: pedestalPos.y,
       drawW: 78,
       drawH: 125
     });
-    qIndex += 1;
 
     const aboardPos = randomFloorPoint(
       sx(1820), sx(2230),
@@ -735,12 +765,12 @@
     );
 
     items.push({
-      id: `item-${qIndex}`,
+      id: `item-${index++}`,
       type: 'floor',
       floorKind: 'aboard',
       status: 'available',
-      question: questions[qIndex],
-      imageCandidates: artImages.aboardCandidates,
+      question: null,
+      image: artImages.aboard,
       anchorX: aboardPos.x,
       anchorY: aboardPos.y,
       drawW: 82,
@@ -750,342 +780,27 @@
     return items;
   }
 
-  // ===================
-  // NAVIGATION GRID
-  // ===================
-  function buildNavGrid() {
-    const cols = Math.ceil(canvas.width / NAV_CELL);
-    const rows = Math.ceil(canvas.height / NAV_CELL);
-    const walkable = Array.from({ length: rows }, () => Array(cols).fill(false));
-
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const x = c * NAV_CELL + NAV_CELL / 2;
-        const y = r * NAV_CELL + NAV_CELL / 2;
-        walkable[r][c] = isWalkablePoint(x, y);
-      }
-    }
-
-    return { cols, rows, size: NAV_CELL, walkable };
-  }
-
-  function clamp(num, min, max) {
-    return Math.max(min, Math.min(max, num));
-  }
-
-  function worldToCell(x, y, nav = state.nav) {
-    return {
-      c: clamp(Math.floor(x / nav.size), 0, nav.cols - 1),
-      r: clamp(Math.floor(y / nav.size), 0, nav.rows - 1)
-    };
-  }
-
-  function cellCenter(cell, nav = state.nav) {
-    return {
-      x: cell.c * nav.size + nav.size / 2,
-      y: cell.r * nav.size + nav.size / 2
-    };
-  }
-
-  function isWalkableCell(c, r, nav = state.nav) {
-    return !!nav && r >= 0 && r < nav.rows && c >= 0 && c < nav.cols && nav.walkable[r][c];
-  }
-
-  function nearestWalkableCell(targetCell, targetX, targetY, nav = state.nav) {
-    if (isWalkableCell(targetCell.c, targetCell.r, nav)) return targetCell;
-
-    let best = null;
-    let bestDist = Infinity;
-
-    for (let radius = 1; radius < 10; radius++) {
-      for (let dr = -radius; dr <= radius; dr++) {
-        for (let dc = -radius; dc <= radius; dc++) {
-          const c = targetCell.c + dc;
-          const r = targetCell.r + dr;
-          if (!isWalkableCell(c, r, nav)) continue;
-
-          const center = cellCenter({ c, r }, nav);
-          const d = distance(center.x, center.y, targetX, targetY);
-          if (d < bestDist) {
-            best = { c, r };
-            bestDist = d;
-          }
-        }
-      }
-      if (best) return best;
-    }
-
-    return null;
-  }
-
-  function lineOfSight(ax, ay, bx, by) {
-    const d = distance(ax, ay, bx, by);
-    const steps = Math.max(2, Math.ceil(d / 12));
-
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const x = ax + (bx - ax) * t;
-      const y = ay + (by - ay) * t;
-      if (!isWalkablePoint(x, y)) return false;
-    }
-    return true;
-  }
-
-  function smoothPath(startX, startY, points, targetX, targetY) {
-    const full = [{ x: startX, y: startY }, ...points, { x: targetX, y: targetY }];
-    const result = [];
-    let i = 0;
-
-    while (i < full.length - 1) {
-      let furthest = full.length - 1;
-      while (furthest > i + 1) {
-        if (lineOfSight(full[i].x, full[i].y, full[furthest].x, full[furthest].y)) break;
-        furthest--;
-      }
-      result.push({ x: full[furthest].x, y: full[furthest].y });
-      i = furthest;
-    }
-
-    return result;
-  }
-
-  function findPath(startX, startY, targetX, targetY) {
-    if (!state.nav) return [{ x: targetX, y: targetY }];
-
-    const startCell = nearestWalkableCell(worldToCell(startX, startY), startX, startY);
-    const targetCell = nearestWalkableCell(worldToCell(targetX, targetY), targetX, targetY);
-
-    if (!startCell || !targetCell) return [{ x: targetX, y: targetY }];
-
-    const startKey = `${startCell.c},${startCell.r}`;
-    const goalKey = `${targetCell.c},${targetCell.r}`;
-
-    const open = new Set([startKey]);
-    const cameFrom = new Map();
-    const gScore = new Map([[startKey, 0]]);
-    const fScore = new Map([[startKey, Math.hypot(targetCell.c - startCell.c, targetCell.r - startCell.r)]]);
-
-    const neighbors = [
-      { dc: 1, dr: 0, cost: 1 },
-      { dc: -1, dr: 0, cost: 1 },
-      { dc: 0, dr: 1, cost: 1 },
-      { dc: 0, dr: -1, cost: 1 },
-      { dc: 1, dr: 1, cost: 1.414 },
-      { dc: 1, dr: -1, cost: 1.414 },
-      { dc: -1, dr: 1, cost: 1.414 },
-      { dc: -1, dr: -1, cost: 1.414 }
-    ];
-
-    while (open.size > 0) {
-      let currentKey = null;
-      let currentF = Infinity;
-
-      for (const key of open) {
-        const fs = fScore.get(key) ?? Infinity;
-        if (fs < currentF) {
-          currentF = fs;
-          currentKey = key;
-        }
-      }
-
-      if (!currentKey) break;
-      if (currentKey === goalKey) {
-        const cells = [];
-        let cursor = currentKey;
-
-        while (cursor !== startKey) {
-          const [c, r] = cursor.split(',').map(Number);
-          cells.push({ c, r });
-          cursor = cameFrom.get(cursor);
-          if (!cursor) break;
-        }
-
-        cells.reverse();
-        const points = cells.map((cell) => cellCenter(cell));
-        return smoothPath(startX, startY, points, targetX, targetY);
-      }
-
-      open.delete(currentKey);
-      const [cc, cr] = currentKey.split(',').map(Number);
-
-      for (const n of neighbors) {
-        const nc = cc + n.dc;
-        const nr = cr + n.dr;
-
-        if (!isWalkableCell(nc, nr)) continue;
-
-        // stop corner cutting
-        if (n.dc !== 0 && n.dr !== 0) {
-          if (!isWalkableCell(cc + n.dc, cr) || !isWalkableCell(cc, cr + n.dr)) {
-            continue;
-          }
-        }
-
-        const neighborKey = `${nc},${nr}`;
-        const tentative = (gScore.get(currentKey) ?? Infinity) + n.cost;
-
-        if (tentative < (gScore.get(neighborKey) ?? Infinity)) {
-          cameFrom.set(neighborKey, currentKey);
-          gScore.set(neighborKey, tentative);
-          const heuristic = Math.hypot(targetCell.c - nc, targetCell.r - nr);
-          fScore.set(neighborKey, tentative + heuristic);
-          open.add(neighborKey);
+  function buildScaledRunData(run) {
+    for (const item of run.items) {
+      if (item.type === 'floor') {
+        if (item.floorKind === 'pedestal') {
+          item.drawW = Math.max(60, sx(78));
+          item.drawH = Math.max(90, sy(125));
+        } else {
+          item.drawW = Math.max(60, sx(82));
+          item.drawH = Math.max(90, sy(128));
         }
       }
     }
-
-    return [{ x: targetX, y: targetY }];
   }
 
-  function moveAlongPath(entity, path, speed) {
-    if (!path || path.length === 0) return false;
-
-    while (path.length > 0) {
-      const target = path[0];
-      const dx = target.x - entity.x;
-      const dy = target.y - entity.y;
-      const d = Math.hypot(dx, dy);
-
-      if (d <= PATH_POINT_REACHED) {
-        entity.x = target.x;
-        entity.y = target.y;
-        path.shift();
-        continue;
-      }
-
-      const mx = (dx / d) * speed;
-      const my = (dy / d) * speed;
-
-      entity.x += mx;
-      entity.y += my;
-      entity.direction = vectorToDirection(mx, my);
-      return true;
-    }
-
-    return false;
-  }
-
-  function refreshChasePaths() {
-    const exitCenterX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
-    const exitCenterY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
-
-    if (!pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
-      state.ai.playerEscapePath = findPath(
-        state.player.x,
-        state.player.y,
-        exitCenterX,
-        exitCenterY
-      );
-    } else {
-      state.ai.playerEscapePath = [];
-    }
-
-    state.ai.guardChasePath = findPath(
-      state.guard.x,
-      state.guard.y,
-      state.player.x,
-      state.player.y
-    );
-  }
-
-  function refreshEscortPaths() {
-    const exitCenterX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
-    const exitCenterY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
-
-    state.ai.escortPlayerPath = findPath(
-      state.player.x,
-      state.player.y,
-      exitCenterX,
-      exitCenterY
-    );
-
-    state.ai.escortGuardPath = findPath(
-      state.guard.x,
-      state.guard.y,
-      state.player.x,
-      state.player.y
-    );
-  }
-
-  function startHeist() {
-    const chosenQuestions = selectQuestions(9);
-
-    state.run = {
-      haul: 0,
-      strikes: 0,
-      items: createHeistItems(chosenQuestions),
-      ended: false,
-      mode: 'play'
-    };
-
-    state.nav = buildNavGrid();
-
-    state.ai = {
-      playerEscapePath: [],
-      guardChasePath: [],
-      escortGuardPath: [],
-      escortPlayerPath: [],
-      chaseRecalcMs: 0,
-      escortRecalcMs: 0
-    };
-
-    state.activeItem = null;
-
-    state.player = {
-      x: sx(1410),
-      y: sy(1220),
-      direction: 'south',
-      moving: false,
-      visible: true,
-      controlLocked: false,
-      walkFrameIndex: 0,
-      walkFrameTimer: 0,
-      action: null
-    };
-
-    state.guard = {
-      x: (GUARD_DOOR_ZONE.x1 + GUARD_DOOR_ZONE.x2) / 2,
-      y: GUARD_DOOR_ZONE.y2,
-      direction: 'south-west',
-      active: false,
-      visible: true
-    };
-
-    stopAllGameAudio();
-    state.audio.sirenStarted = false;
-    state.audio.withMePlayed = false;
-    state.audio.withMeFinished = true;
-    safeRestartAudio(backgroundMusic, 0.22);
-
-    updateRunStats();
-    showScreen('game');
-    showBanner('Heist started.');
-  }
-
-  function updateRunStats() {
-    if (!state.run) return;
-    currentHaulEl.textContent = formatMoney(state.run.haul);
-    strikeCountEl.textContent = `${state.run.strikes} / 3`;
-    paintingsLeftEl.textContent = String(state.run.items.filter((i) => i.status === 'available').length);
-  }
-
-  function maybeEscape() {
-    if (!state.run || state.run.ended) return;
-
-    if (pointInRect(state.player.x, state.player.y, EXIT_ZONE) && state.run.haul > 0) {
-      state.player.controlLocked = true;
-      state.run.mode = 'escape';
-      state.player.direction = 'south';
-      return;
-    }
-
-    if (pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
-      showBanner('You need some stolen art before escaping.');
-    }
+  function remainingAvailableItems() {
+    if (!state.run) return 0;
+    return state.run.items.filter((i) => i.status === 'available').length;
   }
 
   function getNearbyItem() {
-    if (!state.run) return null;
+    if (!state.run || state.run.mode !== 'play') return null;
 
     let nearest = null;
     let nearestDist = Infinity;
@@ -1093,7 +808,7 @@
     for (const item of state.run.items) {
       if (item.status !== 'available') continue;
       const d = distance(state.player.x, state.player.y, item.anchorX, item.anchorY);
-      if (d < INTERACT_DISTANCE && d < nearestDist) {
+      if (d < sx(INTERACT_DISTANCE) && d < nearestDist) {
         nearest = item;
         nearestDist = d;
       }
@@ -1111,35 +826,35 @@
     return 'north';
   }
 
-  function interact() {
-    if (!state.run || state.run.ended) return;
-    if (state.player.controlLocked || state.player.action) return;
-
-    if (pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
-      maybeEscape();
+  function updateWalkAnimation(delta) {
+    if (!state.player.moving) {
+      state.player.walkFrameIndex = 0;
+      state.player.walkFrameTimer = 0;
       return;
     }
 
-    const item = getNearbyItem();
-    if (!item) {
-      showBanner('Nothing to interact with here.');
+    state.player.walkFrameTimer += delta;
+    if (state.player.walkFrameTimer >= WALK_FRAME_MS) {
+      state.player.walkFrameTimer = 0;
+      state.player.walkFrameIndex = (state.player.walkFrameIndex + 1) % 6;
+    }
+  }
+
+  function updateGuardAnimation(delta) {
+    if (!state.guard.active) return;
+
+    const frameMs = state.guard.mode === 'walk' ? GUARD_WALK_FRAME_MS : RUN_FRAME_MS;
+    if (!state.guard.moving) {
+      state.guard.frameIndex = 0;
+      state.guard.frameTimer = 0;
       return;
     }
 
-    state.activeItem = item;
-    questionText.textContent = `${item.question.question} (${formatMoney(item.question.value)})`;
-    answerInput.value = '';
-    answerInput.style.fontSize = '16px';
-    questionModal.classList.remove('hidden');
-    window.scrollTo(0, 0);
-
-    setTimeout(() => {
-      try {
-        answerInput.focus({ preventScroll: true });
-      } catch (_) {
-        answerInput.focus();
-      }
-    }, 0);
+    state.guard.frameTimer += delta;
+    if (state.guard.frameTimer >= frameMs) {
+      state.guard.frameTimer = 0;
+      state.guard.frameIndex = (state.guard.frameIndex + 1) % 6;
+    }
   }
 
   function startPullAnimation(item) {
@@ -1168,139 +883,18 @@
     const q = item.question;
 
     item.status = 'stolen';
-    state.run.haul += Number(q.value);
-    state.save.paintingsStolen += 1;
-    state.save.usedQuestionIds.push(q.id);
+    state.run.haul += Number(q.value || 0);
 
     updateRunStats();
-    showBanner(`Stolen! +${formatMoney(q.value)}`);
+    showBanner(`Stolen! +${formatMoney(Number(q.value || 0))}`);
     safeRestartAudio(chaChingSound, 0.9);
 
     state.player.action = null;
     state.player.controlLocked = false;
     state.run.mode = 'play';
 
-    const anyAvailable = state.run.items.some((i) => i.status === 'available');
-    if (!anyAvailable) {
-      showBanner('All items attempted. Head for the exit to bank your haul.');
-    }
-  }
-
-  function submitAnswer() {
-    if (!state.activeItem) return;
-
-    const item = state.activeItem;
-    const q = item.question;
-    const input = answerInput.value;
-
-    questionModal.classList.add('hidden');
-
-    if (isAnswerCorrect(input, q)) {
-      startPullAnimation(item);
-    } else {
-      item.status = 'failed';
-      state.run.strikes += 1;
-      updateRunStats();
-      flashWrong();
-      showBanner('Wrong answer. Security alert increased.');
-
-      if (state.run.strikes >= 3) {
-        triggerGuardChase();
-      }
-    }
-
-    state.activeItem = null;
-  }
-
-  function flashWrong() {
-    state.fx.wrongFlashTimer = WRONG_FLASH_MS;
-    state.fx.shakeTimer = SHAKE_MS;
-  }
-
-  function triggerGuardChase() {
-    state.player.controlLocked = true;
-    state.guard.active = true;
-    state.run.mode = 'chase';
-    state.fx.guardFlashTimer = GUARD_FLASH_MS;
-    state.audio.withMePlayed = false;
-    state.audio.withMeFinished = false;
-    state.ai.chaseRecalcMs = 0;
-    state.ai.playerEscapePath = [];
-    state.ai.guardChasePath = [];
-    playHeyStopThenSiren();
-    showBanner('Security is coming...');
-  }
-
-  function returnCaughtToHub() {
-    if (!state.run) return;
-
-    const lostHaul = state.run.haul;
-
-    state.run.ended = true;
-    state.save.heistsPlayed += 1;
-    saveProgress();
-
-    state.run = null;
-    state.activeItem = null;
-    state.nav = null;
-
-    state.player.action = null;
-    state.player.controlLocked = false;
-    state.player.moving = false;
-    state.player.visible = true;
-
-    state.guard.active = false;
-    state.guard.visible = true;
-
-    summaryModal.classList.add('hidden');
-    showScreen('hub');
-    renderHubStats();
-    showBanner(`Caught! You lost ${formatMoney(lostHaul)}.`);
-  }
-
-  function endHeist(escaped) {
-    if (!state.run || state.run.ended) return;
-
-    state.run.ended = true;
-    state.save.heistsPlayed += 1;
-    stopAllGameAudio();
-
-    if (escaped) {
-      state.save.totalBanked += state.run.haul;
-      if (state.run.haul > state.save.bestHeist) {
-        state.save.bestHeist = state.run.haul;
-      }
-      summaryTitle.textContent = 'Heist complete';
-      summaryText.textContent = `You escaped with ${formatMoney(state.run.haul)}. It has been added to your total banked cash.`;
-      saveProgress();
-      summaryModal.classList.remove('hidden');
-      return;
-    }
-
-    saveProgress();
-    returnCaughtToHub();
-  }
-
-  function returnToHub() {
-    stopAllGameAudio();
-    summaryModal.classList.add('hidden');
-    state.run = null;
-    state.nav = null;
-    showScreen('hub');
-    renderHubStats();
-  }
-
-  function updateWalkAnimation(delta) {
-    if (!state.player.moving) {
-      state.player.walkFrameIndex = 0;
-      state.player.walkFrameTimer = 0;
-      return;
-    }
-
-    state.player.walkFrameTimer += delta;
-    if (state.player.walkFrameTimer >= WALK_FRAME_MS) {
-      state.player.walkFrameTimer = 0;
-      state.player.walkFrameIndex = (state.player.walkFrameIndex + 1) % 6;
+    if (remainingAvailableItems() === 0) {
+      showBanner('All items attempted. Head for the exit.');
     }
   }
 
@@ -1322,11 +916,47 @@
     const nx = state.player.x + dx;
     const ny = state.player.y + dy;
 
-    if (!pointInPolygon({ x: nx, y: ny }, FLOOR_POLY)) return;
+    if (!pointInPolygon({ x: nx, y: ny }, getFloorPoly())) return;
     if (!options.ignoreBlockers && pointHitsFloorBlocker(nx, ny)) return;
 
     state.player.x = nx;
     state.player.y = ny;
+  }
+
+  function moveTowards(entity, targetX, targetY, speed, dirResolver = vectorToDirection) {
+    const dx = targetX - entity.x;
+    const dy = targetY - entity.y;
+    const len = Math.hypot(dx, dy);
+
+    if (len < 0.001) {
+      entity.moving = false;
+      return;
+    }
+
+    const mx = (dx / len) * speed;
+    const my = (dy / len) * speed;
+
+    entity.x += mx;
+    entity.y += my;
+    entity.direction = dirResolver(mx, my);
+    entity.moving = true;
+  }
+
+  function escortDirectionResolver(dx, dy) {
+    if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) return 'south';
+    if (dy >= 0) {
+      if (dx > 0.45) return 'south-east';
+      if (dx < -0.45) return 'south-west';
+      return 'south';
+    }
+    if (dx > 0.3) return 'south-east';
+    if (dx < -0.3) return 'south-west';
+    return 'south';
+  }
+
+  function flashWrong() {
+    state.fx.wrongFlashTimer = WRONG_FLASH_MS;
+    state.fx.shakeTimer = SHAKE_MS;
   }
 
   function updateFX(delta) {
@@ -1348,6 +978,91 @@
     }
   }
 
+  function triggerGuardChase() {
+    state.guard.active = true;
+    state.guard.visible = true;
+    state.guard.mode = 'run';
+    state.guard.frameIndex = 0;
+    state.guard.frameTimer = 0;
+    state.guard.moving = true;
+
+    state.player.controlLocked = false;
+    state.run.mode = 'chase';
+    state.fx.guardFlashTimer = GUARD_FLASH_MS;
+    state.audio.withMePlayed = false;
+    state.audio.withMeFinished = false;
+
+    playHeyStopThenSiren();
+    showBanner('Security is coming...');
+  }
+
+  function triggerHeistEndHomework() {
+    state.homework.pending = state.run?.wrongQuestions ? [...state.run.wrongQuestions] : [];
+    saveLastHeistWrong(state.homework.pending);
+  }
+
+  function endHeist(escaped) {
+    if (!state.run || state.run.ended) return;
+
+    state.run.ended = true;
+    stopAllGameAudio();
+    triggerHeistEndHomework();
+
+    if (escaped) {
+      state.save.heistsPlayed += 1;
+      state.save.totalBanked += state.run.haul;
+      if (state.run.haul > state.save.bestHeist) {
+        state.save.bestHeist = state.run.haul;
+      }
+      state.save.paintingsStolen += state.run.items.filter((i) => i.status === 'stolen').length;
+      saveProgress();
+
+      summaryTitle.textContent = 'Heist complete';
+      summarySubtitle.textContent = `You escaped with ${formatMoney(state.run.haul)}. It has been added to your total banked cash.`;
+      summaryOverlay.classList.remove('hidden');
+      renderHubStats();
+      return;
+    }
+
+    state.save.heistsPlayed += 1;
+    saveProgress();
+    renderHubStats();
+    returnCaughtToHub();
+  }
+
+  function returnCaughtToHub() {
+    if (!state.run) return;
+
+    state.run.ended = true;
+    state.run = null;
+    state.activeItem = null;
+
+    state.player.action = null;
+    state.player.controlLocked = false;
+    state.player.moving = false;
+    state.player.visible = true;
+
+    state.guard.active = false;
+    state.guard.visible = true;
+
+    summaryOverlay.classList.add('hidden');
+    showScreen('hub');
+    renderHubStats();
+    maybeShowHomeworkPopup();
+    showBanner('Caught! Better luck next heist.');
+  }
+
+  function returnToHub() {
+    stopAllGameAudio();
+    summaryOverlay.classList.add('hidden');
+    state.run = null;
+    state.activeItem = null;
+    state.player.action = null;
+    showScreen('hub');
+    renderHubStats();
+    maybeShowHomeworkPopup();
+  }
+
   function update(delta) {
     updateFX(delta);
 
@@ -1355,15 +1070,16 @@
     if (!questionModal.classList.contains('hidden') && state.run.mode === 'play') return;
 
     state.player.moving = false;
+    state.guard.moving = false;
 
     if (state.run.mode === 'play') {
       let dx = 0;
       let dy = 0;
 
-      if (state.keys.left) dx -= MOVE_SPEED;
-      if (state.keys.right) dx += MOVE_SPEED;
-      if (state.keys.up) dy -= MOVE_SPEED;
-      if (state.keys.down) dy += MOVE_SPEED;
+      if (state.keys.left) dx -= getMoveSpeed();
+      if (state.keys.right) dx += getMoveSpeed();
+      if (state.keys.up) dy -= getMoveSpeed();
+      if (state.keys.down) dy += getMoveSpeed();
 
       if (dx !== 0 || dy !== 0) {
         state.player.moving = true;
@@ -1372,29 +1088,37 @@
       }
 
       updateWalkAnimation(delta);
+      updateGuardAnimation(delta);
+      return;
+    }
 
-    } else if (state.run.mode === 'pull') {
+    if (state.run.mode === 'pull') {
       updatePullAnimation(delta);
+      updateWalkAnimation(delta);
+      updateGuardAnimation(delta);
+      return;
+    }
 
-    } else if (state.run.mode === 'chase') {
-      state.ai.chaseRecalcMs -= delta;
-      if (state.ai.chaseRecalcMs <= 0) {
-        refreshChasePaths();
-        state.ai.chaseRecalcMs = NAV_RECALC_CHASE_MS;
+    if (state.run.mode === 'chase') {
+      let dx = 0;
+      let dy = 0;
+
+      if (state.keys.left) dx -= CHASE_PLAYER_SPEED;
+      if (state.keys.right) dx += CHASE_PLAYER_SPEED;
+      if (state.keys.up) dy -= CHASE_PLAYER_SPEED;
+      if (state.keys.down) dy += CHASE_PLAYER_SPEED;
+
+      if (dx !== 0 || dy !== 0) {
+        state.player.moving = true;
+        state.player.direction = vectorToDirection(dx, dy);
+        tryMove(dx, dy);
       }
 
-      if (!pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
-        const movedPlayer = moveAlongPath(state.player, state.ai.playerEscapePath, CHASE_PLAYER_SPEED);
-        state.player.moving = movedPlayer;
-      }
+      moveTowards(state.guard, state.player.x, state.player.y, GUARD_CHASE_SPEED, vectorToDirection);
 
-      moveAlongPath(state.guard, state.ai.guardChasePath, GUARD_CATCH_SPEED);
-
-      if (distance(state.guard.x, state.guard.y, state.player.x, state.player.y) < 28) {
+      if (distance(state.guard.x, state.guard.y, state.player.x, state.player.y) < CATCH_DISTANCE) {
         state.run.mode = 'escort';
-        state.ai.escortRecalcMs = 0;
-        state.ai.escortGuardPath = [];
-        state.ai.escortPlayerPath = [];
+        state.player.controlLocked = true;
 
         if (!state.audio.withMePlayed) {
           playWithMe();
@@ -1404,71 +1128,98 @@
       }
 
       updateWalkAnimation(delta);
+      updateGuardAnimation(delta);
+      return;
+    }
 
-    } else if (state.run.mode === 'escort') {
-      state.ai.escortRecalcMs -= delta;
-      if (state.ai.escortRecalcMs <= 0) {
-        refreshEscortPaths();
-        state.ai.escortRecalcMs = NAV_RECALC_ESCORT_MS;
-      }
+    if (state.run.mode === 'escort') {
+      state.guard.mode = 'walk';
 
-      const movedPlayer = moveAlongPath(state.player, state.ai.escortPlayerPath, GUARD_ESCORT_SPEED * 0.97);
-      const movedGuard = moveAlongPath(state.guard, state.ai.escortGuardPath, GUARD_ESCORT_SPEED);
+      const exit = getExitZone();
+      const exitCenterX = (exit.x1 + exit.x2) / 2;
+      const exitCenterY = (exit.y1 + exit.y2) / 2;
 
-      state.player.moving = movedPlayer || movedGuard;
+      moveTowards(state.guard, exitCenterX + 18, exitCenterY + 8, GUARD_ESCORT_SPEED, escortDirectionResolver);
+
+      state.player.x = state.guard.x - 18;
+      state.player.y = state.guard.y + 4;
+      state.player.direction = 'south';
+      state.player.moving = state.guard.moving;
+
       updateWalkAnimation(delta);
+      updateGuardAnimation(delta);
 
       if (
-        pointInRect(state.player.x, state.player.y, EXIT_ZONE) ||
-        pointInRect(state.guard.x, state.guard.y, EXIT_ZONE)
+        pointInRect(state.player.x, state.player.y, exit) ||
+        pointInRect(state.guard.x, state.guard.y, exit)
       ) {
         state.run.mode = 'escort_wait';
       }
 
-    } else if (state.run.mode === 'escort_wait') {
+      return;
+    }
+
+    if (state.run.mode === 'escort_wait') {
       state.player.moving = false;
+      state.guard.moving = false;
+      state.player.direction = 'south';
+      state.guard.direction = 'south';
+
       updateWalkAnimation(delta);
+      updateGuardAnimation(delta);
 
-      const exitCenterX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
-      const exitCenterY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
+      const exit = getExitZone();
+      const exitCenterX = (exit.x1 + exit.x2) / 2;
+      const exitCenterY = (exit.y1 + exit.y2) / 2;
 
-      // hold both at exit while "With Me" finishes
       state.player.x = exitCenterX - 16;
       state.player.y = exitCenterY + 6;
       state.guard.x = exitCenterX + 18;
       state.guard.y = exitCenterY + 8;
-      state.player.direction = 'south';
-      state.guard.direction = 'south';
 
       if (state.audio.withMeFinished) {
         state.player.visible = false;
         state.guard.visible = false;
-        returnCaughtToHub();
-        return;
+        endHeist(false);
       }
+      return;
+    }
 
-    } else if (state.run.mode === 'escape') {
-      const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
-      const targetY = EXIT_ZONE.y2 + sy(30);
+    if (state.run.mode === 'escape') {
+      const exit = getExitZone();
+      const targetX = (exit.x1 + exit.x2) / 2;
+      const targetY = exit.y2 + sy(30);
 
       const dx = targetX - state.player.x;
       const dy = targetY - state.player.y;
       const len = Math.hypot(dx, dy) || 1;
 
-      const mx = (dx / len) * MOVE_SPEED;
-      const my = (dy / len) * MOVE_SPEED;
+      const mx = (dx / len) * CHASE_PLAYER_SPEED;
+      const my = (dy / len) * CHASE_PLAYER_SPEED;
 
       state.player.moving = true;
       state.player.direction = vectorToDirection(mx, my);
       state.player.x += mx;
       state.player.y += my;
-      updateWalkAnimation(delta);
 
-      if (state.player.y >= EXIT_ZONE.y2 - sy(10)) {
+      updateWalkAnimation(delta);
+      updateGuardAnimation(delta);
+
+      if (state.player.y >= exit.y2 - sy(10)) {
         state.player.visible = false;
         endHeist(true);
       }
     }
+  }
+
+  function drawImageFit(img, x, y, w, h) {
+    if (!imageReady(img)) return;
+    const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+    const dw = img.naturalWidth * scale;
+    const dh = img.naturalHeight * scale;
+    const dx = x + (w - dw) / 2;
+    const dy = y + (h - dh) / 2;
+    ctx.drawImage(img, dx, dy, dw, dh);
   }
 
   function drawFallbackRoom() {
@@ -1486,20 +1237,11 @@
     ctx.fillRect(0, canvas.height * 0.55, canvas.width, canvas.height * 0.45);
   }
 
-  function drawImageFit(img, x, y, w, h) {
-    if (!imageReady(img)) return;
-    const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
-    const dw = img.naturalWidth * scale;
-    const dh = img.naturalHeight * scale;
-    const dx = x + (w - dw) / 2;
-    const dy = y + (h - dh) / 2;
-    ctx.drawImage(img, dx, dy, dw, dh);
-  }
-
   function drawExitMat() {
-    const matX = EXIT_ZONE.x1 + 8;
-    const matY = EXIT_ZONE.y1 + 14;
-    const matW = EXIT_ZONE.x2 - EXIT_ZONE.x1 - 16;
+    const exit = getExitZone();
+    const matX = exit.x1 + 8;
+    const matY = exit.y1 + 14;
+    const matW = exit.x2 - exit.x1 - 16;
     const matH = 28;
 
     ctx.save();
@@ -1514,6 +1256,10 @@
     ctx.textBaseline = 'middle';
     ctx.fillText('EXIT', matX + matW / 2, matY + matH / 2 + 1);
     ctx.restore();
+  }
+
+  function resolveItemImage(item) {
+    return item.image || null;
   }
 
   function drawWallItem(item) {
@@ -1532,15 +1278,13 @@
   }
 
   function drawFloorItem(item) {
-    const drawW = item.drawW;
-    const drawH = item.drawH;
-    const drawX = item.anchorX - drawW / 2;
-    const drawY = item.anchorY - drawH;
+    const drawX = item.anchorX - item.drawW / 2;
+    const drawY = item.anchorY - item.drawH;
 
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,0.16)';
     ctx.beginPath();
-    ctx.ellipse(item.anchorX, item.anchorY - 4, drawW * 0.32, drawH * 0.08, 0, 0, Math.PI * 2);
+    ctx.ellipse(item.anchorX, item.anchorY - 4, item.drawW * 0.32, item.drawH * 0.08, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
@@ -1550,29 +1294,27 @@
     if (item.status === 'failed') {
       ctx.save();
       ctx.filter = 'grayscale(100%) brightness(0.65)';
-      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      ctx.drawImage(img, drawX, drawY, item.drawW, item.drawH);
       ctx.restore();
       return;
     }
 
-    ctx.drawImage(img, drawX, drawY, drawW, drawH);
+    ctx.drawImage(img, drawX, drawY, item.drawW, item.drawH);
   }
 
   function getCurrentPlayerImage() {
     if (state.player.action && state.player.action.type === 'pull') {
-      const set = pullAnimations[state.player.action.dir];
-      if (!set) return null;
+      const set = pullAnimations[state.player.action.dir] || pullAnimations.north;
       return set[Math.min(state.player.action.frameIndex, set.length - 1)];
     }
 
-    const set = walkAnimations[state.player.direction];
-    if (!set) return null;
+    const set = walkAnimations[state.player.direction] || walkAnimations.south;
     return set[state.player.walkFrameIndex];
   }
 
   function drawFallbackPlayer() {
-    const drawX = state.player.x - PLAYER_WIDTH / 2;
-    const drawY = state.player.y - PLAYER_HEIGHT;
+    const drawX = state.player.x - 50;
+    const drawY = state.player.y - 100;
 
     ctx.fillStyle = '#f3d082';
     ctx.fillRect(drawX + 34, drawY + 14, 32, 72);
@@ -1584,20 +1326,38 @@
   function drawPlayer() {
     if (!state.player.visible) return;
 
-    const drawX = state.player.x - PLAYER_WIDTH / 2;
-    const drawY = state.player.y - PLAYER_HEIGHT;
+    const drawX = state.player.x - 50;
+    const drawY = state.player.y - 100;
     const img = getCurrentPlayerImage();
 
     if (imageReady(img)) {
-      ctx.drawImage(img, drawX, drawY, PLAYER_WIDTH, PLAYER_HEIGHT);
+      ctx.drawImage(img, drawX, drawY, 100, 100);
     } else {
       drawFallbackPlayer();
     }
   }
 
+  function getCurrentGuardImage() {
+    if (state.guard.mode === 'walk') {
+      const dir =
+        state.guard.direction === 'south-east' || state.guard.direction === 'south-west' || state.guard.direction === 'south'
+          ? state.guard.direction
+          : 'south';
+      const set = guardWalkAnimations[dir] || guardWalkAnimations.south;
+      const frame = set[state.guard.frameIndex % set.length];
+      if (imageReady(frame)) return frame;
+      return guardFallbackSprites[dir] || guardFallbackSprites.south;
+    }
+
+    const runSet = guardRunAnimations[state.guard.direction] || guardRunAnimations.south;
+    const runFrame = runSet[state.guard.frameIndex % runSet.length];
+    if (imageReady(runFrame)) return runFrame;
+    return guardFallbackSprites[state.guard.direction] || guardFallbackSprites.south;
+  }
+
   function drawFallbackGuard() {
-    const drawX = state.guard.x - GUARD_WIDTH / 2;
-    const drawY = state.guard.y - GUARD_HEIGHT;
+    const drawX = state.guard.x - 50;
+    const drawY = state.guard.y - 100;
     ctx.fillStyle = '#6b8cff';
     ctx.fillRect(drawX + 32, drawY + 12, 34, 76);
   }
@@ -1605,12 +1365,12 @@
   function drawGuard() {
     if (!state.guard.active || !state.guard.visible) return;
 
-    const drawX = state.guard.x - GUARD_WIDTH / 2;
-    const drawY = state.guard.y - GUARD_HEIGHT;
-    const img = getGuardImage();
+    const drawX = state.guard.x - 50;
+    const drawY = state.guard.y - 100;
+    const img = getCurrentGuardImage();
 
     if (imageReady(img)) {
-      ctx.drawImage(img, drawX, drawY, GUARD_WIDTH, GUARD_HEIGHT);
+      ctx.drawImage(img, drawX, drawY, 100, 100);
     } else {
       drawFallbackGuard();
     }
@@ -1622,23 +1382,23 @@
     const item = getNearbyItem();
     if (item) {
       ctx.fillStyle = 'rgba(0,0,0,0.72)';
-      ctx.fillRect(state.player.x - 70, state.player.y - PLAYER_HEIGHT - 24, 140, 20);
+      ctx.fillRect(state.player.x - 70, state.player.y - 124, 140, 20);
       ctx.fillStyle = '#f7e7b0';
       ctx.font = '12px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Attempt to grab', state.player.x, state.player.y - PLAYER_HEIGHT - 14);
+      ctx.fillText('Attempt to grab', state.player.x, state.player.y - 114);
       return;
     }
 
-    if (pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
+    if (pointInRect(state.player.x, state.player.y, getExitZone())) {
       ctx.fillStyle = 'rgba(0,0,0,0.72)';
-      ctx.fillRect(state.player.x - 30, state.player.y - PLAYER_HEIGHT - 24, 60, 20);
+      ctx.fillRect(state.player.x - 30, state.player.y - 124, 60, 20);
       ctx.fillStyle = '#f7e7b0';
       ctx.font = '12px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Exit', state.player.x, state.player.y - PLAYER_HEIGHT - 14);
+      ctx.fillText('Exit', state.player.x, state.player.y - 114);
     }
   }
 
@@ -1662,24 +1422,15 @@
 
       wallItems.forEach(drawWallItem);
 
-      const floorDrawables = [];
-
+      const drawables = [];
       floorItems.forEach((item) => {
-        floorDrawables.push({
-          y: item.anchorY,
-          draw: () => drawFloorItem(item)
-        });
+        drawables.push({ y: item.anchorY, draw: () => drawFloorItem(item) });
       });
 
-      if (state.player.visible) {
-        floorDrawables.push({ y: state.player.y, draw: drawPlayer });
-      }
+      if (state.player.visible) drawables.push({ y: state.player.y, draw: drawPlayer });
+      if (state.guard.active && state.guard.visible) drawables.push({ y: state.guard.y, draw: drawGuard });
 
-      if (state.guard.active && state.guard.visible) {
-        floorDrawables.push({ y: state.guard.y, draw: drawGuard });
-      }
-
-      floorDrawables.sort((a, b) => a.y - b.y).forEach((d) => d.draw());
+      drawables.sort((a, b) => a.y - b.y).forEach((d) => d.draw());
     }
 
     drawPrompt();
@@ -1701,32 +1452,136 @@
     }
   }
 
-  function gameLoop(timestamp) {
-    if (!state.lastTimestamp) state.lastTimestamp = timestamp;
-    const delta = timestamp - state.lastTimestamp;
-    state.lastTimestamp = timestamp;
+  function ensureHomeworkPopup() {
+    if (document.getElementById('homeworkOverlay')) return;
 
-    try {
-      update(delta);
-      drawRoom();
-    } catch (err) {
-      console.error(err);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#111';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#fff';
-      ctx.font = '16px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('Game error - check console', canvas.width / 2, canvas.height / 2);
-    }
+    const style = document.createElement('style');
+    style.textContent = `
+      #homeworkOverlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.48);
+        z-index: 9999;
+        padding: 18px;
+      }
+      #homeworkOverlay.show {
+        display: flex;
+      }
+      #homeworkBoard {
+        width: min(760px, 94vw);
+        max-height: 82vh;
+        overflow: auto;
+        background: linear-gradient(180deg, #1f3b2b 0%, #14261c 100%);
+        border: 12px solid #6f5437;
+        border-radius: 18px;
+        box-shadow: 0 20px 55px rgba(0,0,0,0.45);
+        color: #f2f5ef;
+        padding: 22px 22px 18px;
+        font-family: "Trebuchet MS", Arial, sans-serif;
+      }
+      #homeworkBoard h2 {
+        margin: 0 0 6px;
+        color: #f5f7f1;
+        font-size: 30px;
+        line-height: 1.1;
+        text-align: center;
+      }
+      #homeworkBoard .chalk-sub {
+        text-align: center;
+        margin-bottom: 18px;
+        font-size: 17px;
+        color: #d9e8dd;
+      }
+      #homeworkList {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .homework-item {
+        border-top: 1px dashed rgba(240,255,240,0.26);
+        padding-top: 12px;
+      }
+      .homework-question {
+        font-size: 17px;
+        line-height: 1.35;
+        color: #ffffff;
+        margin-bottom: 6px;
+      }
+      .homework-answer {
+        font-size: 16px;
+        line-height: 1.3;
+        color: #d6f2d2;
+      }
+      .homework-close {
+        display: block;
+        margin: 18px auto 0;
+        border: none;
+        border-radius: 999px;
+        background: #ece7d8;
+        color: #1b1b1b;
+        padding: 10px 18px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+    `;
+    document.head.appendChild(style);
 
-    requestAnimationFrame(gameLoop);
+    const overlay = document.createElement('div');
+    overlay.id = 'homeworkOverlay';
+    overlay.innerHTML = `
+      <div id="homeworkBoard" role="dialog" aria-modal="true" aria-labelledby="homeworkTitle">
+        <h2 id="homeworkTitle">Preparation for Next Heist</h2>
+        <div class="chalk-sub">Best do your homework.</div>
+        <div id="homeworkList"></div>
+        <button class="homework-close" id="homeworkCloseBtn">Got it</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) hideHomeworkPopup();
+    });
+
+    const closeBtn = document.getElementById('homeworkCloseBtn');
+    if (closeBtn) closeBtn.addEventListener('click', hideHomeworkPopup);
+  }
+
+  function maybeShowHomeworkPopup() {
+    ensureHomeworkPopup();
+    if (!state.homework.pending.length || state.screen !== 'hub') return;
+
+    const overlay = document.getElementById('homeworkOverlay');
+    const list = document.getElementById('homeworkList');
+    if (!overlay || !list) return;
+
+    list.innerHTML = '';
+
+    state.homework.pending.forEach((entry) => {
+      const item = document.createElement('div');
+      item.className = 'homework-item';
+      item.innerHTML = `
+        <div class="homework-question">${entry.question}</div>
+        <div class="homework-answer">Answer: ${entry.answer}</div>
+      `;
+      list.appendChild(item);
+    });
+
+    overlay.classList.add('show');
+  }
+
+  function hideHomeworkPopup() {
+    ensureHomeworkPopup();
+    const overlay = document.getElementById('homeworkOverlay');
+    if (overlay) overlay.classList.remove('show');
   }
 
   function showScreen(name) {
     state.screen = name;
-    hubScreen.classList.toggle('active', name === 'hub');
-    gameScreen.classList.toggle('active', name === 'game');
+    if (hubScreen) hubScreen.classList.toggle('active', name === 'hub');
+    if (gameScreen) gameScreen.classList.toggle('active', name === 'game');
 
     if (name === 'game') {
       document.documentElement.style.overflow = 'hidden';
@@ -1735,6 +1590,7 @@
       document.body.style.touchAction = 'none';
       canvas.style.touchAction = 'none';
       window.scrollTo(0, 0);
+      resizeCanvas();
     } else {
       stopAllGameAudio();
       document.documentElement.style.overflow = '';
@@ -1758,8 +1614,7 @@
     const left = joystick.querySelector('[data-dir="left"]');
     const right = joystick.querySelector('[data-dir="right"]');
 
-    const buttons = [up, down, left, right];
-    buttons.forEach((btn) => {
+    [up, down, left, right].forEach((btn) => {
       if (!btn) return;
       btn.style.position = 'absolute';
       btn.style.width = '48px';
@@ -1784,7 +1639,6 @@
     }
   }
 
-  // mobile input zoom prevention
   answerInput.style.fontSize = '16px';
   answerInput.style.lineHeight = '1.2';
   answerInput.style.transform = 'translateZ(0)';
@@ -1821,6 +1675,10 @@
     if (k === 'enter' && !questionModal.classList.contains('hidden')) {
       submitAnswer();
     }
+
+    if (k === 'escape') {
+      hideHomeworkPopup();
+    }
   });
 
   document.addEventListener('keyup', (e) => {
@@ -1839,66 +1697,82 @@
       state.keys[map[dir]] = val;
     };
 
-    btn.addEventListener(
-      'touchstart',
-      (e) => {
-        e.preventDefault();
-        press(true);
-      },
-      { passive: false }
-    );
+    btn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      press(true);
+    }, { passive: false });
 
-    btn.addEventListener(
-      'touchend',
-      (e) => {
-        e.preventDefault();
-        press(false);
-      },
-      { passive: false }
-    );
+    btn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      press(false);
+    }, { passive: false });
 
-    btn.addEventListener(
-      'touchcancel',
-      (e) => {
-        e.preventDefault();
-        press(false);
-      },
-      { passive: false }
-    );
+    btn.addEventListener('touchcancel', (e) => {
+      e.preventDefault();
+      press(false);
+    }, { passive: false });
 
     btn.addEventListener('mousedown', () => press(true));
     btn.addEventListener('mouseup', () => press(false));
     btn.addEventListener('mouseleave', () => press(false));
   });
 
-  interactBtn.addEventListener('click', interact);
-  startHeistBtn.addEventListener('click', startHeist);
+  if (interactBtn) interactBtn.addEventListener('click', interact);
+  if (startHeistBtn) startHeistBtn.addEventListener('click', startHeist);
 
-  resetProgressBtn.addEventListener('click', () => {
-    state.save = {
-      totalBanked: 0,
-      bestHeist: 0,
-      heistsPlayed: 0,
-      paintingsStolen: 0,
-      usedQuestionIds: []
-    };
-    saveProgress();
-    showBanner('Progress reset.');
-  });
+  if (backToHubBtn) {
+    backToHubBtn.addEventListener('click', () => {
+      stopAllGameAudio();
+      state.run = null;
+      state.activeItem = null;
+      state.player.action = null;
+      showScreen('hub');
+      renderHubStats();
+      maybeShowHomeworkPopup();
+    });
+  }
 
-  backToHubBtn.addEventListener('click', () => showScreen('hub'));
+  if (submitAnswerBtn) submitAnswerBtn.addEventListener('click', submitAnswer);
 
-  submitAnswerBtn.addEventListener('click', submitAnswer);
+  if (cancelAnswerBtn) {
+    cancelAnswerBtn.addEventListener('click', () => {
+      questionModal.classList.add('hidden');
+      state.activeItem = null;
+    });
+  }
 
-  cancelAnswerBtn.addEventListener('click', () => {
-    questionModal.classList.add('hidden');
-    state.activeItem = null;
-  });
+  if (summaryContinueBtn) {
+    summaryContinueBtn.addEventListener('click', returnToHub);
+  }
 
-  summaryContinueBtn.addEventListener('click', returnToHub);
+  window.addEventListener('resize', resizeCanvas);
+
+  function gameLoop(timestamp) {
+    if (!state.lastTimestamp) state.lastTimestamp = timestamp;
+    const delta = timestamp - state.lastTimestamp;
+    state.lastTimestamp = timestamp;
+
+    try {
+      update(delta);
+      drawRoom();
+    } catch (err) {
+      console.error(err);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Game error - check console', canvas.width / 2, canvas.height / 2);
+    }
+
+    requestAnimationFrame(gameLoop);
+  }
 
   renderHubStats();
   showScreen('hub');
   applyJoystickLayout();
+  ensureHomeworkPopup();
+  resizeCanvas();
   requestAnimationFrame(gameLoop);
 })();
