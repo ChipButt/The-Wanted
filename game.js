@@ -794,57 +794,58 @@
     }
   }
   function startHeist() {
-    hideHomeworkPopup();
+  hideHomeworkPopup();
 
-    state.run = {
-      haul: 0,
-      strikes: 0,
-      items: createHeistItems(),
-      wrongQuestions: [],
-      ended: false,
-      mode: 'play'
-    };
+  showScreen('game');
+  resizeCanvas();
 
-    buildScaledRunData(state.run);
-    state.activeItem = null;
+  state.run = {
+    haul: 0,
+    strikes: 0,
+    items: createHeistItems(),
+    wrongQuestions: [],
+    ended: false,
+    mode: 'play'
+  };
 
-    state.player = {
-      x: sx(1410),
-      y: sy(1220),
-      direction: 'south',
-      moving: false,
-      visible: true,
-      controlLocked: false,
-      walkFrameIndex: 0,
-      walkFrameTimer: 0,
-      action: null
-    };
+  buildScaledRunData(state.run);
+  state.activeItem = null;
 
-    const guardDoor = getGuardDoorZone();
-    state.guard = {
-      x: (guardDoor.x1 + guardDoor.x2) / 2,
-      y: guardDoor.y2,
-      direction: 'south-west',
-      active: false,
-      visible: true,
-      mode: 'run',
-      frameIndex: 0,
-      frameTimer: 0,
-      moving: false
-    };
+  state.player = {
+    x: sx(1410),
+    y: sy(1220),
+    direction: 'south',
+    moving: false,
+    visible: true,
+    controlLocked: false,
+    walkFrameIndex: 0,
+    walkFrameTimer: 0,
+    action: null
+  };
 
-    state.audio.sirenStarted = false;
-    state.audio.withMePlayed = false;
-    state.audio.withMeFinished = true;
+  const guardDoor = getGuardDoorZone();
+  state.guard = {
+    x: (guardDoor.x1 + guardDoor.x2) / 2,
+    y: guardDoor.y2,
+    direction: 'south-west',
+    active: false,
+    visible: true,
+    mode: 'run',
+    frameIndex: 0,
+    frameTimer: 0,
+    moving: false
+  };
 
-    stopAllGameAudio();
-    safeRestartAudio(backgroundMusic, 0.22);
+  state.audio.sirenStarted = false;
+  state.audio.withMePlayed = false;
+  state.audio.withMeFinished = true;
 
-    updateRunStats();
-    resizeCanvas();
-    showScreen('game');
-    showBanner('Heist started.');
-  }
+  stopAllGameAudio();
+  safeRestartAudio(backgroundMusic, 0.22);
+
+  updateRunStats();
+  showBanner('Heist started.');
+}
 
   function interact() {
     if (!state.run || state.run.ended) return;
