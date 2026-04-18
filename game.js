@@ -297,7 +297,7 @@
 
   const roomBackground = loadImage('museum-room.png');
 
-  const backgroundMusic = createAudio('Minuet Antique.mp3', 0.05, true);
+  const backgroundMusic = createAudio('Minuet Antique.mp3', 0.22, true);
   const chaChingSound = createAudio('ChaChing.mp3', 0.9, false);
   const sirenSound = createAudio('Siren.mp3', 0.55, true);
   const withMeSound = createAudio('WithMe.mp3', 0.95, false);
@@ -311,17 +311,17 @@
   ];
 
   function playRandomFailVoice() {
-  if (!state.run) return;
+    if (!state.run) return;
 
-  if (!state.run.failVoicePool || state.run.failVoicePool.length === 0) {
-    state.run.failVoicePool = shuffle([...failVoiceFiles]);
+    if (!state.run.failVoicePool || state.run.failVoicePool.length === 0) {
+      state.run.failVoicePool = shuffle([...failVoiceFiles]);
+    }
+
+    const file = state.run.failVoicePool.shift();
+    const audio = createAudio(file, 0.9, false);
+    const p = audio.play();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
   }
-
-  const file = state.run.failVoicePool.shift();
-  const audio = createAudio(file, 0.9, false);
-  const p = audio.play();
-  if (p && typeof p.catch === 'function') p.catch(() => {});
-}
 
   function stopAllGameAudio() {
     stopAudio(backgroundMusic);
@@ -799,60 +799,61 @@
       }
     }
   }
+
   function startHeist() {
-  hideHomeworkPopup();
-  console.log('START HEIST FIRED');
-  showScreen('game');
-  resizeCanvas();
+    hideHomeworkPopup();
 
-  state.run = {
-    haul: 0,
-    strikes: 0,
-    items: createHeistItems(),
-    wrongQuestions: [],
-    ended: false,
-    mode: 'play'
-    failVoicePool: shuffle([...failVoiceFiles]),
-  };
+    showScreen('game');
+    resizeCanvas();
 
-  buildScaledRunData(state.run);
-  state.activeItem = null;
+    state.run = {
+      haul: 0,
+      strikes: 0,
+      items: createHeistItems(),
+      wrongQuestions: [],
+      ended: false,
+      mode: 'play',
+      failVoicePool: shuffle([...failVoiceFiles])
+    };
 
-  state.player = {
-    x: sx(1410),
-    y: sy(1220),
-    direction: 'south',
-    moving: false,
-    visible: true,
-    controlLocked: false,
-    walkFrameIndex: 0,
-    walkFrameTimer: 0,
-    action: null
-  };
+    buildScaledRunData(state.run);
+    state.activeItem = null;
 
-  const guardDoor = getGuardDoorZone();
-  state.guard = {
-    x: (guardDoor.x1 + guardDoor.x2) / 2,
-    y: guardDoor.y2,
-    direction: 'south-west',
-    active: false,
-    visible: true,
-    mode: 'run',
-    frameIndex: 0,
-    frameTimer: 0,
-    moving: false
-  };
+    state.player = {
+      x: sx(1410),
+      y: sy(1220),
+      direction: 'south',
+      moving: false,
+      visible: true,
+      controlLocked: false,
+      walkFrameIndex: 0,
+      walkFrameTimer: 0,
+      action: null
+    };
 
-  state.audio.sirenStarted = false;
-  state.audio.withMePlayed = false;
-  state.audio.withMeFinished = true;
+    const guardDoor = getGuardDoorZone();
+    state.guard = {
+      x: (guardDoor.x1 + guardDoor.x2) / 2,
+      y: guardDoor.y2,
+      direction: 'south-west',
+      active: false,
+      visible: true,
+      mode: 'run',
+      frameIndex: 0,
+      frameTimer: 0,
+      moving: false
+    };
 
-  stopAllGameAudio();
-  safeRestartAudio(backgroundMusic, 0.22);
+    state.audio.sirenStarted = false;
+    state.audio.withMePlayed = false;
+    state.audio.withMeFinished = true;
 
-  updateRunStats();
-  showBanner('Heist started.');
-}
+    stopAllGameAudio();
+    safeRestartAudio(backgroundMusic, 0.22);
+
+    updateRunStats();
+    showBanner('Heist started.');
+  }
 
   function interact() {
     if (!state.run || state.run.ended) return;
@@ -937,6 +938,7 @@
 
     state.activeItem = null;
   }
+
   function remainingAvailableItems() {
     if (!state.run) return 0;
     return state.run.items.filter((i) => i.status === 'available').length;
