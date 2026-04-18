@@ -793,7 +793,142 @@
       }
     }
   }
+  function startHeist() {
+    hideHomeworkPopup();
 
+    state.run = {
+      haul: 0,
+      strikes: 0,
+      items: createHeistItems(),
+      wrongQuestions: [],
+      ended: false,
+      mode: 'play'
+    };
+
+    buildScaledRunData(state.run);
+    state.activeItem = null;
+
+    state.player = {
+      x: sx(1410),
+      y: sy(1220),
+      direction: 'south',
+      moving: false,
+      visible: true,
+      controlLocked: false,
+      walkFrameIndex: 0,
+      walkFrameTimer: 0,
+      action: null
+    };
+
+    const guardDoor = getGuardDoorZone();
+    state.guard = {
+      x: (guardDoor.x1 + guardDoor.x2) / 2,
+      y: guardDoor.y2,
+      direction: 'south-west',
+      active: false,
+      visible: true,
+      mode: 'run',
+      frameIndex: 0,
+      frameTimer: 0,
+      moving: false
+    };
+
+    state.audio.sirenStarted = false;
+    state.audio.withMePlayed = false;
+    state.audio.withMeFinished = true;
+
+    stopAllGameAudio();
+    safeRestartAudio(backgroundMusic, 0.22);
+
+    updateRunStats();
+    resizeCanvas();
+    showScreen('game');
+    showBanner('Heist started.');
+  }
+
+  function interact() {
+    if (!state.run || state.run.ended) return;
+    if (state.player.controlLocked || state.player.action) return;
+
+    const exit = getExitZone();
+
+    if (
+      (state.run.mode === 'play' || state.run.mode === 'chase') &&
+      pointInRect(state.player.x, state.player.y, exit)
+    ) {
+      if (state.run.haul <= 0) {
+        showBanner('You need some stolen art before escaping.');
+        return;
+      }
+
+      state.player.controlLocked = true;
+      state.run.mode = 'escape';
+      state.player.direction = 'south';
+      showBanner('Escaping...');
+      return;
+    }
+
+    if (state.run.mode !== 'play') return;
+
+    const item = getNearbyItem();
+    if (!item) {
+      showBanner('Nothing to interact with here.');
+      return;
+    }
+
+    const q = chooseQuestionForItem(item);
+    if (!q) {
+      showBanner('No unused questions left.');
+      return;
+    }
+
+    state.activeItem = item;
+    questionTextEl.textContent = `${q.question} (${formatMoney(Number(q.value || 0))})`;
+    answerInput.value = '';
+    questionModal.classList.remove('hidden');
+    window.scrollTo(0, 0);
+
+    setTimeout(() => {
+      try {
+        answerInput.focus({ preventScroll: true });
+      } catch (_) {
+        answerInput.focus();
+      }
+    }, 0);
+  }
+
+  function submitAnswer() {
+    if (!state.activeItem) return;
+
+    const item = state.activeItem;
+    const q = item.question;
+    if (!q) {
+      state.activeItem = null;
+      questionModal.classList.add('hidden');
+      return;
+    }
+
+    const input = answerInput.value;
+    questionModal.classList.add('hidden');
+
+    if (isAnswerCorrect(input, q)) {
+      startPullAnimation(item);
+    } else {
+      item.status = 'failed';
+      state.run.strikes += 1;
+      recordWrongQuestion(q);
+      updateRunStats();
+      flashWrong();
+      playRandomFailVoice();
+      showBanner('Wrong answer. Security alert increased.');
+
+      if (state.run.strikes >= 3) {
+        triggerGuardChase();
+      }
+    }
+
+    state.activeItem = null;
+  }
   function remainingAvailableItems() {
     if (!state.run) return 0;
     return state.run.items.filter((i) => i.status === 'available').length;
