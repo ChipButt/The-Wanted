@@ -86,7 +86,7 @@
     return !!img && img.complete && img.naturalWidth > 0;
   }
 
-  function createAudio(src, volume = 1, loop = false) {
+  function createAudio(src, volume = 0.25, loop = false) {
     const a = new Audio(src);
     a.preload = 'auto';
     a.volume = volume;
