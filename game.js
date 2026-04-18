@@ -801,7 +801,7 @@
   }
   function startHeist() {
   hideHomeworkPopup();
-
+  console.log('START HEIST FIRED');
   showScreen('game');
   resizeCanvas();
 
