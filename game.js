@@ -55,10 +55,9 @@
   const GUARD_HEIGHT = 96;
 
   const MOVE_SPEED = 3.2;
-  const CHASE_PLAYER_SPEED = 4.0;
-  const GUARD_CATCH_SPEED = 4.9;
-  const GUARD_ESCORT_SPEED = 2.6;
-  const PLAYER_PULL_SPEED = 2.25;
+  const GUARD_CHASE_SPEED = 4.8;
+  const GUARD_ESCORT_SPEED = 2.4;
+  const PLAYER_PULL_SPEED = 2.15;
 
   const PLAYER_FRAME_MS = 120;
   const GUARD_RUN_FRAME_MS = 90;
@@ -67,11 +66,9 @@
   const WRONG_FLASH_MS = 420;
   const WRONG_SHAKE_MS = 330;
   const GUARD_FLASH_MS = 2600;
-  const NAV_RECALC_CHASE_MS = 170;
-  const NAV_RECALC_ESCORT_MS = 220;
-
   const QUESTION_MAX_STRIKES = 3;
   const SCALE_MOBILE_SPEED = 1.28;
+  const CATCH_DISTANCE = 34;
 
   let scaleX = 1;
   let scaleY = 1;
@@ -90,6 +87,70 @@
 
   function pointInRect(px, py, rect) {
     return px >= rect.x1 && px <= rect.x2 && py >= rect.y1 && py <= rect.y2;
+  }
+
+  function distance(ax, ay, bx, by) {
+    return Math.hypot(ax - bx, ay - by);
+  }
+
+  function vectorToDirection(dx, dy) {
+    if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) return 'south';
+    const angle = Math.atan2(dy, dx);
+    const oct = Math.round((8 * angle) / (2 * Math.PI) + 8) % 8;
+    return ['east', 'southeast', 'south', 'southwest', 'west', 'northwest', 'north', 'northeast'][oct];
+  }
+
+  function escortDirection(dx, dy, fallback = 'south') {
+    if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) return fallback;
+    if (dy >= 0) {
+      if (dx > 0.45) return 'southeast';
+      if (dx < -0.45) return 'southwest';
+      return 'south';
+    }
+    if (dx > 0.3) return 'southeast';
+    if (dx < -0.3) return 'southwest';
+    return 'south';
+  }
+
+  function pointInPoly(point, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i].x;
+      const yi = poly[i].y;
+      const xj = poly[j].x;
+      const yj = poly[j].y;
+      const intersect =
+        (yi > point.y) !== (yj > point.y) &&
+        point.x < ((xj - xi) * (point.y - yi)) / (yj - yi) + xi;
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  function scaledFloorPoly() {
+    return FLOOR_POLY.map((p) => ({ x: sx(p.x), y: sy(p.y) }));
+  }
+
+  function img(src) {
+    const i = new Image();
+    i.src = src;
+    return i;
+  }
+
+  function loadSeq(prefix, count) {
+    return Array.from({ length: count }, (_, i) => img(`${prefix}${i}_delay-0.2s.png`));
+  }
+
+  function imageReady(image) {
+    return image && image.complete && image.naturalWidth > 0;
+  }
+
+  function createAudio(src, volume = 1, loop = false) {
+    const a = new Audio(src);
+    a.preload = 'auto';
+    a.volume = volume;
+    a.loop = loop;
+    return a;
   }
 
   function loadSave() {
@@ -153,7 +214,6 @@
     lastTimestamp: 0,
     keys: { up: false, down: false, left: false, right: false },
     fx: {
-      bannerText: '',
       bannerTimer: 0,
       wrongFlashTimer: 0,
       wrongShakeTimer: 0,
@@ -166,7 +226,6 @@
       siren: null,
       heyStop: null,
       withMe: null,
-      failVoices: [],
       withMePlayed: false,
       withMeFinished: false
     },
@@ -175,8 +234,8 @@
       y: 0,
       visible: true,
       direction: 'south',
-      walkFrameIndex: 0,
-      walkFrameTimer: 0,
+      frameIndex: 0,
+      frameTimer: 0,
       moving: false,
       controlLocked: false,
       action: null
@@ -191,40 +250,64 @@
       frameTimer: 0,
       moving: false,
       mode: 'run'
-    },
-    ai: {
-      chaseRecalcMs: 0,
-      escortRecalcMs: 0,
-      guardChasePath: [],
-      playerEscapePath: [],
-      escortGuardPath: [],
-      escortPlayerPath: []
     }
   };
 
-  const roomBackground = new Image();
-  roomBackground.src = 'museum_room.png';
+  const roomBackground = img('museum_room.png');
 
   const walkAnimations = {
-    north: [img('Nana North Walking_0_delay-0.2s.png'), img('Nana North Walking_1_delay-0.2s.png'), img('Nana North Walking_2_delay-0.2s.png')],
-    south: [img('Nana South Walking_0_delay-0.2s.png'), img('Nana South Walking_1_delay-0.2s.png'), img('Nana South Walking_2_delay-0.2s.png')],
-    east: [img('Nana East Walking_0_delay-0.2s.png'), img('Nana East Walking_1_delay-0.2s.png'), img('Nana East Walking_2_delay-0.2s.png')],
-    west: [img('Nana West Walking_0_delay-0.2s.png'), img('Nana West Walking_1_delay-0.2s.png'), img('Nana West Walking_2_delay-0.2s.png')],
-    northeast: [img('Nana North-East Walking_0_delay-0.2s.png'), img('Nana North-East Walking_1_delay-0.2s.png'), img('Nana North-East Walking_2_delay-0.2s.png')],
-    northwest: [img('Nana North-West Walking_0_delay-0.2s.png'), img('Nana North-West Walking_1_delay-0.2s.png'), img('Nana North-West Walking_2_delay-0.2s.png')],
-    southeast: [img('Nana South-East Walking_0_delay-0.2s.png'), img('Nana South-East Walking_1_delay-0.2s.png'), img('Nana South-East Walking_2_delay-0.2s.png')],
-    southwest: [img('Nana South-West Walking_0_delay-0.2s.png'), img('Nana South-West Walking_1_delay-0.2s.png'), img('Nana South-West Walking_2_delay-0.2s.png')]
+    north: [
+      img('Nana North Walking_0_delay-0.2s.png'),
+      img('Nana North Walking_1_delay-0.2s.png'),
+      img('Nana North Walking_2_delay-0.2s.png')
+    ],
+    south: [
+      img('Nana South Walking_0_delay-0.2s.png'),
+      img('Nana South Walking_1_delay-0.2s.png'),
+      img('Nana South Walking_2_delay-0.2s.png')
+    ],
+    east: [
+      img('Nana East Walking_0_delay-0.2s.png'),
+      img('Nana East Walking_1_delay-0.2s.png'),
+      img('Nana East Walking_2_delay-0.2s.png')
+    ],
+    west: [
+      img('Nana West Walking_0_delay-0.2s.png'),
+      img('Nana West Walking_1_delay-0.2s.png'),
+      img('Nana West Walking_2_delay-0.2s.png')
+    ],
+    northeast: [
+      img('Nana North-East Walking_0_delay-0.2s.png'),
+      img('Nana North-East Walking_1_delay-0.2s.png'),
+      img('Nana North-East Walking_2_delay-0.2s.png')
+    ],
+    northwest: [
+      img('Nana North-West Walking_0_delay-0.2s.png'),
+      img('Nana North-West Walking_1_delay-0.2s.png'),
+      img('Nana North-West Walking_2_delay-0.2s.png')
+    ],
+    southeast: [
+      img('Nana South-East Walking_0_delay-0.2s.png'),
+      img('Nana South-East Walking_1_delay-0.2s.png'),
+      img('Nana South-East Walking_2_delay-0.2s.png')
+    ],
+    southwest: [
+      img('Nana South-West Walking_0_delay-0.2s.png'),
+      img('Nana South-West Walking_1_delay-0.2s.png'),
+      img('Nana South-West Walking_2_delay-0.2s.png')
+    ]
   };
 
+  /* uses walking sprites during pull so the game still works even if pulling frames are absent */
   const pullAnimations = {
-    north: [img('Nana North Pulling_0_delay-0.2s.png'), img('Nana North Pulling_1_delay-0.2s.png'), img('Nana North Pulling_2_delay-0.2s.png')],
-    south: [img('Nana South Pulling_0_delay-0.2s.png'), img('Nana South Pulling_1_delay-0.2s.png'), img('Nana South Pulling_2_delay-0.2s.png')],
-    east: [img('Nana East Pulling_0_delay-0.2s.png'), img('Nana East Pulling_1_delay-0.2s.png'), img('Nana East Pulling_2_delay-0.2s.png')],
-    west: [img('Nana West Pulling_0_delay-0.2s.png'), img('Nana West Pulling_1_delay-0.2s.png'), img('Nana West Pulling_2_delay-0.2s.png')],
-    northeast: [img('Nana North-East Pulling_0_delay-0.2s.png'), img('Nana North-East Pulling_1_delay-0.2s.png'), img('Nana North-East Pulling_2_delay-0.2s.png')],
-    northwest: [img('Nana North-West Pulling_0_delay-0.2s.png'), img('Nana North-West Pulling_1_delay-0.2s.png'), img('Nana North-West Pulling_2_delay-0.2s.png')],
-    southeast: [img('Nana South-East Pulling_0_delay-0.2s.png'), img('Nana South-East Pulling_1_delay-0.2s.png'), img('Nana South-East Pulling_2_delay-0.2s.png')],
-    southwest: [img('Nana South-West Pulling_0_delay-0.2s.png'), img('Nana South-West Pulling_1_delay-0.2s.png'), img('Nana South-West Pulling_2_delay-0.2s.png')]
+    north: walkAnimations.north,
+    south: walkAnimations.south,
+    east: walkAnimations.east,
+    west: walkAnimations.west,
+    northeast: walkAnimations.northeast,
+    northwest: walkAnimations.northwest,
+    southeast: walkAnimations.southeast,
+    southwest: walkAnimations.southwest
   };
 
   const guardRunAnimations = {
@@ -251,28 +334,6 @@
     'NextTime.mp3'
   ];
 
-  function img(src) {
-    const i = new Image();
-    i.src = src;
-    return i;
-  }
-
-  function loadSeq(prefix, count) {
-    return Array.from({ length: count }, (_, i) => img(`${prefix}${i}_delay-0.2s.png`));
-  }
-
-  function imageReady(image) {
-    return image && image.complete && image.naturalWidth > 0;
-  }
-
-  function createAudio(src, volume = 1, loop = false) {
-    const a = new Audio(src);
-    a.preload = 'auto';
-    a.volume = volume;
-    a.loop = loop;
-    return a;
-  }
-
   function resizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
@@ -283,9 +344,7 @@
     scaleX = rect.width / ROOM_W;
     scaleY = rect.height / ROOM_H;
 
-    if (state.run) {
-      buildScaledRunData(state.run);
-    }
+    if (state.run) buildScaledRunData(state.run);
   }
 
   window.addEventListener('resize', resizeCanvas);
@@ -313,12 +372,10 @@
   }
 
   function showBanner(text) {
-    state.fx.bannerText = text;
+    if (!banner) return;
+    banner.textContent = text;
+    banner.classList.add('show');
     state.fx.bannerTimer = BANNER_MS;
-    if (banner) {
-      banner.textContent = text;
-      banner.classList.add('show');
-    }
   }
 
   function updateBanner(delta) {
@@ -363,72 +420,78 @@
     updateBanner(delta);
   }
 
-  function pointInPoly(point, poly) {
-    let inside = false;
-    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-      const xi = poly[i].x;
-      const yi = poly[i].y;
-      const xj = poly[j].x;
-      const yj = poly[j].y;
-      const intersect = yi > point.y !== yj > point.y &&
-        point.x < ((xj - xi) * (point.y - yi)) / (yj - yi) + xi;
-      if (intersect) inside = !inside;
+  function stopBackgroundMusic() {
+    if (state.audio.music) {
+      state.audio.music.pause();
+      state.audio.music.currentTime = 0;
+      state.audio.music = null;
     }
-    return inside;
   }
 
-  function scaledFloorPoly() {
-    return FLOOR_POLY.map((p) => ({ x: sx(p.x), y: sy(p.y) }));
+  function playBackgroundMusic() {
+    stopBackgroundMusic();
+    state.audio.music = createAudio('BackgroundMusic.mp3', 0.42, true);
+    state.audio.music.play().catch(() => {});
   }
 
-  function canStandAt(x, y, actor = 'player') {
-    const poly = scaledFloorPoly();
-    if (!pointInPoly({ x, y }, poly)) return false;
+  function playGuardAlert() {
+    if (state.audio.heyStop) {
+      state.audio.heyStop.pause();
+      state.audio.heyStop.currentTime = 0;
+    }
+    if (state.audio.siren) {
+      state.audio.siren.pause();
+      state.audio.siren.currentTime = 0;
+    }
 
-    if (state.run) {
-      for (const item of state.run.items) {
-        if (item.type !== 'floor') continue;
-        if (item.status === 'stolen') continue;
-        const b = item.block;
-        if (pointInRect(x, y, b)) return false;
+    state.audio.heyStop = createAudio('HeyStop.mp3', 0.9, false);
+    state.audio.siren = createAudio('Siren.mp3', 0.55, true);
+
+    state.audio.heyStop.play().then(() => {
+      state.audio.heyStop.addEventListener('ended', () => {
+        if (state.audio.siren) state.audio.siren.play().catch(() => {});
+      }, { once: true });
+    }).catch(() => {
+      if (state.audio.siren) state.audio.siren.play().catch(() => {});
+    });
+  }
+
+  function playWithMe() {
+    if (state.audio.withMePlayed) return;
+    state.audio.withMePlayed = true;
+    state.audio.withMeFinished = false;
+
+    if (state.audio.withMe) {
+      state.audio.withMe.pause();
+      state.audio.withMe.currentTime = 0;
+    }
+
+    state.audio.withMe = createAudio('WithMe.mp3', 0.9, false);
+    state.audio.withMe.addEventListener('ended', () => {
+      state.audio.withMeFinished = true;
+    }, { once: true });
+    state.audio.withMe.play().catch(() => {
+      state.audio.withMeFinished = true;
+    });
+  }
+
+  function playRandomFailVoice() {
+    if (!failVoiceFiles.length) return;
+    const file = failVoiceFiles[Math.floor(Math.random() * failVoiceFiles.length)];
+    const a = createAudio(file, 0.88, false);
+    a.play().catch(() => {});
+  }
+
+  function stopAllGameAudio() {
+    stopBackgroundMusic();
+    ['siren', 'heyStop', 'withMe'].forEach((key) => {
+      const a = state.audio[key];
+      if (a) {
+        a.pause();
+        a.currentTime = 0;
+        state.audio[key] = null;
       }
-    }
-
-    const guardPad = actor === 'guard' ? 16 : 0;
-    if (
-      actor === 'player' &&
-      state.guard.active &&
-      state.guard.visible &&
-      Math.abs(x - state.guard.x) < 20 + guardPad &&
-      Math.abs(y - state.guard.y) < 12 + guardPad &&
-      (state.run?.mode === 'play' || state.run?.mode === 'chase')
-    ) {
-      return false;
-    }
-
-    return true;
-  }
-
-  function distance(ax, ay, bx, by) {
-    return Math.hypot(ax - bx, ay - by);
-  }
-
-  function vectorToDirection(dx, dy) {
-    const angle = Math.atan2(dy, dx);
-    const oct = Math.round((8 * angle) / (2 * Math.PI) + 8) % 8;
-    return ['east', 'southeast', 'south', 'southwest', 'west', 'northwest', 'north', 'northeast'][oct];
-  }
-
-  function guardEscortDirection(dx, dy, fallback = 'south') {
-    if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return fallback;
-    if (dy >= 0) {
-      if (dx > 0.55) return 'southeast';
-      if (dx < -0.55) return 'southwest';
-      return 'south';
-    }
-    if (dx > 0.35) return 'southeast';
-    if (dx < -0.35) return 'southwest';
-    return 'south';
+    });
   }
 
   function normalizeAnswer(text) {
@@ -450,24 +513,37 @@
     return getQuestionBank().filter((q) => !used.has(q.id));
   }
 
-  function markQuestionUsed(questionId) {
-    if (!questionId) return;
-    if (!state.save.usedQuestionIds.includes(questionId)) {
-      state.save.usedQuestionIds.push(questionId);
+  function markQuestionUsed(id) {
+    if (!id) return;
+    if (!state.save.usedQuestionIds.includes(id)) {
+      state.save.usedQuestionIds.push(id);
       saveProgress();
     }
   }
 
   function chooseQuestionForItem(item) {
     if (item.question) return item.question;
-
     const available = getUnusedQuestions();
     if (!available.length) return null;
-
     const q = available[Math.floor(Math.random() * available.length)];
     item.question = q;
     markQuestionUsed(q.id);
     return q;
+  }
+
+  function answerMatches(questionObj, submitted) {
+    const norm = normalizeAnswer(submitted);
+    if (!norm) return false;
+    const answers = Array.isArray(questionObj.answers) ? questionObj.answers : [];
+
+    if (questionObj.matchType === 'contains') {
+      return answers.some((a) => {
+        const n = normalizeAnswer(a);
+        return norm.includes(n) || n.includes(norm);
+      });
+    }
+
+    return answers.some((a) => norm === normalizeAnswer(a));
   }
 
   function recordWrongQuestion(questionObj) {
@@ -482,9 +558,7 @@
   }
 
   function resolveItemImage(item) {
-    if (item.type === 'floor') return item.image;
-    if (!item.variationImages || !item.variationImages.length) return item.image;
-    return item.variationImages[state.run.roundIndex % item.variationImages.length] || item.image;
+    return item.image;
   }
 
   function createRunItems() {
@@ -494,13 +568,11 @@
       {
         id: 'back_left',
         type: 'wall',
-        anchor: 'back',
         x: sx(731),
         y: sy(477),
         w: sx(79 * wallScale),
         h: sy(57 * wallScale),
         image: img('painting_back_wall_left.png'),
-        variationImages: [img('painting_back_wall_left.png')],
         value: 1400,
         status: 'available',
         question: null
@@ -508,13 +580,11 @@
       {
         id: 'back_center',
         type: 'wall',
-        anchor: 'back',
         x: sx(1201),
         y: sy(431),
         w: sx(55 * wallScale),
         h: sy(83 * wallScale),
         image: img('painting_back_wall_center.png'),
-        variationImages: [img('painting_back_wall_center.png')],
         value: 1600,
         status: 'available',
         question: null
@@ -522,13 +592,11 @@
       {
         id: 'back_right',
         type: 'wall',
-        anchor: 'back',
         x: sx(1704),
         y: sy(469),
         w: sx(88 * wallScale),
         h: sy(56 * wallScale),
         image: img('painting_back_wall_right.png'),
-        variationImages: [img('painting_back_wall_right.png')],
         value: 1500,
         status: 'available',
         question: null
@@ -536,13 +604,11 @@
       {
         id: 'left_upper',
         type: 'wall',
-        anchor: 'left',
         x: sx(370),
         y: sy(563),
         w: sx(53 * wallScale),
         h: sy(74 * wallScale),
         image: img('painting_portrait_left_upper.png'),
-        variationImages: [img('painting_portrait_left_upper.png')],
         value: 1300,
         status: 'available',
         question: null
@@ -550,17 +616,11 @@
       {
         id: 'left_lower',
         type: 'wall',
-        anchor: 'left',
         x: sx(122),
         y: sy(817),
         w: sx(64 * wallScale),
         h: sy(93 * wallScale),
         image: img('painting_portrait_left_lower_angle.png'),
-        variationImages: [
-          img('painting_portrait_left_lower_angle.png'),
-          img('painting_portrait_left_lower_angle_2.png'),
-          img('painting_portrait_left_lower_angle_3.png')
-        ],
         value: 1250,
         status: 'available',
         question: null
@@ -568,13 +628,11 @@
       {
         id: 'right_upper',
         type: 'wall',
-        anchor: 'right',
         x: sx(2144),
         y: sy(601),
         w: sx(67 * wallScale),
         h: sy(101 * wallScale),
         image: img('painting_portrait_right_upper.png'),
-        variationImages: [img('painting_portrait_right_upper.png')],
         value: 1300,
         status: 'available',
         question: null
@@ -582,16 +640,11 @@
       {
         id: 'right_lower',
         type: 'wall',
-        anchor: 'right',
         x: sx(2276),
         y: sy(832),
         w: sx(64 * wallScale),
         h: sy(93 * wallScale),
         image: img('painting_portrait_right_lower_angle.png'),
-        variationImages: [
-          img('painting_portrait_right_lower_angle.png'),
-          img('painting_portrait_right_lower_angle_2.png')
-        ],
         value: 1250,
         status: 'available',
         question: null
@@ -633,19 +686,17 @@
 
   function randomFloorPosition(type) {
     const poly = scaledFloorPoly();
-
     const minX = Math.min(...poly.map((p) => p.x));
     const maxX = Math.max(...poly.map((p) => p.x));
     const minY = Math.min(...poly.map((p) => p.y));
     const maxY = Math.max(...poly.map((p) => p.y));
 
     let attempts = 0;
-    while (attempts++ < 600) {
+    while (attempts++ < 500) {
       const x = minX + Math.random() * (maxX - minX);
       const y = minY + sy(90) + Math.random() * (maxY - minY - sy(160));
 
       if (!pointInPoly({ x, y }, poly)) continue;
-
       if (type === 'aboard' && x < sx(1450)) continue;
       if (type === 'pedestal' && x > sx(1980)) continue;
 
@@ -675,9 +726,8 @@
           }
         }
       }
-      if (overlaps) continue;
 
-      return { x, y };
+      if (!overlaps) return { x, y };
     }
 
     return type === 'aboard'
@@ -714,10 +764,43 @@
 
   let EXIT_ZONE = scaleRect(EXIT_ZONE_RAW);
 
+  function remainingItemsCount() {
+    if (!state.run) return 0;
+    return state.run.items.filter((i) => i.status !== 'stolen').length;
+  }
+
+  function canStandAt(x, y, actor = 'player') {
+    const poly = scaledFloorPoly();
+    if (!pointInPoly({ x, y }, poly)) return false;
+
+    if (state.run) {
+      for (const item of state.run.items) {
+        if (item.type !== 'floor') continue;
+        if (item.status === 'stolen') continue;
+        if (pointInRect(x, y, item.block)) return false;
+      }
+    }
+
+    if (
+      actor === 'player' &&
+      state.guard.active &&
+      state.guard.visible &&
+      state.run &&
+      (state.run.mode === 'play' || state.run.mode === 'chase')
+    ) {
+      if (Math.abs(x - state.guard.x) < 22 && Math.abs(y - state.guard.y) < 14) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   function startHeist() {
     hideHomeworkPopup();
 
     const items = createRunItems();
+
     state.run = {
       haul: 0,
       strikes: 0,
@@ -733,8 +816,8 @@
     state.player.x = sx(1380);
     state.player.y = sy(1210);
     state.player.direction = 'south';
-    state.player.walkFrameIndex = 0;
-    state.player.walkFrameTimer = 0;
+    state.player.frameIndex = 0;
+    state.player.frameTimer = 0;
     state.player.visible = true;
     state.player.moving = false;
     state.player.controlLocked = false;
@@ -750,25 +833,12 @@
     state.guard.moving = false;
     state.guard.mode = 'run';
 
-    state.ai.chaseRecalcMs = 0;
-    state.ai.escortRecalcMs = 0;
-    state.ai.guardChasePath = [];
-    state.ai.playerEscapePath = [];
-    state.ai.escortGuardPath = [];
-    state.ai.escortPlayerPath = [];
-
     state.audio.withMePlayed = false;
     state.audio.withMeFinished = false;
 
     setHeistHeader(state.run.haul, state.run.strikes, remainingItemsCount());
-
     showScreen('game');
     playBackgroundMusic();
-  }
-
-  function remainingItemsCount() {
-    if (!state.run) return 0;
-    return state.run.items.filter((i) => i.status !== 'stolen').length;
   }
 
   function getNearbyItem() {
@@ -778,10 +848,10 @@
     let best = Infinity;
 
     for (const item of state.run.items) {
-      if (item.status === 'stolen') continue;
-      if (item.status === 'failed') continue;
+      if (item.status === 'stolen' || item.status === 'failed') continue;
 
-      let tx, ty;
+      let tx;
+      let ty;
       if (item.type === 'floor') {
         tx = item.anchorX;
         ty = item.anchorY - item.drawH * 0.45;
@@ -806,17 +876,21 @@
 
   function interact() {
     if (state.screen !== 'game') return;
-    if (!state.run || state.run.mode !== 'play') return;
-    if (!questionModal || !questionModal.classList.contains('hidden')) return;
+    if (!state.run) return;
+    if (questionModal && !questionModal.classList.contains('hidden')) return;
     if (state.player.controlLocked) return;
 
-    if (pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
-      if (state.guard.active) return;
+    if (
+      (state.run.mode === 'play' || state.run.mode === 'chase') &&
+      pointInRect(state.player.x, state.player.y, EXIT_ZONE)
+    ) {
       state.run.mode = 'escape';
       state.player.controlLocked = true;
       showBanner('Escaping...');
       return;
     }
+
+    if (state.run.mode !== 'play') return;
 
     const item = getNearbyItem();
     if (!item) return;
@@ -837,17 +911,6 @@
     });
   }
 
-  function answerMatches(questionObj, submitted) {
-    const norm = normalizeAnswer(submitted);
-    if (!norm) return false;
-
-    const answers = Array.isArray(questionObj.answers) ? questionObj.answers : [];
-    if (questionObj.matchType === 'contains') {
-      return answers.some((a) => norm.includes(normalizeAnswer(a)) || normalizeAnswer(a).includes(norm));
-    }
-    return answers.some((a) => norm === normalizeAnswer(a));
-  }
-
   function submitAnswer() {
     if (!state.activeItem) return;
     const q = getCurrentQuestion();
@@ -865,8 +928,7 @@
         itemId: state.activeItem.id,
         dir: state.player.direction,
         frameIndex: 0,
-        timer: 0,
-        progress: 0
+        timer: 0
       };
       state.run.mode = 'pull';
       showBanner(`Stolen! +£${(Number(q.value || 0) / 100).toFixed(2)}`);
@@ -901,9 +963,9 @@
     state.guard.frameTimer = 0;
     state.guard.moving = true;
 
-    state.player.controlLocked = true;
+    /* player still gets to run */
+    state.player.controlLocked = false;
     state.run.mode = 'chase';
-    state.ai.chaseRecalcMs = 0;
 
     playGuardAlert();
     startGuardFX();
@@ -926,7 +988,6 @@
       saveProgress();
       triggerHeistEndHomework();
       renderHubStats();
-      showBanner(`Escaped with £${(state.run.haul / 100).toFixed(2)}!`);
       returnToHub();
       return;
     }
@@ -956,104 +1017,18 @@
     maybeShowHomeworkPopup();
   }
 
-  function playBackgroundMusic() {
-    stopBackgroundMusic();
-    state.audio.music = createAudio('BackgroundMusic.mp3', 0.42, true);
-    state.audio.music.play().catch(() => {});
-  }
-
-  function stopBackgroundMusic() {
-    if (state.audio.music) {
-      state.audio.music.pause();
-      state.audio.music.currentTime = 0;
-      state.audio.music = null;
-    }
-  }
-
-  function playGuardAlert() {
-    if (state.audio.heyStop) {
-      state.audio.heyStop.pause();
-      state.audio.heyStop.currentTime = 0;
-    }
-    if (state.audio.siren) {
-      state.audio.siren.pause();
-      state.audio.siren.currentTime = 0;
-    }
-
-    state.audio.heyStop = createAudio('HeyStop.mp3', 0.9, false);
-    state.audio.siren = createAudio('Siren.mp3', 0.55, true);
-
-    state.audio.heyStop.play().then(() => {
-      state.audio.heyStop.addEventListener('ended', () => {
-        state.audio.siren.play().catch(() => {});
-      }, { once: true });
-    }).catch(() => {
-      state.audio.siren.play().catch(() => {});
-    });
-  }
-
-  function playWithMe() {
-    if (state.audio.withMePlayed) return;
-    state.audio.withMePlayed = true;
-    state.audio.withMeFinished = false;
-
-    if (state.audio.withMe) {
-      state.audio.withMe.pause();
-      state.audio.withMe.currentTime = 0;
-    }
-
-    state.audio.withMe = createAudio('WithMe.mp3', 0.9, false);
-    state.audio.withMe.addEventListener('ended', () => {
-      state.audio.withMeFinished = true;
-    }, { once: true });
-
-    state.audio.withMe.play().catch(() => {
-      state.audio.withMeFinished = true;
-    });
-  }
-
-  function playRandomFailVoice() {
-    if (!failVoiceFiles.length) return;
-    const choice = failVoiceFiles[Math.floor(Math.random() * failVoiceFiles.length)];
-    const a = createAudio(choice, 0.88, false);
-    a.play().catch(() => {});
-  }
-
-  function stopAllGameAudio() {
-    stopBackgroundMusic();
-    for (const key of ['siren', 'heyStop', 'withMe']) {
-      const a = state.audio[key];
-      if (a) {
-        a.pause();
-        a.currentTime = 0;
-        state.audio[key] = null;
-      }
-    }
-  }
-
-  function getGuardImage() {
-    const dir = state.guard.direction || 'south';
-    if (state.guard.mode === 'walk') {
-      const fallbackDir = dir === 'southeast' || dir === 'southwest' || dir === 'south' ? dir : 'south';
-      const set = guardWalkAnimations[fallbackDir] || guardWalkAnimations.south;
-      return set[state.guard.frameIndex % set.length];
-    }
-    const set = guardRunAnimations[dir] || guardRunAnimations.south;
-    return set[state.guard.frameIndex % set.length];
-  }
-
   function updateWalkAnimation(delta) {
     if (!state.player.moving) {
-      state.player.walkFrameIndex = 0;
-      state.player.walkFrameTimer = 0;
+      state.player.frameIndex = 0;
+      state.player.frameTimer = 0;
       return;
     }
 
-    state.player.walkFrameTimer += delta;
-    if (state.player.walkFrameTimer >= PLAYER_FRAME_MS) {
-      state.player.walkFrameTimer = 0;
+    state.player.frameTimer += delta;
+    if (state.player.frameTimer >= PLAYER_FRAME_MS) {
+      state.player.frameTimer = 0;
       const set = walkAnimations[state.player.direction] || walkAnimations.south;
-      state.player.walkFrameIndex = (state.player.walkFrameIndex + 1) % set.length;
+      state.player.frameIndex = (state.player.frameIndex + 1) % set.length;
     }
   }
 
@@ -1061,9 +1036,10 @@
     if (!state.guard.active) return;
 
     const frameMs = state.guard.mode === 'walk' ? GUARD_WALK_FRAME_MS : GUARD_RUN_FRAME_MS;
-    const set = state.guard.mode === 'walk'
-      ? (guardWalkAnimations[state.guard.direction] || guardWalkAnimations.south)
-      : (guardRunAnimations[state.guard.direction] || guardRunAnimations.south);
+    const set =
+      state.guard.mode === 'walk'
+        ? (guardWalkAnimations[state.guard.direction] || guardWalkAnimations.south)
+        : (guardRunAnimations[state.guard.direction] || guardRunAnimations.south);
 
     if (!state.guard.moving) {
       state.guard.frameIndex = 0;
@@ -1089,8 +1065,11 @@
       action.frameIndex = (action.frameIndex + 1) % set.length;
     }
 
-    const dx = (EXIT_ZONE.x2 - EXIT_ZONE.x1) / 2 + EXIT_ZONE.x1 - state.player.x;
-    const dy = EXIT_ZONE.y2 + sy(20) - state.player.y;
+    const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
+    const targetY = EXIT_ZONE.y2 + sy(20);
+
+    const dx = targetX - state.player.x;
+    const dy = targetY - state.player.y;
     const len = Math.hypot(dx, dy) || 1;
     const mx = (dx / len) * PLAYER_PULL_SPEED;
     const my = (dy / len) * PLAYER_PULL_SPEED;
@@ -1115,173 +1094,12 @@
         state.player.x = sx(1380);
         state.player.y = sy(1210);
         state.player.direction = 'south';
-        state.player.walkFrameIndex = 0;
+        state.player.frameIndex = 0;
         state.player.moving = false;
+        state.run.mode = 'play';
         showBanner('Back in the room...');
       }
     }
-  }
-
-  const NAV_CELL = 28;
-
-  function buildNavGrid() {
-    const cols = Math.ceil(canvas.clientWidth / NAV_CELL);
-    const rows = Math.ceil(canvas.clientHeight / NAV_CELL);
-    const grid = [];
-
-    for (let y = 0; y < rows; y++) {
-      const row = [];
-      for (let x = 0; x < cols; x++) {
-        const px = x * NAV_CELL + NAV_CELL / 2;
-        const py = y * NAV_CELL + NAV_CELL / 2;
-        row.push(canStandAt(px, py, 'guard'));
-      }
-      grid.push(row);
-    }
-
-    return { grid, cols, rows };
-  }
-
-  function navCellFromPoint(px, py) {
-    return {
-      x: Math.max(0, Math.floor(px / NAV_CELL)),
-      y: Math.max(0, Math.floor(py / NAV_CELL))
-    };
-  }
-
-  function navPointFromCell(cell) {
-    return {
-      x: cell.x * NAV_CELL + NAV_CELL / 2,
-      y: cell.y * NAV_CELL + NAV_CELL / 2
-    };
-  }
-
-  function findPath(startPx, startPy, endPx, endPy) {
-    const { grid, cols, rows } = buildNavGrid();
-    const start = navCellFromPoint(startPx, startPy);
-    const goal = navCellFromPoint(endPx, endPy);
-
-    if (
-      start.x < 0 || start.x >= cols || start.y < 0 || start.y >= rows ||
-      goal.x < 0 || goal.x >= cols || goal.y < 0 || goal.y >= rows
-    ) {
-      return [];
-    }
-
-    const dirs = [
-      { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
-      { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: -1 }
-    ];
-
-    const queue = [start];
-    const visited = new Set([`${start.x},${start.y}`]);
-    const cameFrom = new Map();
-
-    while (queue.length) {
-      const current = queue.shift();
-      if (current.x === goal.x && current.y === goal.y) break;
-
-      for (const d of dirs) {
-        const nx = current.x + d.x;
-        const ny = current.y + d.y;
-        const key = `${nx},${ny}`;
-
-        if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
-        if (visited.has(key)) continue;
-
-        const walkable = grid[ny][nx] || (nx === goal.x && ny === goal.y);
-        if (!walkable) continue;
-
-        visited.add(key);
-        cameFrom.set(key, current);
-        queue.push({ x: nx, y: ny });
-      }
-    }
-
-    const goalKey = `${goal.x},${goal.y}`;
-    if (!cameFrom.has(goalKey) && !(start.x === goal.x && start.y === goal.y)) {
-      return [];
-    }
-
-    const path = [];
-    let cur = goal;
-    while (!(cur.x === start.x && cur.y === start.y)) {
-      path.push(navPointFromCell(cur));
-      const prev = cameFrom.get(`${cur.x},${cur.y}`);
-      if (!prev) break;
-      cur = prev;
-    }
-    path.reverse();
-    return path;
-  }
-
-  function moveAlongPath(actor, path, speed) {
-    if (!path || !path.length) return false;
-
-    const target = path[0];
-    const dx = target.x - actor.x;
-    const dy = target.y - actor.y;
-    const dist = Math.hypot(dx, dy);
-
-    if (dist <= speed + 1) {
-      actor.x = target.x;
-      actor.y = target.y;
-      path.shift();
-      return true;
-    }
-
-    actor.x += (dx / dist) * speed;
-    actor.y += (dy / dist) * speed;
-
-    if (actor === state.guard) {
-      actor.direction = actor.mode === 'walk'
-        ? guardEscortDirection(dx, dy, actor.direction)
-        : vectorToDirection(dx, dy);
-    }
-
-    return true;
-  }
-
-  function refreshChasePaths() {
-    const exitCenterX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
-    const exitCenterY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
-
-    if (!pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
-      state.ai.playerEscapePath = findPath(        
-        state.player.x,
-        state.player.y,
-        exitCenterX,
-        exitCenterY
-      );
-    } else {
-      state.ai.playerEscapePath = [];
-    }
-
-    state.ai.guardChasePath = findPath(
-      state.guard.x,
-      state.guard.y,
-      state.player.x,
-      state.player.y
-    );
-  }
-
-  function refreshEscortPaths() {
-    const exitCenterX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
-    const exitCenterY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
-
-    state.ai.escortGuardPath = findPath(
-      state.guard.x,
-      state.guard.y,
-      exitCenterX + 18,
-      exitCenterY + 8
-    );
-
-    state.ai.escortPlayerPath = findPath(
-      state.player.x,
-      state.player.y,
-      exitCenterX - 16,
-      exitCenterY + 6
-    );
   }
 
   function tryMove(dx, dy) {
@@ -1314,6 +1132,30 @@
     return false;
   }
 
+  function moveGuardToward(targetX, targetY, speed) {
+    const dx = targetX - state.guard.x;
+    const dy = targetY - state.guard.y;
+    const len = Math.hypot(dx, dy);
+
+    if (len < 0.001) {
+      state.guard.moving = false;
+      return;
+    }
+
+    const mx = (dx / len) * speed;
+    const my = (dy / len) * speed;
+
+    state.guard.x += mx;
+    state.guard.y += my;
+    state.guard.moving = true;
+
+    if (state.guard.mode === 'walk') {
+      state.guard.direction = escortDirection(mx, my, state.guard.direction);
+    } else {
+      state.guard.direction = vectorToDirection(mx, my);
+    }
+  }
+
   function update(delta) {
     updateFX(delta);
     if (state.screen !== 'game' || !state.run) return;
@@ -1342,100 +1184,90 @@
 
       updateWalkAnimation(delta);
       updateGuardAnimation(delta);
+      return;
+    }
 
-    } else if (state.run.mode === 'pull') {
+    if (state.run.mode === 'pull') {
       updatePullAnimation(delta);
       updateGuardAnimation(delta);
+      return;
+    }
 
-    } else if (state.run.mode === 'chase') {
+    if (state.run.mode === 'chase') {
+      let dx = 0;
+      let dy = 0;
+
+      if (!state.player.controlLocked) {
+        if (state.keys.left) dx -= 1;
+        if (state.keys.right) dx += 1;
+        if (state.keys.up) dy -= 1;
+        if (state.keys.down) dy += 1;
+      }
+
+      if (dx !== 0 || dy !== 0) {
+        const len = Math.hypot(dx, dy);
+        dx /= len;
+        dy /= len;
+        state.player.direction = vectorToDirection(dx, dy);
+        tryMove(dx, dy);
+      }
+
       state.guard.mode = 'run';
+      moveGuardToward(state.player.x, state.player.y, GUARD_CHASE_SPEED);
 
-      state.ai.chaseRecalcMs -= delta;
-      if (state.ai.chaseRecalcMs <= 0) {
-        refreshChasePaths();
-        state.ai.chaseRecalcMs = NAV_RECALC_CHASE_MS;
-      }
-
-      if (!pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
-        const movedPlayer = moveAlongPath(state.player, state.ai.playerEscapePath, CHASE_PLAYER_SPEED);
-        state.player.moving = movedPlayer;
-      }
-
-      state.guard.moving = moveAlongPath(state.guard, state.ai.guardChasePath, GUARD_CATCH_SPEED);
-
-      if (distance(state.guard.x, state.guard.y, state.player.x, state.player.y) < 28) {
+      if (distance(state.guard.x, state.guard.y, state.player.x, state.player.y) < CATCH_DISTANCE) {
         state.run.mode = 'escort';
         state.guard.mode = 'walk';
-        state.ai.escortRecalcMs = 0;
-        state.ai.escortGuardPath = [];
-        state.ai.escortPlayerPath = [];
-        if (!state.audio.withMePlayed) {
-          playWithMe();
-        }
+        state.player.controlLocked = true;
+        playWithMe();
         showBanner('Caught! Escorted out.');
       }
 
       updateWalkAnimation(delta);
       updateGuardAnimation(delta);
+      return;
+    }
 
-    } else if (state.run.mode === 'escort') {
+    if (state.run.mode === 'escort') {
       state.guard.mode = 'walk';
 
-      state.ai.escortRecalcMs -= delta;
-      if (state.ai.escortRecalcMs <= 0) {
-        refreshEscortPaths();
-        state.ai.escortRecalcMs = NAV_RECALC_ESCORT_MS;
-      }
+      const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2 + sx(18);
+      const targetY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2 + sy(8);
 
-      const prevGuardX = state.guard.x;
-      const prevGuardY = state.guard.y;
+      moveGuardToward(targetX, targetY, GUARD_ESCORT_SPEED);
 
-      const movedPlayer = moveAlongPath(state.player, state.ai.escortPlayerPath, GUARD_ESCORT_SPEED * 0.97);
-      const movedGuard = moveAlongPath(state.guard, state.ai.escortGuardPath, GUARD_ESCORT_SPEED);
-
-      state.player.moving = movedPlayer || movedGuard;
-      state.guard.moving = movedGuard;
-
-      if (movedGuard) {
-        const dx = state.guard.x - prevGuardX;
-        const dy = state.guard.y - prevGuardY;
-        state.guard.direction = guardEscortDirection(dx, dy, state.guard.direction);
-      }
+      state.player.x = state.guard.x - sx(22);
+      state.player.y = state.guard.y + sy(4);
+      state.player.direction = 'south';
+      state.player.moving = state.guard.moving;
 
       updateWalkAnimation(delta);
       updateGuardAnimation(delta);
 
-      if (
-        pointInRect(state.player.x, state.player.y, EXIT_ZONE) ||
-        pointInRect(state.guard.x, state.guard.y, EXIT_ZONE)
-      ) {
+      if (pointInRect(state.guard.x, state.guard.y, EXIT_ZONE)) {
         state.run.mode = 'escort_wait';
       }
+      return;
+    }
 
-    } else if (state.run.mode === 'escort_wait') {
+    if (state.run.mode === 'escort_wait') {
       state.player.moving = false;
       state.guard.moving = false;
-      updateWalkAnimation(delta);
-      updateGuardAnimation(delta);
-
-      const exitCenterX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
-      const exitCenterY = (EXIT_ZONE.y1 + EXIT_ZONE.y2) / 2;
-
-      state.player.x = exitCenterX - 16;
-      state.player.y = exitCenterY + 6;
-      state.guard.x = exitCenterX + 18;
-      state.guard.y = exitCenterY + 8;
       state.player.direction = 'south';
       state.guard.direction = 'south';
+
+      updateWalkAnimation(delta);
+      updateGuardAnimation(delta);
 
       if (state.audio.withMeFinished) {
         state.player.visible = false;
         state.guard.visible = false;
         endCaughtToHub();
-        return;
       }
+      return;
+    }
 
-    } else if (state.run.mode === 'escape') {
+    if (state.run.mode === 'escape') {
       const targetX = (EXIT_ZONE.x1 + EXIT_ZONE.x2) / 2;
       const targetY = EXIT_ZONE.y2 + sy(30);
 
@@ -1475,14 +1307,14 @@
     ctx.fillRect(0, canvas.height * 0.55, canvas.width, canvas.height * 0.45);
   }
 
-  function drawImageFit(img, x, y, w, h) {
-    if (!imageReady(img)) return;
-    const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
-    const dw = img.naturalWidth * scale;
-    const dh = img.naturalHeight * scale;
+  function drawImageFit(imgObj, x, y, w, h) {
+    if (!imageReady(imgObj)) return;
+    const scale = Math.min(w / imgObj.naturalWidth, h / imgObj.naturalHeight);
+    const dw = imgObj.naturalWidth * scale;
+    const dh = imgObj.naturalHeight * scale;
     const dx = x + (w - dw) / 2;
     const dy = y + (h - dh) / 2;
-    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.drawImage(imgObj, dx, dy, dw, dh);
   }
 
   function drawExitMat() {
@@ -1506,45 +1338,43 @@
   }
 
   function drawWallItem(item) {
-    const img = resolveItemImage(item);
-    if (!img) return;
+    const image = resolveItemImage(item);
+    if (!image) return;
 
     if (item.status === 'failed') {
       ctx.save();
       ctx.filter = 'grayscale(100%) brightness(0.65)';
-      drawImageFit(img, item.x, item.y, item.w, item.h);
+      drawImageFit(image, item.x, item.y, item.w, item.h);
       ctx.restore();
       return;
     }
 
-    drawImageFit(img, item.x, item.y, item.w, item.h);
+    drawImageFit(image, item.x, item.y, item.w, item.h);
   }
 
   function drawFloorItem(item) {
-    const drawW = item.drawW;
-    const drawH = item.drawH;
-    const drawX = item.anchorX - drawW / 2;
-    const drawY = item.anchorY - drawH;
+    const drawX = item.anchorX - item.drawW / 2;
+    const drawY = item.anchorY - item.drawH;
 
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,0.16)';
     ctx.beginPath();
-    ctx.ellipse(item.anchorX, item.anchorY - 4, drawW * 0.32, drawH * 0.08, 0, 0, Math.PI * 2);
+    ctx.ellipse(item.anchorX, item.anchorY - 4, item.drawW * 0.32, item.drawH * 0.08, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    const img = resolveItemImage(item);
-    if (!img) return;
+    const image = resolveItemImage(item);
+    if (!image) return;
 
     if (item.status === 'failed') {
       ctx.save();
       ctx.filter = 'grayscale(100%) brightness(0.65)';
-      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      ctx.drawImage(image, drawX, drawY, item.drawW, item.drawH);
       ctx.restore();
       return;
     }
 
-    ctx.drawImage(img, drawX, drawY, drawW, drawH);
+    ctx.drawImage(image, drawX, drawY, item.drawW, item.drawH);
   }
 
   function getCurrentPlayerImage() {
@@ -1552,9 +1382,8 @@
       const set = pullAnimations[state.player.action.dir] || pullAnimations.south;
       return set[Math.min(state.player.action.frameIndex, set.length - 1)];
     }
-
     const set = walkAnimations[state.player.direction] || walkAnimations.south;
-    return set[state.player.walkFrameIndex];
+    return set[state.player.frameIndex % set.length];
   }
 
   function drawFallbackPlayer() {
@@ -1571,13 +1400,27 @@
     if (!state.player.visible) return;
     const drawX = state.player.x - PLAYER_WIDTH / 2;
     const drawY = state.player.y - PLAYER_HEIGHT;
-    const img = getCurrentPlayerImage();
+    const image = getCurrentPlayerImage();
 
-    if (imageReady(img)) {
-      ctx.drawImage(img, drawX, drawY, PLAYER_WIDTH, PLAYER_HEIGHT);
+    if (imageReady(image)) {
+      ctx.drawImage(image, drawX, drawY, PLAYER_WIDTH, PLAYER_HEIGHT);
     } else {
       drawFallbackPlayer();
     }
+  }
+
+  function getGuardImage() {
+    const dir = state.guard.direction || 'south';
+    if (state.guard.mode === 'walk') {
+      const fallbackDir =
+        dir === 'south' || dir === 'southeast' || dir === 'southwest'
+          ? dir
+          : 'south';
+      const set = guardWalkAnimations[fallbackDir] || guardWalkAnimations.south;
+      return set[state.guard.frameIndex % set.length];
+    }
+    const set = guardRunAnimations[dir] || guardRunAnimations.south;
+    return set[state.guard.frameIndex % set.length];
   }
 
   function drawFallbackGuard() {
@@ -1591,20 +1434,20 @@
     if (!state.guard.active || !state.guard.visible) return;
     const drawX = state.guard.x - GUARD_WIDTH / 2;
     const drawY = state.guard.y - GUARD_HEIGHT;
-    const img = getGuardImage();
+    const image = getGuardImage();
 
-    if (imageReady(img)) {
-      ctx.drawImage(img, drawX, drawY, GUARD_WIDTH, GUARD_HEIGHT);
+    if (imageReady(image)) {
+      ctx.drawImage(image, drawX, drawY, GUARD_WIDTH, GUARD_HEIGHT);
     } else {
       drawFallbackGuard();
     }
   }
 
   function drawPrompt() {
-    if (!state.run || state.run.mode !== 'play' || state.player.controlLocked) return;
+    if (!state.run || state.player.controlLocked) return;
 
     const item = getNearbyItem();
-    if (item) {
+    if (state.run.mode === 'play' && item) {
       ctx.fillStyle = 'rgba(0,0,0,0.72)';
       ctx.fillRect(state.player.x - 70, state.player.y - PLAYER_HEIGHT - 24, 140, 20);
       ctx.fillStyle = '#f7e7b0';
@@ -1615,7 +1458,10 @@
       return;
     }
 
-    if (pointInRect(state.player.x, state.player.y, EXIT_ZONE)) {
+    if (
+      (state.run.mode === 'play' || state.run.mode === 'chase') &&
+      pointInRect(state.player.x, state.player.y, EXIT_ZONE)
+    ) {
       ctx.fillStyle = 'rgba(0,0,0,0.72)';
       ctx.fillRect(state.player.x - 30, state.player.y - PLAYER_HEIGHT - 24, 60, 20);
       ctx.fillStyle = '#f7e7b0';
@@ -1646,24 +1492,15 @@
 
       wallItems.forEach(drawWallItem);
 
-      const floorDrawables = [];
-
+      const drawables = [];
       floorItems.forEach((item) => {
-        floorDrawables.push({
-          y: item.anchorY,
-          draw: () => drawFloorItem(item)
-        });
+        drawables.push({ y: item.anchorY, draw: () => drawFloorItem(item) });
       });
 
-      if (state.player.visible) {
-        floorDrawables.push({ y: state.player.y, draw: drawPlayer });
-      }
+      if (state.player.visible) drawables.push({ y: state.player.y, draw: drawPlayer });
+      if (state.guard.active && state.guard.visible) drawables.push({ y: state.guard.y, draw: drawGuard });
 
-      if (state.guard.active && state.guard.visible) {
-        floorDrawables.push({ y: state.guard.y, draw: drawGuard });
-      }
-
-      floorDrawables.sort((a, b) => a.y - b.y).forEach((d) => d.draw());
+      drawables.sort((a, b) => a.y - b.y).forEach((d) => d.draw());
     }
 
     drawPrompt();
@@ -1677,7 +1514,7 @@
 
     if (
       state.fx.guardFlashTimer > 0 ||
-      (state.run && (state.run.mode === 'chase' || state.run.mode === 'escort' || state.run.mode === 'escort_wait'))
+      (state.run && ['chase', 'escort', 'escort_wait'].includes(state.run.mode))
     ) {
       const pulse = Math.floor(performance.now() / 120) % 2;
       ctx.fillStyle = pulse === 0 ? 'rgba(255,0,0,0.10)' : 'rgba(0,100,255,0.10)';
@@ -1721,7 +1558,6 @@
         font-size: 30px;
         line-height: 1.1;
         text-align: center;
-        text-shadow: 0 0 1px rgba(255,255,255,0.2);
       }
       #homeworkBoard .chalk-sub {
         text-align: center;
@@ -1981,7 +1817,16 @@
     });
   }
 
-  if (backToHubBtn) backToHubBtn.addEventListener('click', () => showScreen('hub'));
+  if (backToHubBtn) {
+    backToHubBtn.addEventListener('click', () => {
+      state.run = null;
+      state.activeItem = null;
+      showScreen('hub');
+      renderHubStats();
+      maybeShowHomeworkPopup();
+    });
+  }
+
   if (submitAnswerBtn) submitAnswerBtn.addEventListener('click', submitAnswer);
 
   if (cancelAnswerBtn) {
